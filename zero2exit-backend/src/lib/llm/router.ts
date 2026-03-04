@@ -1,8 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
+import OpenAI from 'openai'
 import { Langfuse } from 'langfuse'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const nvidia = new OpenAI({
+  apiKey: process.env.NVIDIA_API_KEY!,
+  baseURL: process.env.NVIDIA_BASE_URL ?? 'https://integrate.api.nvidia.com/v1',
+})
+
+const MODEL = process.env.KIMI_MODEL ?? 'moonshotai/kimi-k2.5'
+
 const langfuse = new Langfuse({
   secretKey: process.env.LANGFUSE_SECRET_KEY!,
   publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
@@ -23,131 +28,49 @@ export type LLMTask =
   | 'coach.conversation'
   | 'coach.proactiveSuggestion'
 
-const TASK_CONFIG: Record<
-  LLMTask,
-  { model: string; maxTokens: number; streaming: boolean }
-> = {
-  'gateway.classify': {
-    model: 'claude-haiku-4-5',
-    maxTokens: 500,
-    streaming: false,
-  },
-  'gateway.validateInput': {
-    model: 'claude-haiku-4-5',
-    maxTokens: 200,
-    streaming: false,
-  },
-  'm01.stressTest': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 2000,
-    streaming: true,
-  },
-  'm01.marketSizing': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 3000,
-    streaming: false,
-  },
-  'm01.competitiveMap': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 2500,
-    streaming: false,
-  },
-  'm01.icpBuilder': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 2000,
-    streaming: false,
-  },
-  'm01.scorecard': {
-    model: 'claude-haiku-4-5',
-    maxTokens: 1000,
-    streaming: false,
-  },
-  'm02.entityRecommendation': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 2000,
-    streaming: false,
-  },
-  'm02.legalRoadmap': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 3000,
-    streaming: false,
-  },
-  'm02.documentGeneration': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 8000,
-    streaming: false,
-  },
-  'coach.conversation': {
-    model: 'claude-sonnet-4-5',
-    maxTokens: 2000,
-    streaming: true,
-  },
-  'coach.proactiveSuggestion': {
-    model: 'claude-haiku-4-5',
-    maxTokens: 500,
-    streaming: false,
-  },
+export type LLMMessage = {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+}
+
+const TASK_CONFIG: Record<LLMTask, { maxTokens: number }> = {
+  'gateway.classify':          { maxTokens: 500  },
+  'gateway.validateInput':     { maxTokens: 200  },
+  'm01.stressTest':            { maxTokens: 2000 },
+  'm01.marketSizing':          { maxTokens: 3000 },
+  'm01.competitiveMap':        { maxTokens: 2500 },
+  'm01.icpBuilder':            { maxTokens: 2000 },
+  'm01.scorecard':             { maxTokens: 1000 },
+  'm02.entityRecommendation':  { maxTokens: 2000 },
+  'm02.legalRoadmap':          { maxTokens: 3000 },
+  'm02.documentGeneration':    { maxTokens: 8000 },
+  'coach.conversation':        { maxTokens: 2000 },
+  'coach.proactiveSuggestion': { maxTokens: 500  },
 }
 
 export async function llmCall(
   task: LLMTask,
-  messages: MessageParam[],
-  systemPrompt: string,
+  messages: LLMMessage[],
+  systemPrompt: string
 ): Promise<string> {
   const config = TASK_CONFIG[task]
   const trace = langfuse.trace({ name: task })
-  const span = trace.span({
-    name: 'anthropic.call',
-    input: { task, model: config.model },
-  })
+  const span = trace.span({ name: 'nvidia.call', input: { task, model: MODEL } })
 
   try {
-    const response = await anthropic.messages.create({
-      model: config.model,
+    const response = await nvidia.chat.completions.create({
+      model: MODEL,
       max_tokens: config.maxTokens,
-      system: systemPrompt,
-      messages,
+      temperature: 0.6,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages,
+      ],
     })
-    const text = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { type: 'text'; text: string }).text)
-      .join('')
+
+    const text = response.choices[0]?.message?.content ?? ''
     span.end({ output: { chars: text.length } })
     return text
-  } catch (err) {
-    span.end({ output: { error: String(err) } })
-    throw err
-  }
-}
-
-export async function* llmStream(
-  task: LLMTask,
-  messages: MessageParam[],
-  systemPrompt: string,
-): AsyncGenerator<string> {
-  const config = TASK_CONFIG[task]
-  const trace = langfuse.trace({ name: task })
-  const span = trace.span({
-    name: 'anthropic.stream',
-    input: { task, model: config.model },
-  })
-
-  try {
-    const stream = await anthropic.messages.stream({
-      model: config.model,
-      max_tokens: config.maxTokens,
-      system: systemPrompt,
-      messages,
-    })
-    for await (const chunk of stream) {
-      if (
-        chunk.type === 'content_block_delta' &&
-        chunk.delta.type === 'text_delta'
-      ) {
-        yield chunk.delta.text
-      }
-    }
-    span.end({ output: { streamed: true } })
   } catch (err) {
     span.end({ output: { error: String(err) } })
     throw err

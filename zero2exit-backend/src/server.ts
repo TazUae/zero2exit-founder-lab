@@ -1,34 +1,89 @@
-import 'dotenv/config'
 import Fastify from 'fastify'
+import type { FastifyRequest } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
 import { appRouter } from './routers/index.js'
 import { createContext } from './trpc.js'
-import { stripeWebhook } from './webhooks/stripe.js'
-import { docusignWebhook } from './webhooks/docusign.js'
 import { clerkWebhook } from './webhooks/clerk.js'
+import { stripeWebhook } from './webhooks/stripe.js'
+import { db } from './lib/db.js'
+import { redis } from './lib/storage/redis.js'
 
-const server = Fastify({ logger: true })
-
-await server.register(cors)
-await server.register(helmet)
-
-await server.register(fastifyTRPCPlugin, {
-  prefix: '/api/trpc',
-  trpcOptions: { router: appRouter, createContext },
+const server = Fastify({
+  logger: true,
 })
 
-server.get('/health', async () => ({
-  status: 'ok',
-  timestamp: new Date().toISOString(),
-}))
+// Add rawBody support for Stripe webhook signature verification
+server.addContentTypeParser(
+  'application/json',
+  { parseAs: 'string' },
+  (req, body, done) => {
+    try {
+      ;(req as FastifyRequest & { rawBody: string }).rawBody = body as string
+      done(null, JSON.parse(body as string))
+    } catch (err) {
+      done(err as Error, undefined)
+    }
+  },
+)
 
-server.post('/webhooks/stripe', stripeWebhook)
-server.post('/webhooks/docusign', docusignWebhook)
-server.post('/webhooks/clerk', clerkWebhook)
+async function start() {
+  await server.register(cors, {
+    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    credentials: true,
+  })
 
-const port = Number(process.env.PORT) || 3000
-await server.listen({ port, host: '0.0.0.0' })
-console.log(`Zero2Exit API running on port ${port}`)
+  await server.register(helmet, {
+    contentSecurityPolicy: false,
+  })
+
+  // tRPC — all protected routes
+  await server.register(fastifyTRPCPlugin, {
+    prefix: '/api/trpc',
+    trpcOptions: {
+      router: appRouter,
+      createContext,
+    },
+  })
+
+  // Webhooks — raw routes outside tRPC
+  server.post('/webhooks/clerk', clerkWebhook)
+  server.post('/webhooks/stripe', stripeWebhook)
+
+  // Health check
+  server.get('/health', async (req, reply) => {
+    const checks: Record<string, string> = {}
+
+    try {
+      await db.$queryRaw`SELECT 1`
+      checks.database = 'ok'
+    } catch {
+      checks.database = 'error'
+    }
+
+    try {
+      await redis.ping()
+      checks.redis = 'ok'
+    } catch {
+      checks.redis = 'error'
+    }
+
+    const healthy = Object.values(checks).every(v => v === 'ok')
+    return reply.status(healthy ? 200 : 503).send({
+      status: healthy ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      checks,
+    })
+  })
+
+  const port = Number(process.env.PORT ?? 3000)
+  await server.listen({ port, host: '0.0.0.0' })
+  console.log(`Zero2Exit API running on port ${port}`)
+}
+
+start().catch(err => {
+  console.error(err)
+  process.exit(1)
+})
 
