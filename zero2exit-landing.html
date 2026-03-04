@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zero2Exit — The Founder Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #070708;
+  --deep: #0d0e12;
+  --card: #111318;
+  --border: #1e2028;
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.15);
+  --text: #e8e6e0;
+  --muted: #7a7870;
+  --white: #f5f3ee;
+  --green: #3ecf8e;
+  --blue: #4f9cf9;
+  --red: #f97048;
+  --purple: #9b6ff7;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content:'';
+  position: fixed;
+  inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index:9999;
+  opacity:.4;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top:0; left:0; right:0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 60px;
+  border-bottom: 1px solid transparent;
+  transition: all .4s;
+  background: transparent;
+}
+nav.scrolled {
+  background: rgba(7,7,8,0.92);
+  border-color: var(--border);
+  backdrop-filter: blur(20px);
+}
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -.5px;
+  color: var(--white);
+}
+.logo span { color: var(--gold); }
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .3px;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  background: var(--gold);
+  color: var(--black);
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.nav-cta:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 40px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,168,76,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(79,156,249,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(155,111,247,0.06) 0%, transparent 60%);
+}
+
+.hero-grid {
+  position: absolute;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 80%);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--gold);
+  background: var(--gold-dim);
+  color: var(--gold-light);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border-radius: 100px;
+  margin-bottom: 32px;
+  animation: fadeUp .8s ease both;
+}
+.badge-dot { width:6px; height:6px; border-radius:50%; background: var(--gold); animation: pulse 2s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(48px, 7vw, 96px);
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -2px;
+  color: var(--white);
+  max-width: 900px;
+  animation: fadeUp .9s .1s ease both;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--gold);
+  position: relative;
+}
+.hero h1 em::after {
+  content:'';
+  position: absolute;
+  bottom: -4px;
+  left:0; right:0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  border-radius: 2px;
+}
+
+.hero-sub {
+  font-size: 18px;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.7;
+  margin-top: 24px;
+  font-weight: 300;
+  animation: fadeUp .9s .2s ease both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 48px;
+  animation: fadeUp .9s .3s ease both;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--black);
+  border: none;
+  padding: 16px 36px;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all .25s;
+  letter-spacing: -.2px;
+}
+.btn-primary:hover { background: var(--gold-light); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(201,168,76,0.3); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 16px 36px;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all .25s;
+}
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+/* stats strip */
+.stats-strip {
+  display: flex;
+  gap: 60px;
+  margin-top: 80px;
+  padding-top: 48px;
+  border-top: 1px solid var(--border);
+  animation: fadeUp .9s .4s ease both;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.stat { text-align:center; }
+.stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--white);
+}
+.stat-num span { color: var(--gold); }
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; letter-spacing:.3px; }
+
+/* ── SECTION STYLES ── */
+section { padding: 100px 60px; max-width: 1300px; margin: 0 auto; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+  font-family: 'DM Mono', monospace;
+}
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+.section-sub {
+  font-size: 17px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 520px;
+  margin-top: 16px;
+  font-weight: 300;
+}
+
+/* ── JOURNEY MAP ── */
+.journey-section { position: relative; }
+
+.journey-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-top: 64px;
+  position: relative;
+}
+
+.journey-track::before {
+  content:'';
+  position:absolute;
+  top: 36px;
+  left: 6%;
+  right: 6%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold), transparent);
+  opacity: .3;
+}
+
+.journey-step {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  position:relative;
+  cursor:pointer;
+  padding: 16px 8px;
+  transition: transform .25s;
+}
+.journey-step:hover { transform: translateY(-4px); }
+
+.step-node {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--card);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  position:relative;
+  transition: all .3s;
+}
+.journey-step.active .step-node,
+.journey-step:hover .step-node {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+  color: var(--gold-light);
+  box-shadow: 0 0 30px rgba(201,168,76,0.2);
+}
+.step-node .icon { font-size: 24px; }
+
+.step-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.4;
+  transition: color .3s;
+}
+.journey-step:hover .step-label { color: var(--text); }
+
+.step-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-weight: 600;
+  letter-spacing:.5px;
+}
+.tag-entry { background: rgba(62,207,142,0.12); color: var(--green); }
+.tag-optional { background: rgba(79,156,249,0.12); color: var(--blue); }
+.tag-all { background: rgba(201,168,76,0.12); color: var(--gold); }
+
+/* ── AI ENGINE ── */
+.engine-section {
+  background: var(--deep);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  max-width: 100%;
+  padding: 100px 0;
+}
+.engine-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 60px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.engine-steps {
+  display:flex;
+  flex-direction:column;
+  gap: 0;
+  margin-top: 40px;
+}
+.engine-step {
+  display:flex;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+  cursor:pointer;
+  transition: all .2s;
+}
+.engine-step:last-child { border-bottom:none; }
+.engine-step:hover .step-content h4 { color: var(--gold); }
+
+.step-num-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+.step-content h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  transition: color .2s;
+}
+.step-content p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* engine visual */
+.engine-visual {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+}
+.engine-visual::before {
+  content:'';
+  position:absolute;
+  top:-50%;
+  right:-30%;
+  width:300px;
+  height:300px;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(201,168,76,0.08), transparent 70%);
+}
+
+.ev-header {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom: 28px;
+}
+.ev-dot { width:8px;height:8px;border-radius:50%; }
+.ev-title { font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); }
+
+.stage-cards {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.stage-card {
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  transition: all .3s;
+  cursor:pointer;
+}
+.stage-card:hover, .stage-card.highlighted {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+}
+.stage-card-left { display:flex;align-items:center;gap:12px; }
+.stage-icon { font-size: 20px; }
+.stage-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.stage-desc { font-size: 11px; color:var(--muted); margin-top:2px; }
+.stage-modules {
+  display:flex;
+  gap:4px;
+}
+.mod-pip {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'DM Mono',monospace;
+}
+.pip-active { background: rgba(62,207,142,0.2); color: var(--green); border:1px solid rgba(62,207,142,.3); }
+.pip-locked { background: var(--border); color: var(--muted); opacity:.5; }
+.pip-optional { background: rgba(79,156,249,0.15); color:var(--blue); border:1px solid rgba(79,156,249,.3); }
+
+/* ── MODULES TABS ── */
+.modules-section { }
+
+.modules-tabs {
+  display:flex;
+  gap: 4px;
+  margin-top: 48px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.modules-tabs::-webkit-scrollbar { display:none; }
+
+.mod-tab {
+  padding: 14px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor:pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-radius: 4px 4px 0 0;
+  background: none;
+  border-left:none;
+  border-right:none;
+  border-top:none;
+  font-family:'DM Sans',sans-serif;
+}
+.mod-tab:hover { color: var(--text); }
+.mod-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+.mod-id {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  background: var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--muted);
+}
+.mod-tab.active .mod-id { background: var(--gold-dim); color: var(--gold); }
+
+.module-panel {
+  display:none;
+  margin-top: 40px;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+.module-panel.active { display:grid; }
+
+.module-info .stage-tag-row {
+  display:flex;
+  gap:8px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.stage-pill {
+  font-size:11px;
+  font-weight:600;
+  padding:4px 12px;
+  border-radius:100px;
+  border:1px solid;
+  letter-spacing:.3px;
+}
+.pill-idea { border-color: rgba(62,207,142,.4); color:var(--green); background:rgba(62,207,142,.08); }
+.pill-seed { border-color: rgba(79,156,249,.4); color:var(--blue); background:rgba(79,156,249,.08); }
+.pill-growth { border-color: rgba(155,111,247,.4); color:var(--purple); background:rgba(155,111,247,.08); }
+.pill-scale { border-color: rgba(201,168,76,.4); color:var(--gold); background:rgba(201,168,76,.08); }
+.pill-all { border-color:var(--border); color:var(--muted); background:var(--card); }
+
+.module-info h3 {
+  font-family:'Playfair Display',serif;
+  font-size: 30px;
+  font-weight:700;
+  color:var(--white);
+  line-height:1.2;
+  margin-bottom:16px;
+}
+.module-info p {
+  font-size:15px;
+  color:var(--muted);
+  line-height:1.75;
+  margin-bottom: 28px;
+}
+.feature-list {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.feat-item {
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:14px 16px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  transition: border-color .2s;
+  cursor:default;
+}
+.feat-item:hover { border-color: var(--gold); }
+.feat-icon-wrap {
+  width:32px;
+  height:32px;
+  border-radius:6px;
+  background:var(--gold-dim);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  flex-shrink:0;
+}
+.feat-text h5 { font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.feat-text p { font-size:12px; color:var(--muted); line-height:1.5; }
+.ai-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  font-size:10px;
+  font-weight:700;
+  background:rgba(201,168,76,0.12);
+  color:var(--gold);
+  border:1px solid rgba(201,168,76,.3);
+  padding:2px 7px;
+  border-radius:100px;
+  margin-top:4px;
+  letter-spacing:.5px;
+}
+
+/* module mock screen */
+.module-screen {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+.screen-bar {
+  background:var(--deep);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.screen-dot { width:10px;height:10px;border-radius:50%; }
+.screen-title { margin-left:8px; font-size:12px; color:var(--muted); font-family:'DM Mono',monospace; }
+.screen-body { padding:24px; }
+
+/* Validation Radar */
+.radar-container {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+}
+.radar-svg { width:220px; height:220px; }
+.radar-legend {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  width:100%;
+}
+.legend-item {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+  color:var(--muted);
+}
+.legend-dot { width:8px;height:8px;border-radius:50%;background:var(--gold); flex-shrink:0; }
+.legend-val { margin-left:auto; color:var(--text); font-weight:600; font-family:'DM Mono',monospace; font-size:11px; }
+
+/* scorecard bar */
+.score-bar-row { display:flex;flex-direction:column;gap:10px;margin-top:16px; }
+.score-bar-item { }
+.score-bar-header { display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px; }
+.score-bar-label { color:var(--muted); }
+.score-bar-val { color:var(--text);font-weight:600;font-family:'DM Mono',monospace; }
+.score-track {
+  height:6px;
+  background:var(--border);
+  border-radius:100px;
+  overflow:hidden;
+}
+.score-fill {
+  height:100%;
+  border-radius:100px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  transition: width 1s ease;
+}
+.score-fill.green { background: linear-gradient(90deg, #2eb87a, var(--green)); }
+.score-fill.red { background: linear-gradient(90deg, #d04030, var(--red)); }
+
+/* jurisdiction cards */
+.juris-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.juris-card {
+  background:var(--deep);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px;
+  transition: border-color .3s;
+  cursor:pointer;
+}
+.juris-card:hover,.juris-card.rec { border-color:var(--gold); }
+.juris-card.rec { background:var(--gold-dim); }
+.juris-flag { font-size:22px; margin-bottom:8px; }
+.juris-name { font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px; }
+.juris-sub { font-size:11px;color:var(--muted);margin-bottom:10px; }
+.trust-score {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  color:var(--gold);
+  font-weight:600;
+  font-family:'DM Mono',monospace;
+}
+.trust-bar { flex:1;height:3px;background:var(--border);border-radius:100px;overflow:hidden; }
+.trust-fill { height:100%;background:var(--gold);border-radius:100px; }
+
+/* content calendar */
+.cal-grid { display:flex;flex-direction:column;gap:8px; }
+.cal-item {
+  background:var(--deep);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px 14px;
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  transition: border-color .2s;
+}
+.cal-item:hover { border-color: var(--gold); }
+.cal-day {
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--muted);
+  background:var(--border);
+  padding:3px 7px;
+  border-radius:4px;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.cal-platform { font-size:14px; }
+.cal-copy { font-size:12px; color:var(--text); line-height:1.5; flex:1; }
+.cal-ar { font-size:11px;color:var(--muted);margin-top:3px;direction:rtl;font-style:italic; }
+
+/* RICE kanban */
+.rice-list { display:flex;flex-direction:column;gap:6px; }
+.rice-item {
+  background:var(--deep);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.rice-rank {
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  color:var(--gold);
+  width:20px;
+  text-align:center;
+  flex-shrink:0;
+}
+.rice-label { flex:1;font-size:13px;color:var(--text); }
+.rice-score-wrap { display:flex;align-items:center;gap:8px; }
+.rice-bar-track { width:60px;height:4px;background:var(--border);border-radius:100px;overflow:hidden; }
+.rice-bar-fill { height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:100px; }
+.rice-num { font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:30px;text-align:right; }
+
+/* kpi dashboard */
+.kpi-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.kpi-card {
+  background:var(--deep);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px;
+}
+.kpi-label { font-size:11px;color:var(--muted);margin-bottom:6px; }
+.kpi-value {
+  font-family:'Playfair Display',serif;
+  font-size:26px;
+  font-weight:700;
+  color:var(--white);
+}
+.kpi-change {
+  font-size:11px;
+  margin-top:4px;
+  font-weight:600;
+}
+.kpi-up { color:var(--green); }
+.kpi-down { color:var(--red); }
+
+/* valuation range */
+.val-range { display:flex;flex-direction:column;gap:12px;margin-top:8px; }
+.val-bar-wrap { }
+.val-label-row { display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px; }
+.val-tag { color:var(--muted); }
+.val-num { color:var(--text);font-weight:700;font-family:'DM Mono',monospace; }
+.val-track { height:8px;background:var(--border);border-radius:100px;overflow:hidden; }
+.val-fill-low { height:100%;background:var(--red);border-radius:100px;width:35%; }
+.val-fill-base { height:100%;background:var(--gold);border-radius:100px;width:60%; }
+.val-fill-high { height:100%;background:var(--green);border-radius:100px;width:85%; }
+
+/* ── DESIGN SYSTEM SECTION ── */
+.ds-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:24px;
+  margin-top:48px;
+}
+.ds-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:28px;
+  transition: all .3s;
+}
+.ds-card:hover { border-color:var(--gold); transform:translateY(-3px); }
+.ds-card-icon { font-size:28px;margin-bottom:16px; }
+.ds-card h4 { font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px; }
+.ds-card p { font-size:13px;color:var(--muted);line-height:1.6; }
+
+/* ── PRICING ── */
+.pricing-section {
+  background: var(--deep);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  max-width:100%;
+  padding:100px 0;
+}
+.pricing-inner { max-width:1300px;margin:0 auto;padding:0 60px; }
+.pricing-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:24px;
+  margin-top:56px;
+}
+.price-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:36px 32px;
+  position:relative;
+  transition: all .3s;
+}
+.price-card:hover { transform:translateY(-4px); }
+.price-card.featured {
+  border-color:var(--gold);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(201,168,76,0.05) 100%);
+}
+.price-card.featured::before {
+  content:'MOST POPULAR';
+  position:absolute;
+  top:-1px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--gold);
+  color:var(--black);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1.5px;
+  padding:4px 16px;
+  border-radius:0 0 8px 8px;
+}
+.plan-name { font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-transform:uppercase; }
+.plan-price {
+  font-family:'Playfair Display',serif;
+  font-size:48px;
+  font-weight:700;
+  color:var(--white);
+  line-height:1;
+}
+.plan-price sup { font-size:20px;vertical-align:top;margin-top:8px; }
+.plan-price span { font-size:16px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400; }
+.plan-desc { font-size:14px;color:var(--muted);margin-top:8px;margin-bottom:28px;line-height:1.6; }
+.plan-features { display:flex;flex-direction:column;gap:10px;margin-bottom:28px; }
+.plan-feat { display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text); }
+.plan-feat::before { content:'✓';color:var(--green);font-weight:700;flex-shrink:0; }
+.plan-feat.no::before { content:'✕';color:var(--muted); }
+.plan-feat.no { color:var(--muted); }
+.plan-btn {
+  width:100%;
+  padding:14px;
+  border-radius:8px;
+  font-family:'DM Sans',sans-serif;
+  font-weight:700;
+  font-size:15px;
+  cursor:pointer;
+  transition:all .25s;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text);
+}
+.plan-btn:hover { border-color:var(--gold);color:var(--gold); }
+.price-card.featured .plan-btn {
+  background:var(--gold);
+  color:var(--black);
+  border-color:var(--gold);
+}
+.price-card.featured .plan-btn:hover {
+  background:var(--gold-light);
+  transform:translateY(-1px);
+  box-shadow:0 8px 30px rgba(201,168,76,.3);
+}
+
+/* ── CTA HERO ── */
+.cta-section {
+  text-align:center;
+  padding:120px 60px;
+  position:relative;
+  overflow:hidden;
+}
+.cta-section::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(201,168,76,0.08) 0%, transparent 70%);
+}
+.cta-section h2 {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(36px,5vw,64px);
+  font-weight:900;
+  color:var(--white);
+  max-width:800px;
+  margin:0 auto 24px;
+  line-height:1.1;
+  letter-spacing:-1.5px;
+}
+.cta-section p {
+  font-size:18px;
+  color:var(--muted);
+  max-width:480px;
+  margin:0 auto 40px;
+  line-height:1.7;
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top:1px solid var(--border);
+  padding:48px 60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  max-width:1300px;
+  margin:0 auto;
+}
+.footer-logo {
+  font-family:'Playfair Display',serif;
+  font-weight:700;
+  font-size:20px;
+  color:var(--white);
+}
+.footer-logo span { color:var(--gold); }
+.footer-links {
+  display:flex;
+  gap:32px;
+}
+.footer-links a {
+  font-size:13px;
+  color:var(--muted);
+  text-decoration:none;
+  transition:color .2s;
+}
+.footer-links a:hover { color:var(--text); }
+.footer-copy { font-size:12px;color:var(--muted); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity:0;transform:translateY(24px); }
+  to { opacity:1;transform:translateY(0); }
+}
+
+.reveal {
+  opacity:0;
+  transform:translateY(30px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.visible {
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* ── AI COACH BUBBLE ── */
+.ai-coach-bubble {
+  position:fixed;
+  bottom:32px;
+  right:32px;
+  z-index:500;
+}
+.coach-btn {
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:var(--gold);
+  border:none;
+  cursor:pointer;
+  font-size:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 24px rgba(201,168,76,.4);
+  transition: all .25s;
+  position:relative;
+}
+.coach-btn:hover { transform:scale(1.08); box-shadow:0 8px 32px rgba(201,168,76,.5); }
+.coach-btn::before {
+  content:'AI Coach';
+  position:absolute;
+  right:64px;
+  background:var(--card);
+  color:var(--text);
+  border:1px solid var(--border);
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  padding:6px 12px;
+  border-radius:8px;
+  white-space:nowrap;
+}
+
+.coach-panel {
+  display:none;
+  position:absolute;
+  bottom:68px;
+  right:0;
+  width:320px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.coach-panel.open { display:block; animation: fadeUp .3s ease; }
+.coach-header {
+  background:var(--deep);
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.coach-avatar {
+  width:32px;height:32px;border-radius:50%;
+  background:var(--gold-dim);
+  border:1px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+.coach-name { font-size:14px;font-weight:700;color:var(--text); }
+.coach-status { font-size:11px;color:var(--green); }
+.coach-messages { padding:16px;display:flex;flex-direction:column;gap:10px;max-height:200px;overflow-y:auto; }
+.coach-msg {
+  background:var(--deep);
+  border-radius:10px;
+  padding:10px 14px;
+  font-size:12px;
+  color:var(--text);
+  line-height:1.6;
+  border:1px solid var(--border);
+}
+.coach-msg.user { background:var(--gold-dim);border-color:rgba(201,168,76,.3);text-align:right; }
+.coach-input-row {
+  padding:12px;
+  border-top:1px solid var(--border);
+  display:flex;
+  gap:8px;
+}
+.coach-input {
+  flex:1;
+  background:var(--deep);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:9px 12px;
+  border-radius:8px;
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;
+  outline:none;
+}
+.coach-input:focus { border-color:var(--gold); }
+.coach-send {
+  background:var(--gold);
+  color:var(--black);
+  border:none;
+  width:32px;height:32px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.coach-send:hover { background:var(--gold-light); }
+
+/* Responsive */
+@media(max-width:1000px) {
+  nav { padding:16px 24px; }
+  .nav-links { display:none; }
+  section { padding:60px 24px; }
+  .engine-inner { grid-template-columns:1fr; gap:40px; padding:0 24px; }
+  .module-panel.active { grid-template-columns:1fr; }
+  .ds-grid { grid-template-columns:1fr 1fr; }
+  .pricing-grid { grid-template-columns:1fr; }
+  .pricing-inner { padding:0 24px; }
+  footer { flex-direction:column;gap:24px;text-align:center; }
+  .journey-track { grid-template-columns:repeat(4,1fr); }
+  .juris-grid { grid-template-columns:1fr; }
+}
+@media(max-width:640px) {
+  .hero { padding:100px 24px 60px; }
+  .stats-strip { gap:32px; }
+  .ds-grid { grid-template-columns:1fr; }
+  .journey-track { grid-template-columns:repeat(2,1fr); }
+  .journey-track::before { display:none; }
+  .kpi-grid { grid-template-columns:1fr; }
+  .cta-section { padding:80px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="logo">Zero<span>2</span>Exit</div>
+  <ul class="nav-links">
+    <li><a href="#journey">Platform</a></li>
+    <li><a href="#modules">Modules</a></li>
+    <li><a href="#engine">AI Engine</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <button class="nav-cta" onclick="document.querySelector('#cta').scrollIntoView({behavior:'smooth'})">Start Your Journey →</button>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="badge"><span class="badge-dot"></span>AI-Powered Founder Operating System</div>
+  <h1>From <em>Idea</em> to Exit.<br>Without the Chaos.</h1>
+  <p class="hero-sub">Zero2Exit is the AI-driven platform that replaces your consultants, lawyers, agencies, and spreadsheets — and guides you from day one to exit day.</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="document.querySelector('#modules').scrollIntoView({behavior:'smooth'})">Explore the Platform →</button>
+    <button class="btn-secondary" onclick="document.querySelector('#engine').scrollIntoView({behavior:'smooth'})">See the AI Engine</button>
+  </div>
+  <div class="stats-strip">
+    <div class="stat"><div class="stat-num">6<span>+</span></div><div class="stat-label">Core Modules</div></div>
+    <div class="stat"><div class="stat-num">30<span>+</span></div><div class="stat-label">Jurisdictions Covered</div></div>
+    <div class="stat"><div class="stat-num">100<span>%</span></div><div class="stat-label">AI-Personalised</div></div>
+    <div class="stat"><div class="stat-num">AR<span> / </span>EN</div><div class="stat-label">Bilingual by Default</div></div>
+    <div class="stat"><div class="stat-num">0<span>→∞</span></div><div class="stat-label">Idea to Series A+</div></div>
+  </div>
+</div>
+
+<!-- JOURNEY MAP -->
+<section id="journey" class="journey-section reveal">
+  <div class="section-label">The Founder Journey</div>
+  <h2 class="section-title">Every Stage.<br>Every Decision. Covered.</h2>
+  <p class="section-sub">The platform enforces the correct module sequence — so you never waste time on irrelevant stages.</p>
+
+  <div class="journey-track">
+    <div class="journey-step" onclick="highlightStep(this, 0)">
+      <div class="step-node"><span class="icon">🧭</span></div>
+      <div class="step-label">Onboarding<br>Gateway</div>
+      <span class="step-tag tag-entry">MANDATORY</span>
+    </div>
+    <div class="journey-step active" onclick="highlightStep(this, 1)">
+      <div class="step-node"><span class="icon">💡</span></div>
+      <div class="step-label">Idea & Market<br>Validation</div>
+      <span class="step-tag tag-entry">M01</span>
+    </div>
+    <div class="journey-step" onclick="highlightStep(this, 2)">
+      <div class="step-node"><span class="icon">⚖️</span></div>
+      <div class="step-label">Legal<br>Structure</div>
+      <span class="step-tag tag-all">M02</span>
+    </div>
+    <div class="journey-step" onclick="highlightStep(this, 3)">
+      <div class="step-node"><span class="icon">📣</span></div>
+      <div class="step-label">GTM, Brand<br>& Marketing</div>
+      <span class="step-tag tag-entry">M03</span>
+    </div>
+    <div class="journey-step" onclick="highlightStep(this, 4)">
+      <div class="step-node"><span class="icon">🚀</span></div>
+      <div class="step-label">MVP &<br>Soft Launch</div>
+      <span class="step-tag tag-entry">M04</span>
+    </div>
+    <div class="journey-step" onclick="highlightStep(this, 5)">
+      <div class="step-node"><span class="icon">⚙️</span></div>
+      <div class="step-label">Automation<br>& ERP</div>
+      <span class="step-tag tag-optional">M05</span>
+    </div>
+    <div class="journey-step" onclick="highlightStep(this, 6)">
+      <div class="step-node"><span class="icon">🏆</span></div>
+      <div class="step-label">Scale &<br>Exit Planning</div>
+      <span class="step-tag tag-optional">M06</span>
+    </div>
+  </div>
+</section>
+
+<!-- AI ENGINE -->
+<div class="engine-section" id="engine">
+  <div class="engine-inner reveal">
+    <div>
+      <div class="section-label">AI Routing Engine</div>
+      <h2 class="section-title">Intelligence that adapts to <em style="font-style:italic;color:var(--gold)">your</em> stage.</h2>
+      <p class="section-sub">The AI Routing Engine processes your onboarding questionnaire and creates a personalised module activation plan — re-evaluating every 30 days as your business evolves.</p>
+      <div class="engine-steps">
+        <div class="engine-step"><div class="step-num-badge">01</div><div class="step-content"><h4>INGEST</h4><p>Founder completes the 12–18 question gateway questionnaire before account creation.</p></div></div>
+        <div class="engine-step"><div class="step-num-badge">02</div><div class="step-content"><h4>CLASSIFY</h4><p>AI scores responses across 6 dimensions: stage, industry, funding status, team size, jurisdiction, and exit horizon.</p></div></div>
+        <div class="engine-step"><div class="step-num-badge">03</div><div class="step-content"><h4>ROUTE</h4><p>A founder stage is assigned and an ordered module activation plan is generated — unique to you.</p></div></div>
+        <div class="engine-step"><div class="step-num-badge">04</div><div class="step-content"><h4>ACTIVATE</h4><p>Your personalised journey dashboard renders with AI Coach pre-loaded with all your context.</p></div></div>
+        <div class="engine-step"><div class="step-num-badge">05</div><div class="step-content"><h4>RE-EVALUATE</h4><p>Engine re-scores every 30 days and after each module completion. Your plan evolves as you grow.</p></div></div>
+      </div>
+    </div>
+    <div class="engine-visual">
+      <div class="ev-header">
+        <div class="ev-dot" style="background:#3ecf8e"></div>
+        <div class="ev-dot" style="background:#f97048"></div>
+        <div class="ev-dot" style="background:#c9a84c"></div>
+        <div class="ev-title">AI Stage Routing — Live Preview</div>
+      </div>
+      <div class="stage-cards">
+        <div class="stage-card" onclick="toggleStageCard(this)">
+          <div class="stage-card-left">
+            <span class="stage-icon">🌱</span>
+            <div>
+              <div class="stage-name">Idea Stage</div>
+              <div class="stage-desc">No product, no entity yet</div>
+            </div>
+          </div>
+          <div class="stage-modules">
+            <div class="mod-pip pip-active">M1</div>
+            <div class="mod-pip pip-active">M2</div>
+            <div class="mod-pip pip-active">M3</div>
+            <div class="mod-pip pip-locked">M4</div>
+            <div class="mod-pip pip-locked">M5</div>
+            <div class="mod-pip pip-locked">M6</div>
+          </div>
+        </div>
+        <div class="stage-card highlighted" onclick="toggleStageCard(this)">
+          <div class="stage-card-left">
+            <span class="stage-icon">🌿</span>
+            <div>
+              <div class="stage-name">Pre-Seed Stage</div>
+              <div class="stage-desc">Validated idea, early development</div>
+            </div>
+          </div>
+          <div class="stage-modules">
+            <div class="mod-pip pip-optional">M1</div>
+            <div class="mod-pip pip-active">M2</div>
+            <div class="mod-pip pip-active">M3</div>
+            <div class="mod-pip pip-active">M4</div>
+            <div class="mod-pip pip-locked">M5</div>
+            <div class="mod-pip pip-locked">M6</div>
+          </div>
+        </div>
+        <div class="stage-card" onclick="toggleStageCard(this)">
+          <div class="stage-card-left">
+            <span class="stage-icon">🚀</span>
+            <div>
+              <div class="stage-name">Seed / MVP Stage</div>
+              <div class="stage-desc">Entity formed, MVP in progress</div>
+            </div>
+          </div>
+          <div class="stage-modules">
+            <div class="mod-pip pip-optional">M1</div>
+            <div class="mod-pip pip-active">M2</div>
+            <div class="mod-pip pip-active">M3</div>
+            <div class="mod-pip pip-active">M4</div>
+            <div class="mod-pip pip-active">M5</div>
+            <div class="mod-pip pip-locked">M6</div>
+          </div>
+        </div>
+        <div class="stage-card" onclick="toggleStageCard(this)">
+          <div class="stage-card-left">
+            <span class="stage-icon">📈</span>
+            <div>
+              <div class="stage-name">Early Growth</div>
+              <div class="stage-desc">Revenue generating, team hired</div>
+            </div>
+          </div>
+          <div class="stage-modules">
+            <div class="mod-pip pip-locked">M1</div>
+            <div class="mod-pip pip-active">M2</div>
+            <div class="mod-pip pip-active">M3</div>
+            <div class="mod-pip pip-active">M4</div>
+            <div class="mod-pip pip-active">M5</div>
+            <div class="mod-pip pip-optional">M6</div>
+          </div>
+        </div>
+        <div class="stage-card" onclick="toggleStageCard(this)">
+          <div class="stage-card-left">
+            <span class="stage-icon">🏆</span>
+            <div>
+              <div class="stage-name">Scale / Pre-Exit</div>
+              <div class="stage-desc">Series A+, active exit horizon</div>
+            </div>
+          </div>
+          <div class="stage-modules">
+            <div class="mod-pip pip-locked">M1</div>
+            <div class="mod-pip pip-active">M2</div>
+            <div class="mod-pip pip-locked">M3</div>
+            <div class="mod-pip pip-locked">M4</div>
+            <div class="mod-pip pip-active">M5</div>
+            <div class="mod-pip pip-active">M6</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><div style="width:12px;height:12px;border-radius:3px;background:rgba(62,207,142,.2);border:1px solid rgba(62,207,142,.4)"></div>Active</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><div style="width:12px;height:12px;border-radius:3px;background:rgba(79,156,249,.15);border:1px solid rgba(79,156,249,.4)"></div>Optional Audit</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><div style="width:12px;height:12px;border-radius:3px;background:var(--border)"></div>Locked</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULES -->
+<section id="modules" class="modules-section reveal">
+  <div class="section-label">Platform Modules</div>
+  <h2 class="section-title">Six Modules.<br>Every Founder Need.</h2>
+  <p class="section-sub">From validating your idea to structuring your exit — every module is AI-first and stage-aware.</p>
+
+  <div class="modules-tabs">
+    <button class="mod-tab active" onclick="switchTab(0)"><span class="mod-id">M01</span> Idea Validation</button>
+    <button class="mod-tab" onclick="switchTab(1)"><span class="mod-id">M02</span> Legal Structure</button>
+    <button class="mod-tab" onclick="switchTab(2)"><span class="mod-id">M03</span> GTM & Brand</button>
+    <button class="mod-tab" onclick="switchTab(3)"><span class="mod-id">M04</span> MVP & Launch</button>
+    <button class="mod-tab" onclick="switchTab(4)"><span class="mod-id">M05</span> Automation & ERP</button>
+    <button class="mod-tab" onclick="switchTab(5)"><span class="mod-id">M06</span> Scale & Exit</button>
+  </div>
+
+  <!-- M01 -->
+  <div class="module-panel active" id="panel-0">
+    <div class="module-info">
+      <div class="stage-tag-row">
+        <span class="stage-pill pill-idea">Idea Stage</span>
+        <span class="stage-pill pill-seed">Pre-Seed</span>
+      </div>
+      <h3>Idea & Market Validation</h3>
+      <p>Validate your business concept before investing a single dirham in legal structures or product development. A Validation Score ≥ 60% unlocks Module 02.</p>
+      <div class="feature-list">
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🧠</div>
+          <div class="feat-text">
+            <h5>Idea Stress-Test Engine</h5>
+            <p>AI generates 5 sharp objections to your idea. You respond. AI evaluates quality and flags weak areas.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📊</div>
+          <div class="feat-text">
+            <h5>Market Sizing Tool</h5>
+            <p>Input your industry & geography. Tool auto-populates TAM/SAM/SOM with source citations from live data.</p>
+            <div class="ai-badge">⚡ STATISTA API</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🗺️</div>
+          <div class="feat-text">
+            <h5>Competitive Landscape Map</h5>
+            <p>Interactive drag-and-drop quadrant. Name your competitors, AI auto-enriches with additional players.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">👥</div>
+          <div class="feat-text">
+            <h5>ICP & Persona Builder</h5>
+            <p>AI generates Ideal Customer Profiles. Founder reviews, edits, and confirms. Feeds into M03 automatically.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🎯</div>
+          <div class="feat-text">
+            <h5>Validation Scorecard</h5>
+            <p>Animated radar chart across 8 dimensions. Click any axis for specific AI improvement tips.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="module-screen">
+      <div class="screen-bar">
+        <div class="screen-dot" style="background:#f97048"></div>
+        <div class="screen-dot" style="background:#f9c84c"></div>
+        <div class="screen-dot" style="background:#3ecf8e"></div>
+        <div class="screen-title">Validation Scorecard — Mohamed's Startup</div>
+      </div>
+      <div class="screen-body">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Overall Validation Score</div>
+          <div style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:var(--green);">73<span style="font-size:20px">%</span></div>
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(62,207,142,.12);color:var(--green);border:1px solid rgba(62,207,142,.3);padding:4px 14px;border-radius:100px;font-size:12px;font-weight:700;margin-top:8px;">✓ MODULE 02 UNLOCKED</div>
+        </div>
+        <div class="score-bar-row">
+          <div class="score-bar-item"><div class="score-bar-header"><span class="score-bar-label">Problem Clarity</span><span class="score-bar-val">88%</span></div><div class="score-track"><div class="score-fill green" style="width:88%"></div></div></div>
+          <div class="score-bar-item"><div class="score-bar-header"><span class="score-bar-label">Market Size</span><span class="score-bar-val">75%</span></div><div class="score-track"><div class="score-fill" style="width:75%"></div></div></div>
+          <div class="score-bar-item"><div class="score-bar-header"><span class="score-bar-label">Competitive Moat</span><span class="score-bar-val">62%</span></div><div class="score-track"><div class="score-fill" style="width:62%"></div></div></div>
+          <div class="score-bar-item"><div class="score-bar-header"><span class="score-bar-label">ICP Clarity</span><span class="score-bar-val">80%</span></div><div class="score-track"><div class="score-fill green" style="width:80%"></div></div></div>
+          <div class="score-bar-item"><div class="score-bar-header"><span class="score-bar-label">Revenue Potential</span><span class="score-bar-val">70%</span></div><div class="score-track"><div class="score-fill" style="width:70%"></div></div></div>
+          <div class="score-bar-item"><div class="score-bar-header"><span class="score-bar-label">Founder-Market Fit</span><span class="score-bar-val">48%</span></div><div class="score-track"><div class="score-fill red" style="width:48%"></div></div></div>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:var(--deep);border-radius:8px;border:1px solid rgba(201,168,76,.2);">
+          <div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px;">⚡ AI COACH INSIGHT</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">Founder-Market Fit is your lowest dimension. Consider documenting your personal domain experience in this market to strengthen this score before proceeding.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- M02 -->
+  <div class="module-panel" id="panel-1">
+    <div class="module-info">
+      <div class="stage-tag-row">
+        <span class="stage-pill pill-all">All Stages</span>
+      </div>
+      <h3>Legal Structure Engine</h3>
+      <p>Context-aware from day one. Covers 30+ MENA & global jurisdictions. Re-engaged at Scale and Pre-Exit stages for holdco restructuring and exit optimisation.</p>
+      <div class="feature-list">
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🌍</div>
+          <div class="feat-text">
+            <h5>Jurisdiction Intelligence</h5>
+            <p>Side-by-side comparison of 30+ countries. Visual card grid with trust score badges — not a raw table.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🏢</div>
+          <div class="feat-text">
+            <h5>Entity Recommendation Engine</h5>
+            <p>AI analyses your profile and recommends entity type with confidence score and full rationale.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🏗️</div>
+          <div class="feat-text">
+            <h5>Holding Structure Wizard</h5>
+            <p>3–4 questions to determine if a holdco layer is needed. Outputs a live org chart diagram.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📄</div>
+          <div class="feat-text">
+            <h5>Document Generation Suite</h5>
+            <p>SHA, MOA/AOA, NDA, vesting agreements — auto-filled with your profile data and DocuSign e-signature.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📅</div>
+          <div class="feat-text">
+            <h5>Legal Roadmap</h5>
+            <p>Horizontal timeline showing legal structure evolution from now to exit. Each stage is interactive.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="module-screen">
+      <div class="screen-bar">
+        <div class="screen-dot" style="background:#f97048"></div>
+        <div class="screen-dot" style="background:#f9c84c"></div>
+        <div class="screen-dot" style="background:#3ecf8e"></div>
+        <div class="screen-title">Jurisdiction Comparison — M02</div>
+      </div>
+      <div class="screen-body">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">AI Recommendation based on your profile: <span style="color:var(--gold);font-weight:600;">UAE + BVI Holdco Structure</span></div>
+        <div class="juris-grid">
+          <div class="juris-card rec">
+            <div class="juris-flag">🇦🇪</div>
+            <div class="juris-name">UAE — DIFC</div>
+            <div class="juris-sub">Common law, VC-friendly</div>
+            <div class="trust-score"><div class="trust-bar"><div class="trust-fill" style="width:92%"></div></div>92</div>
+          </div>
+          <div class="juris-card">
+            <div class="juris-flag">🇻🇬</div>
+            <div class="juris-name">BVI</div>
+            <div class="juris-sub">Holdco layer — tax neutral</div>
+            <div class="trust-score"><div class="trust-bar"><div class="trust-fill" style="width:88%"></div></div>88</div>
+          </div>
+          <div class="juris-card">
+            <div class="juris-flag">🇸🇦</div>
+            <div class="juris-name">Saudi Arabia</div>
+            <div class="juris-sub">LLC — MISA licensed</div>
+            <div class="trust-score"><div class="trust-bar"><div class="trust-fill" style="width:78%"></div></div>78</div>
+          </div>
+          <div class="juris-card">
+            <div class="juris-flag">🇧🇭</div>
+            <div class="juris-name">Bahrain</div>
+            <div class="juris-sub">Startup-friendly, low cost</div>
+            <div class="trust-score"><div class="trust-bar"><div class="trust-fill" style="width:72%"></div></div>72</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:var(--deep);border-radius:8px;border:1px solid rgba(201,168,76,.2);">
+          <div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:4px;">⚡ ENTITY RECOMMENDATION · 91% CONFIDENCE</div>
+          <div style="font-size:12px;color:var(--muted);">BVI Holdco → UAE DIFC OpCo. Best structure for your VC fundraising horizon and MENA ops.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- M03 -->
+  <div class="module-panel" id="panel-2">
+    <div class="module-info">
+      <div class="stage-tag-row">
+        <span class="stage-pill pill-seed">Pre-Seed</span>
+        <span class="stage-pill pill-seed">Seed</span>
+        <span class="stage-pill pill-growth">Early Growth</span>
+      </div>
+      <h3>GTM, Brand & Marketing</h3>
+      <p>The full commercial layer. How your business reaches customers, at what price, with what identity, and through what channel — in Arabic and English.</p>
+      <div class="feature-list">
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📡</div>
+          <div class="feat-text">
+            <h5>GTM Strategy Builder</h5>
+            <p>AI recommends primary and secondary channels as visual cards with effort/impact scoring.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">💰</div>
+          <div class="feat-text">
+            <h5>Pricing Strategy & LTV/CAC Simulator</h5>
+            <p>Drag a slider, watch your LTV, CAC, and payback period update in real-time across 3 pricing models.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🎨</div>
+          <div class="feat-text">
+            <h5>Brand Identity Wizard</h5>
+            <p>AI generates brand name options, positioning statements, and tone-of-voice guidelines conversationally.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📅</div>
+          <div class="feat-text">
+            <h5>AI Content Calendar Engine</h5>
+            <p>First 30 days of bilingual (AR/EN) content. LinkedIn, Instagram, email — all formatted per platform.</p>
+            <div class="ai-badge">⚡ BILINGUAL AR/EN</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="module-screen">
+      <div class="screen-bar">
+        <div class="screen-dot" style="background:#f97048"></div>
+        <div class="screen-dot" style="background:#f9c84c"></div>
+        <div class="screen-dot" style="background:#3ecf8e"></div>
+        <div class="screen-title">Content Calendar — Week 1 Preview</div>
+      </div>
+      <div class="screen-body">
+        <div class="cal-grid">
+          <div class="cal-item">
+            <div class="cal-day">MON · D1</div>
+            <div class="cal-platform">💼</div>
+            <div>
+              <div class="cal-copy">We're building the operating system for MENA founders. The problem isn't ambition — it's fragmentation.</div>
+              <div class="cal-ar">نحن نبني نظام التشغيل لمؤسسي منطقة الشرق الأوسط وشمال أفريقيا.</div>
+            </div>
+          </div>
+          <div class="cal-item">
+            <div class="cal-day">WED · D3</div>
+            <div class="cal-platform">📸</div>
+            <div>
+              <div class="cal-copy">3 things every founder gets wrong in their first 90 days — and how to avoid them.</div>
+              <div class="cal-ar">3 أشياء يخطئ بها كل مؤسس في أول 90 يوماً.</div>
+            </div>
+          </div>
+          <div class="cal-item">
+            <div class="cal-day">FRI · D5</div>
+            <div class="cal-platform">📧</div>
+            <div>
+              <div class="cal-copy"><strong>Subject:</strong> Your idea just passed validation — here's what's next.</div>
+              <div class="cal-ar">فكرتك اجتازت التحقق، إليك ما يلي.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- M04 -->
+  <div class="module-panel" id="panel-3">
+    <div class="module-info">
+      <div class="stage-tag-row">
+        <span class="stage-pill pill-seed">Pre-Seed</span>
+        <span class="stage-pill pill-seed">Seed</span>
+      </div>
+      <h3>MVP & Soft Launch</h3>
+      <p>Bridge the gap between validated idea and live product. Scoping, tech stack, dev partner sourcing, and a structured soft-launch playbook — all in one place.</p>
+      <div class="feature-list">
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🎯</div>
+          <div class="feat-text">
+            <h5>MVP Scoping Canvas (RICE + MoSCoW)</h5>
+            <p>Kanban-style drag-and-drop. Features auto-ranked by RICE score. AI assists prioritisation.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">⚙️</div>
+          <div class="feat-text">
+            <h5>Tech Stack Recommender</h5>
+            <p>Answer 5 questions. AI recommends your stack with cost estimates, pros/cons, and learning curve scores.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🤝</div>
+          <div class="feat-text">
+            <h5>Dev Partner Marketplace</h5>
+            <p>Matched vetted dev partners. Brief sent in-platform. Escrow via Stripe Connect milestone payments.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">✅</div>
+          <div class="feat-text">
+            <h5>100-Item Launch Checklist</h5>
+            <p>Grouped by category with a progress ring per category. Module completes when ≥ 90% is done.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="module-screen">
+      <div class="screen-bar">
+        <div class="screen-dot" style="background:#f97048"></div>
+        <div class="screen-dot" style="background:#f9c84c"></div>
+        <div class="screen-dot" style="background:#3ecf8e"></div>
+        <div class="screen-title">MVP Feature Prioritisation — RICE Scores</div>
+      </div>
+      <div class="screen-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--muted);">Must Have — 8 features ranked</div>
+          <div style="font-size:11px;background:rgba(62,207,142,.12);color:var(--green);border:1px solid rgba(62,207,142,.3);padding:3px 10px;border-radius:100px;">AI Sorted ✓</div>
+        </div>
+        <div class="rice-list">
+          <div class="rice-item"><div class="rice-rank">#1</div><div class="rice-label">User Authentication & Onboarding</div><div class="rice-score-wrap"><div class="rice-bar-track"><div class="rice-bar-fill" style="width:100%"></div></div><div class="rice-num">940</div></div></div>
+          <div class="rice-item"><div class="rice-rank">#2</div><div class="rice-label">Service Booking Flow</div><div class="rice-score-wrap"><div class="rice-bar-track"><div class="rice-bar-fill" style="width:84%"></div></div><div class="rice-num">790</div></div></div>
+          <div class="rice-item"><div class="rice-rank">#3</div><div class="rice-label">Provider Profile & Availability</div><div class="rice-score-wrap"><div class="rice-bar-track"><div class="rice-bar-fill" style="width:74%"></div></div><div class="rice-num">700</div></div></div>
+          <div class="rice-item"><div class="rice-rank">#4</div><div class="rice-label">In-App Payment (Stripe)</div><div class="rice-score-wrap"><div class="rice-bar-track"><div class="rice-bar-fill" style="width:63%"></div></div><div class="rice-num">595</div></div></div>
+          <div class="rice-item" style="opacity:.5"><div class="rice-rank">#5</div><div class="rice-label">Reviews & Ratings System</div><div class="rice-score-wrap"><div class="rice-bar-track"><div class="rice-bar-fill" style="width:52%"></div></div><div class="rice-num">490</div></div></div>
+          <div class="rice-item" style="opacity:.35"><div class="rice-rank">#6</div><div class="rice-label">AI Chatbot Support</div><div class="rice-score-wrap"><div class="rice-bar-track"><div class="rice-bar-fill" style="width:40%"></div></div><div class="rice-num">380</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- M05 -->
+  <div class="module-panel" id="panel-4">
+    <div class="module-info">
+      <div class="stage-tag-row">
+        <span class="stage-pill pill-seed">Seed</span>
+        <span class="stage-pill pill-growth">Early Growth</span>
+        <span class="stage-pill pill-scale">Scale</span>
+      </div>
+      <h3>Automation & ERP Readiness</h3>
+      <p>Operationalise your business. Automate key workflows and integrate with Zoho or Odoo. Your company becomes a machine — not a manual process.</p>
+      <div class="feature-list">
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📊</div>
+          <div class="feat-text">
+            <h5>ERP Readiness Assessment</h5>
+            <p>40-question assessment across 8 operational areas. Score ≥ 70% unlocks the ERP Config Wizard.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🔄</div>
+          <div class="feat-text">
+            <h5>Process Automation Builder</h5>
+            <p>Visual flow diagram with drag-and-drop trigger → action → condition blocks. Connects to Make & Zapier.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">💹</div>
+          <div class="feat-text">
+            <h5>Financial Model + Scenario Engine</h5>
+            <p>Spreadsheet-like P&L, cash flow, balance sheet. Adjust assumptions with sliders for instant scenario modelling.</p>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📋</div>
+          <div class="feat-text">
+            <h5>SOP Generator</h5>
+            <p>AI generates function-specific SOPs pre-loaded in a rich text editor. Assign to team members in-platform.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="module-screen">
+      <div class="screen-bar">
+        <div class="screen-dot" style="background:#f97048"></div>
+        <div class="screen-dot" style="background:#f9c84c"></div>
+        <div class="screen-dot" style="background:#3ecf8e"></div>
+        <div class="screen-title">KPI Dashboard — Live Operations</div>
+      </div>
+      <div class="screen-body">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">$42k</div><div class="kpi-change kpi-up">↑ 18% vs last month</div></div>
+          <div class="kpi-card"><div class="kpi-label">CAC</div><div class="kpi-value">$38</div><div class="kpi-change kpi-up">↓ 12% improvement</div></div>
+          <div class="kpi-card"><div class="kpi-label">Churn Rate</div><div class="kpi-value">3.2%</div><div class="kpi-change kpi-down">↑ 0.4% above target</div></div>
+          <div class="kpi-card"><div class="kpi-label">LTV/CAC Ratio</div><div class="kpi-value">4.8x</div><div class="kpi-change kpi-up">✓ Healthy threshold</div></div>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:var(--deep);border-radius:8px;border:1px solid rgba(201,168,76,.2);">
+          <div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:4px;">⚡ ERP READINESS: 82% — WIZARD UNLOCKED</div>
+          <div style="font-size:12px;color:var(--muted);">Zoho CRM configuration wizard is now active. 3 automation workflows pending setup.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- M06 -->
+  <div class="module-panel" id="panel-5">
+    <div class="module-info">
+      <div class="stage-tag-row">
+        <span class="stage-pill pill-growth">Early Growth</span>
+        <span class="stage-pill pill-scale">Scale</span>
+        <span class="stage-pill pill-scale">Pre-Exit</span>
+      </div>
+      <h3>Scale & Exit Planning</h3>
+      <p>Board-level strategic guidance. From investor readiness and pitch decks to M&A data rooms and valuation modelling — the AI Coach reaches its highest-value mode here.</p>
+      <div class="feature-list">
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🗺️</div>
+          <div class="feat-text">
+            <h5>Exit Strategy Modeler</h5>
+            <p>AI recommends M&A vs IPO path as a visual journey map with milestones and decision points.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">💎</div>
+          <div class="feat-text">
+            <h5>Valuation Modeler</h5>
+            <p>Indicative range (Low / Base / High) with the key assumptions driving each figure — not a single opaque number.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">📊</div>
+          <div class="feat-text">
+            <h5>Pitch Deck Builder</h5>
+            <p>15-slide structure pre-loaded with AI content from your platform data. Live preview. Export as PPTX and PDF.</p>
+            <div class="ai-badge">⚡ AI-POWERED</div>
+          </div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon-wrap">🗂️</div>
+          <div class="feat-text">
+            <h5>M&A Data Room</h5>
+            <p>File tree with drag-and-drop upload. Standard M&A taxonomy auto-applied. Signed URL sharing with expiry controls.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="module-screen">
+      <div class="screen-bar">
+        <div class="screen-dot" style="background:#f97048"></div>
+        <div class="screen-dot" style="background:#f9c84c"></div>
+        <div class="screen-dot" style="background:#3ecf8e"></div>
+        <div class="screen-title">Valuation Modeler — Series A Profile</div>
+      </div>
+      <div class="screen-body">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Indicative Valuation Range</div>
+          <div style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--white);">$4.2M — $9.8M</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Based on SaaS 6–8x ARR multiple · MENA Market</div>
+        </div>
+        <div class="val-range">
+          <div class="val-bar-wrap">
+            <div class="val-label-row"><span class="val-tag">Conservative (4x ARR)</span><span class="val-num">$4.2M</span></div>
+            <div class="val-track"><div class="val-fill-low"></div></div>
+          </div>
+          <div class="val-bar-wrap">
+            <div class="val-label-row"><span class="val-tag">Base Case (6.5x ARR)</span><span class="val-num">$6.8M</span></div>
+            <div class="val-track"><div class="val-fill-base"></div></div>
+          </div>
+          <div class="val-bar-wrap">
+            <div class="val-label-row"><span class="val-tag">Optimistic (9x ARR)</span><span class="val-num">$9.8M</span></div>
+            <div class="val-track"><div class="val-fill-high"></div></div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:var(--deep);border-radius:8px;border:1px solid rgba(201,168,76,.2);">
+          <div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:4px;">⚡ INVESTOR READINESS: 68%</div>
+          <div style="font-size:12px;color:var(--muted);">2 critical gaps: board structure documentation and audited financials. AI Coach has a remediation plan ready.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DESIGN SYSTEM -->
+<section class="reveal">
+  <div class="section-label">Platform Experience</div>
+  <h2 class="section-title">Designed for Founders,<br>Not Accountants.</h2>
+  <p class="section-sub">Every interaction principle is built around reducing cognitive load and celebrating progress.</p>
+  <div class="ds-grid">
+    <div class="ds-card">
+      <div class="ds-card-icon">🤖</div>
+      <h4>AI-First UX</h4>
+      <p>Every major output includes an AI explanation. Raw data is never shown without narrative context. The AI Coach is always one click away.</p>
+    </div>
+    <div class="ds-card">
+      <div class="ds-card-icon">🎉</div>
+      <h4>Celebrate Progress</h4>
+      <p>Module completion triggers micro-animations and shareable milestone cards. Every win is acknowledged — nothing goes unnoticed.</p>
+    </div>
+    <div class="ds-card">
+      <div class="ds-card-icon">💾</div>
+      <h4>Autosave Always On</h4>
+      <p>All inputs autosave every 30 seconds. No data is ever lost on navigation or browser close. Peace of mind, always.</p>
+    </div>
+    <div class="ds-card">
+      <div class="ds-card-icon">🌐</div>
+      <h4>Bilingual AR/EN</h4>
+      <p>Full RTL (Right-to-Left) support for Arabic. All AI-generated content produced in both languages simultaneously.</p>
+    </div>
+    <div class="ds-card">
+      <div class="ds-card-icon">📱</div>
+      <h4>Mobile-First</h4>
+      <p>Fully responsive. Sidebar collapses to a bottom navigation bar on mobile. The onboarding questionnaire is single-question-per-screen on mobile.</p>
+    </div>
+    <div class="ds-card">
+      <div class="ds-card-icon">♿</div>
+      <h4>WCAG 2.1 AA</h4>
+      <p>Full accessibility compliance. Keyboard navigable, screen reader support, 4.5:1 contrast ratios, and aria-live form error regions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<div class="pricing-section" id="pricing">
+  <div class="pricing-inner reveal">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Invest Once.<br>Build Forever.</h2>
+    <p class="section-sub">One platform replaces your consultants, lawyers, and agencies. The ROI begins on day one.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="plan-name">Launch</div>
+        <div class="plan-price"><sup>$</sup>149<span>/mo</span></div>
+        <div class="plan-desc">For early-stage founders validating their idea and setting up their legal foundation.</div>
+        <div class="plan-features">
+          <div class="plan-feat">M01 — Idea Validation</div>
+          <div class="plan-feat">M02 — Legal Engine (1 jurisdiction)</div>
+          <div class="plan-feat">AI Coach (50 queries/mo)</div>
+          <div class="plan-feat">Document generation (5 docs)</div>
+          <div class="plan-feat no">M03–M06 Modules</div>
+          <div class="plan-feat no">Bilingual AR/EN content</div>
+        </div>
+        <button class="plan-btn">Get Started</button>
+      </div>
+      <div class="price-card featured">
+        <div class="plan-name">Scale</div>
+        <div class="plan-price"><sup>$</sup>349<span>/mo</span></div>
+        <div class="plan-desc">For seed-stage founders building, launching, and growing their business with AI.</div>
+        <div class="plan-features">
+          <div class="plan-feat">All M01–M05 Modules active</div>
+          <div class="plan-feat">AI Coach (unlimited)</div>
+          <div class="plan-feat">30+ jurisdictions access</div>
+          <div class="plan-feat">Bilingual AR/EN content engine</div>
+          <div class="plan-feat">Dev Partner marketplace</div>
+          <div class="plan-feat">Financial model + scenarios</div>
+        </div>
+        <button class="plan-btn">Start Free Trial</button>
+      </div>
+      <div class="price-card">
+        <div class="plan-name">Exit</div>
+        <div class="plan-price"><sup>$</sup>749<span>/mo</span></div>
+        <div class="plan-desc">Full platform access for growth-stage companies on the path to fundraising or acquisition.</div>
+        <div class="plan-features">
+          <div class="plan-feat">All 6 Modules — full access</div>
+          <div class="plan-feat">M06 — Scale & Exit Engine</div>
+          <div class="plan-feat">Pitch deck builder & data room</div>
+          <div class="plan-feat">Investor & mentor network</div>
+          <div class="plan-feat">Dedicated AI Coach context</div>
+          <div class="plan-feat">Priority support & onboarding</div>
+        </div>
+        <button class="plan-btn">Contact Sales</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta-section reveal" id="cta">
+  <h2>Your Exit Starts<br>Today.</h2>
+  <p>Answer 14 questions. Get your personalised founder roadmap in under 5 minutes. No credit card required.</p>
+  <div class="hero-actions" style="justify-content:center">
+    <button class="btn-primary" style="font-size:18px;padding:18px 48px;">Take the Founder Assessment →</button>
+  </div>
+  <div style="margin-top:32px;font-size:13px;color:var(--muted);">Trusted by founders across MENA · Available in Arabic & English</div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Zero<span>2</span>Exit</div>
+  <div class="footer-links">
+    <a href="#">Platform</a>
+    <a href="#">Modules</a>
+    <a href="#">Pricing</a>
+    <a href="#">About</a>
+    <a href="#">Privacy</a>
+  </div>
+  <div class="footer-copy">© 2025 Zero2Exit · All rights reserved</div>
+</footer>
+
+<!-- AI COACH BUBBLE -->
+<div class="ai-coach-bubble">
+  <div class="coach-panel" id="coachPanel">
+    <div class="coach-header">
+      <div class="coach-avatar">⚡</div>
+      <div>
+        <div class="coach-name">Zero2Exit AI Coach</div>
+        <div class="coach-status">● Online — Pre-loaded with your context</div>
+      </div>
+    </div>
+    <div class="coach-messages" id="coachMessages">
+      <div class="coach-msg">👋 Hi Mohamed! Based on your profile, you're at <strong>Pre-Seed stage</strong>. Your next recommended action is completing the Idea Stress-Test in M01. Want me to walk you through it?</div>
+    </div>
+    <div class="coach-input-row">
+      <input class="coach-input" id="coachInput" placeholder="Ask the AI Coach..." onkeydown="if(event.key==='Enter')sendCoachMsg()">
+      <button class="coach-send" onclick="sendCoachMsg()">→</button>
+    </div>
+  </div>
+  <button class="coach-btn" onclick="toggleCoach()">⚡</button>
+</div>
+
+<script>
+// ── NAV SCROLL ──
+window.addEventListener('scroll', () => {
+  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// ── REVEAL ON SCROLL ──
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.08 });
+reveals.forEach(r => observer.observe(r));
+
+// ── MODULE TABS ──
+function switchTab(idx) {
+  document.querySelectorAll('.mod-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.module-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+}
+
+// ── JOURNEY STEP HIGHLIGHT ──
+function highlightStep(el, idx) {
+  document.querySelectorAll('.journey-step').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── STAGE CARD TOGGLE ──
+function toggleStageCard(el) {
+  document.querySelectorAll('.stage-card').forEach(c => c.classList.remove('highlighted'));
+  el.classList.add('highlighted');
+}
+
+// ── AI COACH ──
+function toggleCoach() {
+  document.getElementById('coachPanel').classList.toggle('open');
+}
+
+const coachResponses = [
+  "Great question! Based on your current stage, I'd focus on getting your Validation Score above 60% before touching legal structure. It saves time and money.",
+  "Your market sizing looks strong for the MENA region. The key gap right now is your Founder-Market Fit score — can you tell me more about your background in this industry?",
+  "For your jurisdiction setup, I'd recommend the BVI → UAE DIFC structure for maximum VC flexibility. Want me to generate a legal roadmap?",
+  "Your GTM should prioritise LinkedIn and Email for the first 90 days based on your B2B profile. I've pre-drafted a 30-day content calendar in M03.",
+  "Looking at your KPIs, your LTV/CAC at 4.8x is healthy. To unlock M06 (Exit), you need to hit Series A eligibility criteria — currently at 68% investor readiness."
+];
+let coachIdx = 0;
+
+function sendCoachMsg() {
+  const input = document.getElementById('coachInput');
+  const msgs = document.getElementById('coachMessages');
+  if(!input.value.trim()) return;
+  
+  const userMsg = document.createElement('div');
+  userMsg.className = 'coach-msg user';
+  userMsg.textContent = input.value;
+  msgs.appendChild(userMsg);
+  input.value = '';
+  
+  setTimeout(() => {
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'coach-msg';
+    aiMsg.textContent = coachResponses[coachIdx % coachResponses.length];
+    msgs.appendChild(aiMsg);
+    msgs.scrollTop = msgs.scrollHeight;
+    coachIdx++;
+  }, 800);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── ANIMATE SCORE BARS ON LOAD ──
+setTimeout(() => {
+  document.querySelectorAll('.score-fill').forEach(bar => {
+    const w = bar.style.width;
+    bar.style.width = '0%';
+    setTimeout(() => { bar.style.width = w; }, 200);
+  });
+}, 500);
+
+// ── COUNTER ANIMATION ──
+function animateCounter(el, target) {
+  let start = 0;
+  const step = target / 40;
+  const timer = setInterval(() => {
+    start += step;
+    if(start >= target) { el.textContent = target; clearInterval(timer); return; }
+    el.textContent = Math.floor(start);
+  }, 30);
+}
+</script>
+</body>
+</html>

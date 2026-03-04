@@ -1,0 +1,164 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Founder {
+  id               String   @id @default(cuid())
+  clerkUserId      String   @unique @map("clerk_user_id")
+  email            String
+  name             String?
+  language         String   @default("en")
+  stage            String?
+  plan             String   @default("launch")
+  stripeCustomerId String?  @map("stripe_customer_id")
+  s3BucketName     String?  @map("s3_bucket_name")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  onboardingResponses OnboardingResponse[]
+  moduleProgress      ModuleProgress[]
+  ideaValidations     IdeaValidation[]
+  legalStructures     LegalStructure[]
+  documents           Document[]
+  coachSessions       CoachSession[]
+  subscriptions       Subscription[]
+  auditLogs           AuditLog[]
+
+  @@map("founders")
+}
+
+model OnboardingResponse {
+  id               String    @id @default(cuid())
+  founderId        String    @map("founder_id")
+  responses        Json
+  stageAssigned    String    @map("stage_assigned")
+  modulePlan       Json      @map("module_plan")
+  routingRationale String?   @map("routing_rationale")
+  evaluatedAt      DateTime  @default(now()) @map("evaluated_at")
+  nextEvalAt       DateTime? @map("next_eval_at")
+  founder          Founder   @relation(fields: [founderId], references: [id])
+
+  @@map("onboarding_responses")
+}
+
+model ModuleProgress {
+  id           String    @id @default(cuid())
+  founderId    String    @map("founder_id")
+  moduleId     String    @map("module_id")
+  status       String    @default("locked")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  outputs      Json?
+  score        Int?
+  lastActivity DateTime? @map("last_activity")
+  founder      Founder   @relation(fields: [founderId], references: [id])
+
+  @@unique([founderId, moduleId])
+  @@index([founderId])
+  @@map("module_progress")
+}
+
+model IdeaValidation {
+  id                  String   @id @default(cuid())
+  founderId           String   @map("founder_id")
+  businessDescription String   @map("business_description")
+  objections          Json?
+  marketSizing        Json?    @map("market_sizing")
+  competitiveMap      Json?    @map("competitive_map")
+  icpProfiles         Json?    @map("icp_profiles")
+  scorecard           Json?
+  shareCardUrl        String?  @map("share_card_url")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  founder             Founder  @relation(fields: [founderId], references: [id])
+
+  @@index([founderId])
+  @@map("idea_validations")
+}
+
+model LegalStructure {
+  id                      String   @id @default(cuid())
+  founderId               String   @map("founder_id")
+  recommendedJurisdiction String?  @map("recommended_jurisdiction")
+  recommendedEntityType   String?  @map("recommended_entity_type")
+  confidenceScore         Int?     @map("confidence_score")
+  jurisdictionComparison  Json?    @map("jurisdiction_comparison")
+  holdcoNeeded            Boolean? @map("holdco_needed")
+  orgChart                Json?    @map("org_chart")
+  legalRoadmap            Json?    @map("legal_roadmap")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  founder                 Founder  @relation(fields: [founderId], references: [id])
+
+  @@index([founderId])
+  @@map("legal_structures")
+}
+
+model Document {
+  id                 String    @id @default(cuid())
+  founderId          String    @map("founder_id")
+  moduleId           String?   @map("module_id")
+  docType            String    @map("doc_type")
+  s3Key              String    @map("s3_key")
+  s3Url              String?   @map("s3_url")
+  docusignEnvelopeId String?   @map("docusign_envelope_id")
+  docusignStatus     String    @default("draft") @map("docusign_status")
+  signers            Json?
+  completedAt        DateTime? @map("completed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  founder            Founder   @relation(fields: [founderId], references: [id])
+
+  @@index([founderId])
+  @@map("documents")
+}
+
+model CoachSession {
+  id              String   @id @default(cuid())
+  founderId       String   @map("founder_id")
+  messages        Json     @default("[]")
+  contextSnapshot Json?    @map("context_snapshot")
+  language        String   @default("en")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  founder         Founder  @relation(fields: [founderId], references: [id])
+
+  @@index([founderId])
+  @@map("coach_sessions")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  founderId            String    @map("founder_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  plan                 String
+  status               String
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  founder              Founder   @relation(fields: [founderId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  founderId    String?  @map("founder_id")
+  actorType    String   @map("actor_type")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  metadata     Json?
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
+  founder      Founder? @relation(fields: [founderId], references: [id])
+
+  @@index([founderId])
+  @@index([action])
+  @@map("audit_log")
+}
+
