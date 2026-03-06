@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "ideaValidation": "Idea Validation",
+    "legalStructure": "Legal Structure",
+    "roadmap": "Roadmap",
+    "knowledge": "Knowledge Graph",
+    "coach": "AI Coach",
+    "documents": "Documents",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "stage": "Your Stage",
+    "nextAction": "Next Action",
+    "progress": "Progress"
+  },
+  "onboarding": {
+    "title": "Tell us about your business",
+    "subtitle": "Answer a few questions so we can personalise your roadmap",
+    "submit": "Generate My Roadmap"
+  },
+  "modules": {
+    "M01": "Idea Validation",
+    "M02": "Legal Structure",
+    "M03": "Go-to-Market",
+    "M04": "MVP Launch",
+    "M05": "Operations",
+    "M06": "Exit Planning"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "save": "Save",
+    "cancel": "Cancel",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Submit",
+    "generating": "Generating with AI..."
+  }
+}
+

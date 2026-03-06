@@ -6,6 +6,9 @@ import { coachRouter } from './coach.js'
 import { documentsRouter } from './documents.js'
 import { paymentsRouter } from './payments.js'
 import { founderRouter } from './founder.js'
+import { dashboardRouter } from './dashboard.js'
+import { startupRouter } from '../modules/startup/startup.router.js'
+import { knowledgeRouter } from '../modules/knowledge/knowledge.router.js'
 
 export const appRouter = router({
   gateway: gatewayRouter,
@@ -15,6 +18,9 @@ export const appRouter = router({
   documents: documentsRouter,
   payments: paymentsRouter,
   founder: founderRouter,
+  dashboard: dashboardRouter,
+  knowledge: knowledgeRouter,
+  startup: startupRouter,
 })
 
 export type AppRouter = typeof appRouter

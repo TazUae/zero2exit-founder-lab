@@ -1,7 +1,13 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 
+// Compatible with both PrismaClient and Prisma interactive-transaction client
+export type TxClient = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>
+
 export async function writeAuditLog(params: {
-  db: PrismaClient
+  db: TxClient
   founderId: string
   actorType: 'founder' | 'admin' | 'system' | 'webhook'
   action: string

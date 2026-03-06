@@ -1,0 +1,129 @@
+services:
+  # ─── PostgreSQL ───
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zero2exit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-zero2exit}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zero2exit}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ───
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend API (Fastify + tRPC) ───
+  backend:
+    build:
+      context: ./zero2exit-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: https://${DOMAIN}
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(3000,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ─── Backend Worker (BullMQ) ───
+  worker:
+    build:
+      context: ./zero2exit-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
+      REDIS_URL: redis://redis:6379
+    networks:
+      - internal
+    command: ["node", "dist/worker.js"]
+
+  # ─── Frontend (Next.js) — Traefik-routed ───
+  frontend:
+    build:
+      context: ./zero2exit-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_API_URL: https://${DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}
+    networks:
+      - internal
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(3001,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zero2exit.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.zero2exit.entrypoints=websecure"
+      - "traefik.http.routers.zero2exit.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zero2exit.loadbalancer.server.port=3001"
+      - "traefik.docker.network=dokploy-network"
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  internal:
+    driver: bridge
+  dokploy-network:
+    external: true

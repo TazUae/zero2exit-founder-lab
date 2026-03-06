@@ -49,9 +49,8 @@ export async function getFounderContext(
         where: { founderId },
         orderBy: { createdAt: 'desc' },
       }),
-      db.legalStructure.findFirst({
+      db.legalStructure.findUnique({
         where: { founderId },
-        orderBy: { createdAt: 'desc' },
       }),
       db.subscription.findFirst({
         where: { founderId },

@@ -21,21 +21,24 @@ model Founder {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  onboardingResponses OnboardingResponse[]
+  onboardingResponse  OnboardingResponse?
   moduleProgress      ModuleProgress[]
-  ideaValidations     IdeaValidation[]
-  legalStructures     LegalStructure[]
+  ideaValidation      IdeaValidation?
+  legalStructure      LegalStructure?
   documents           Document[]
   coachSessions       CoachSession[]
   subscriptions       Subscription[]
   auditLogs           AuditLog[]
+  knowledgeNodes      KnowledgeNode[]
+  knowledgeEdges      KnowledgeEdge[]
+  roadmaps            FounderRoadmap[]
 
   @@map("founders")
 }
 
 model OnboardingResponse {
   id               String    @id @default(cuid())
-  founderId        String    @map("founder_id")
+  founderId        String    @unique @map("founder_id")
   responses        Json
   stageAssigned    String    @map("stage_assigned")
   modulePlan       Json      @map("module_plan")
@@ -66,7 +69,7 @@ model ModuleProgress {
 
 model IdeaValidation {
   id                  String   @id @default(cuid())
-  founderId           String   @map("founder_id")
+  founderId           String   @unique @map("founder_id")
   businessDescription String   @map("business_description")
   objections          Json?
   marketSizing        Json?    @map("market_sizing")
@@ -78,13 +81,12 @@ model IdeaValidation {
   updatedAt           DateTime @updatedAt @map("updated_at")
   founder             Founder  @relation(fields: [founderId], references: [id])
 
-  @@index([founderId])
   @@map("idea_validations")
 }
 
 model LegalStructure {
   id                      String   @id @default(cuid())
-  founderId               String   @map("founder_id")
+  founderId               String   @unique @map("founder_id")
   recommendedJurisdiction String?  @map("recommended_jurisdiction")
   recommendedEntityType   String?  @map("recommended_entity_type")
   confidenceScore         Int?     @map("confidence_score")
@@ -96,7 +98,6 @@ model LegalStructure {
   updatedAt               DateTime @updatedAt @map("updated_at")
   founder                 Founder  @relation(fields: [founderId], references: [id])
 
-  @@index([founderId])
   @@map("legal_structures")
 }
 
@@ -161,4 +162,75 @@ model AuditLog {
   @@index([action])
   @@map("audit_log")
 }
+
+model MarketResearch {
+  id        String   @id @default(uuid())
+  topic     String
+  facts     Json
+  sources   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([topic])
+  @@map("market_research")
+}
+
+model FounderRoadmap {
+  id        String   @id @default(uuid())
+  founderId String   @map("founder_id")
+  roadmap   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  founder   Founder  @relation(fields: [founderId], references: [id])
+  revisions RoadmapRevision[]
+
+  @@index([founderId])
+  @@map("founder_roadmaps")
+}
+
+model RoadmapRevision {
+  id        String   @id @default(uuid())
+  roadmapId String   @map("roadmap_id")
+  version   Int
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+  roadmap   FounderRoadmap @relation(fields: [roadmapId], references: [id])
+
+  @@index([roadmapId])
+  @@map("roadmap_revisions")
+}
+
+model KnowledgeNode {
+  id        String   @id @default(uuid())
+  founderId String   @map("founder_id")
+  type      String
+  title     String?
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  founder   Founder  @relation(fields: [founderId], references: [id])
+  outgoing  KnowledgeEdge[] @relation("KnowledgeEdgeFrom")
+  incoming  KnowledgeEdge[] @relation("KnowledgeEdgeTo")
+
+  @@index([founderId, type])
+  @@map("knowledge_nodes")
+}
+
+model KnowledgeEdge {
+  id         String        @id @default(uuid())
+  founderId  String        @map("founder_id")
+  fromNodeId String        @map("from_node_id")
+  toNodeId   String        @map("to_node_id")
+  relation   String
+  createdAt  DateTime      @default(now()) @map("created_at")
+  founder    Founder       @relation(fields: [founderId], references: [id])
+  fromNode   KnowledgeNode @relation("KnowledgeEdgeFrom", fields: [fromNodeId], references: [id])
+  toNode     KnowledgeNode @relation("KnowledgeEdgeTo", fields: [toNodeId], references: [id])
+
+  @@index([founderId])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@map("knowledge_edges")
+}
+
+
+
 

@@ -1,7 +1,9 @@
+import { env } from './config/env.js'
 import Fastify from 'fastify'
 import type { FastifyRequest } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
+import rateLimit from '@fastify/rate-limit'
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
 import { appRouter } from './routers/index.js'
 import { createContext } from './trpc.js'
@@ -9,9 +11,24 @@ import { clerkWebhook } from './webhooks/clerk.js'
 import { stripeWebhook } from './webhooks/stripe.js'
 import { db } from './lib/db.js'
 import { redis } from './lib/storage/redis.js'
+import { isLLMConfigured } from './lib/llm/router.js'
+import { logger } from './lib/logger.js'
 
 const server = Fastify({
   logger: true,
+  maxParamLength: 500,
+})
+
+// Ensure all error responses are JSON. For 500, do not leak internal error messages to clients.
+server.setErrorHandler((err, req, reply) => {
+  const statusCode = (err as { statusCode?: number }).statusCode ?? 500
+  const isInternal = statusCode >= 500
+  const safeMessage =
+    isInternal ? 'Internal Server Error' : (err.message ?? 'Internal Server Error')
+  reply.status(statusCode).type('application/json').send({
+    error: safeMessage,
+    code: statusCode,
+  })
 })
 
 // Add rawBody support for Stripe webhook signature verification
@@ -29,8 +46,17 @@ server.addContentTypeParser(
 )
 
 async function start() {
+  await server.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  })
+
+  const frontendOrigins = env.FRONTEND_URL
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean)
   await server.register(cors, {
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    origin: frontendOrigins.length === 1 ? frontendOrigins[0] : frontendOrigins,
     credentials: true,
   })
 
@@ -69,7 +95,9 @@ async function start() {
       checks.redis = 'error'
     }
 
-    const healthy = Object.values(checks).every(v => v === 'ok')
+    checks.llm = isLLMConfigured() ? 'ok' : 'not_configured'
+
+    const healthy = checks.database === 'ok' && checks.redis === 'ok'
     return reply.status(healthy ? 200 : 503).send({
       status: healthy ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
@@ -77,13 +105,13 @@ async function start() {
     })
   })
 
-  const port = Number(process.env.PORT ?? 3000)
+  const port = Number(env.PORT)
   await server.listen({ port, host: '0.0.0.0' })
-  console.log(`Zero2Exit API running on port ${port}`)
+  logger.info({ port }, 'Zero2Exit API running')
 }
 
-start().catch(err => {
-  console.error(err)
+start().catch((err) => {
+  logger.fatal({ err }, 'Server failed to start')
   process.exit(1)
 })
 

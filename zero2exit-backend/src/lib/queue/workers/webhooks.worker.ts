@@ -1,17 +1,7 @@
-import { Worker } from 'bullmq'
-import type { RedisOptions } from 'ioredis'
-
-const connection: RedisOptions = {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-}
-
-new Worker(
-  'webhooks',
-  async (job) => {
-    console.log(`[webhooks] Processing job ${job.id}: ${job.name}`)
-    // TODO: implement webhook fan-out and retries
-  },
-  { connection },
-)
-
+// TODO: Implement webhook fan-out and retries
+// This worker is a placeholder. Uncomment and implement when BullMQ job queue is needed.
+//
+// import { Worker } from 'bullmq'
+// import { redis } from '../../storage/redis.js'
+//
+// new Worker('webhooks', async (job) => { ... }, { connection: redis })

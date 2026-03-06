@@ -1,17 +1,7 @@
-import { Worker } from 'bullmq'
-import type { RedisOptions } from 'ioredis'
-
-const connection: RedisOptions = {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-}
-
-new Worker(
-  'notifications',
-  async (job) => {
-    console.log(`[notifications] Processing job ${job.id}: ${job.name}`)
-    // TODO: implement email, SMS, and in-app notification jobs
-  },
-  { connection },
-)
-
+// TODO: Implement email, SMS, and in-app notification jobs
+// This worker is a placeholder. Uncomment and implement when BullMQ job queue is needed.
+//
+// import { Worker } from 'bullmq'
+// import { redis } from '../../storage/redis.js'
+//
+// new Worker('notifications', async (job) => { ... }, { connection: redis })

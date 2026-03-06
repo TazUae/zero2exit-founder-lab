@@ -1,10 +1,7 @@
 import { Queue } from 'bullmq'
-import type { RedisOptions } from 'ioredis'
+import { redis } from '../storage/redis.js'
 
-const connection: RedisOptions = {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-}
+const connection = redis
 
 export const aiHeavyQueue = new Queue('ai-heavy', { connection })
 export const webhooksQueue = new Queue('webhooks', { connection })

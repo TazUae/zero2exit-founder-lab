@@ -1,17 +1,7 @@
-import { Worker } from 'bullmq'
-import type { RedisOptions } from 'ioredis'
-
-const connection: RedisOptions = {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-}
-
-new Worker(
-  'ai-heavy',
-  async (job) => {
-    console.log(`[ai-heavy] Processing job ${job.id}: ${job.name}`)
-    // TODO: implement document generation, market sizing, scorecard jobs
-  },
-  { connection },
-)
-
+// TODO: Implement AI-heavy job processing (document generation, market sizing, scorecard)
+// This worker is a placeholder. Uncomment and implement when BullMQ job queue is needed.
+//
+// import { Worker } from 'bullmq'
+// import { redis } from '../../storage/redis.js'
+//
+// new Worker('ai-heavy', async (job) => { ... }, { connection: redis })

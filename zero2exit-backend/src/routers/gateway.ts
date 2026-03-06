@@ -3,9 +3,11 @@ import { TRPCError } from '@trpc/server'
 import type { Prisma } from '@prisma/client'
 import { router, protectedProcedure } from '../trpc.js'
 import { llmCall } from '../lib/llm/router.js'
+import { extractJSON } from '../lib/llm/parse.js'
 import { buildSystemPrompt, buildUserMessage } from '../lib/llm/prompts/gateway.classify.js'
 import { invalidateFounderContext } from '../lib/context/founderContext.js'
 import { writeAuditLog } from '../lib/audit.js'
+import { logger } from '../lib/logger.js'
 
 // Module activation map per stage
 const STAGE_MODULES: Record<string, string[]> = {
@@ -24,7 +26,7 @@ function buildModulePlan(stage: Stage) {
   return modules.map((moduleId, index) => ({
     moduleId,
     order: index + 1,
-    status: moduleId === 'M01' ? 'active' : 'locked',
+    status: index === 0 ? 'active' : 'locked',
   }))
 }
 
@@ -50,18 +52,16 @@ export const gatewayRouter = router({
           buildSystemPrompt()
         )
 
-        // Strip markdown code fences if present
-        const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim()
-        const parsed = JSON.parse(cleaned)
+        const parsed = extractJSON(raw) as { stage?: string; rationale?: string }
 
-        if (VALID_STAGES.includes(parsed.stage)) {
+        if (parsed.stage && VALID_STAGES.includes(parsed.stage as Stage)) {
           stage = parsed.stage as Stage
           rationale = parsed.rationale ?? ''
         } else {
-          console.warn('Invalid stage from AI, defaulting to idea:', parsed.stage)
+          logger.warn({ aiStage: parsed.stage }, 'Invalid stage from AI, defaulting to idea')
         }
       } catch (err) {
-        console.warn('AI classification failed, defaulting to idea:', err)
+        logger.warn({ err }, 'AI classification failed, defaulting to idea')
       }
 
       const modulePlan = buildModulePlan(stage)
@@ -75,9 +75,9 @@ export const gatewayRouter = router({
           data: { stage, language: input.language },
         })
 
-        // Upsert onboarding response
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `founderId` unique where resolves after `prisma generate`
         await tx.onboardingResponse.upsert({
-          where: { id: founderId },
+          where: { founderId } as any,
           update: {
             responses: input.responses as Prisma.InputJsonValue,
             stageAssigned: stage,
@@ -87,7 +87,6 @@ export const gatewayRouter = router({
             nextEvalAt,
           },
           create: {
-            id: founderId,
             founderId,
             responses: input.responses as Prisma.InputJsonValue,
             stageAssigned: stage,
@@ -159,6 +158,7 @@ export const gatewayRouter = router({
         modulePlan: onboarding.modulePlan,
         moduleProgress: progressWithUnlock,
         nextEvalAt: onboarding.nextEvalAt,
+        onboardingResponses: onboarding.responses as Record<string, string> | null,
       }
     }),
 
@@ -189,15 +189,14 @@ export const gatewayRouter = router({
           [{ role: 'user', content: buildUserMessage(onboarding.responses as Record<string, unknown>) }],
           buildSystemPrompt()
         )
-        const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim()
-        const parsed = JSON.parse(cleaned)
+        const parsed = extractJSON(raw) as { stage?: string; rationale?: string }
 
-        if (VALID_STAGES.includes(parsed.stage)) {
+        if (parsed.stage && VALID_STAGES.includes(parsed.stage as Stage)) {
           newStage = parsed.stage as Stage
           rationale = parsed.rationale ?? ''
         }
       } catch (err) {
-        console.warn('Re-evaluation AI call failed:', err)
+        logger.warn({ err }, 'Re-evaluation AI call failed')
       }
 
       const nextEvalAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
