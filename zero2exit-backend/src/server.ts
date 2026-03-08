@@ -56,7 +56,12 @@ async function start() {
     .map((o) => o.trim())
     .filter(Boolean)
   await server.register(cors, {
-    origin: frontendOrigins.length === 1 ? frontendOrigins[0] : frontendOrigins,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true)
+      if (frontendOrigins.includes(origin)) return cb(null, true)
+      if (env.NODE_ENV === 'development' && (origin.includes('ngrok') || origin.includes('trycloudflare.com'))) return cb(null, true)
+      return cb(null, false)
+    },
     credentials: true,
   })
 
@@ -77,29 +82,34 @@ async function start() {
   server.post('/webhooks/clerk', clerkWebhook)
   server.post('/webhooks/stripe', stripeWebhook)
 
-  // Health check
+  // Health check — GET /health (parallel checks so total latency = max(timeout) not sum)
+  const HEALTH_CHECK_TIMEOUT_MS = 2500
   server.get('/health', async (req, reply) => {
-    const checks: Record<string, string> = {}
+    const timeout = (ms: number) =>
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
 
-    try {
-      await db.$queryRaw`SELECT 1`
-      checks.database = 'ok'
-    } catch {
-      checks.database = 'error'
+    const [dbResult, redisResult] = await Promise.allSettled([
+      Promise.race([db.$queryRaw`SELECT 1`, timeout(HEALTH_CHECK_TIMEOUT_MS)]),
+      Promise.race([redis.ping(), timeout(HEALTH_CHECK_TIMEOUT_MS)]),
+    ])
+
+    if (dbResult.status === 'rejected')
+      logger.warn({ err: dbResult.reason }, 'Health check: database unreachable')
+    if (redisResult.status === 'rejected')
+      logger.warn({ err: redisResult.reason }, 'Health check: Redis unreachable')
+
+    const checks = {
+      database: dbResult.status === 'fulfilled' ? 'connected' : 'error',
+      redis: redisResult.status === 'fulfilled' ? 'ok' : 'error',
+      llm: isLLMConfigured() ? 'ok' : 'not_configured',
     }
 
-    try {
-      await redis.ping()
-      checks.redis = 'ok'
-    } catch {
-      checks.redis = 'error'
-    }
-
-    checks.llm = isLLMConfigured() ? 'ok' : 'not_configured'
-
-    const healthy = checks.database === 'ok' && checks.redis === 'ok'
+    const healthy = checks.database === 'connected' && checks.redis === 'ok'
     return reply.status(healthy ? 200 : 503).send({
       status: healthy ? 'ok' : 'degraded',
+      database: checks.database,
+      redis: checks.redis,
+      llm: checks.llm,
       timestamp: new Date().toISOString(),
       checks,
     })
