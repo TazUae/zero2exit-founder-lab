@@ -1,19 +1,27 @@
 {
   "nav": {
-    "dashboard": "لوحة التحكم",
+    "dashboard": "مركز القيادة",
     "ideaValidation": "التحقق من الفكرة",
     "legalStructure": "الهيكل القانوني",
+    "gtm": "الاستراتيجية التسويقية",
     "roadmap": "خارطة الطريق",
     "knowledge": "رسم المعرفة",
+    "brand": "الهوية التجارية",
+    "scalingStrategy": "استراتيجية التوسع",
+    "fundraisingReadiness": "جاهزية جمع التبرعات",
+    "exitPlanning": "تخطيط الخروج",
     "coach": "المدرب الذكي",
     "documents": "المستندات",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "lockedStageTooltip": "متاح في مرحلة قادمة"
   },
   "dashboard": {
     "welcome": "مرحباً بعودتك",
     "stage": "مرحلتك الحالية",
     "nextAction": "الخطوة التالية",
-    "progress": "التقدم"
+    "progress": "التقدم",
+    "loadError": "تعذر تحميل مركز القيادة. يرجى تحديث الصفحة.",
+    "loadErrorDev": "تعذر تحميل مركز القيادة: {message}. راجع وحدة التحكم للتفاصيل."
   },
   "onboarding": {
     "title": "أخبرنا عن مشروعك",

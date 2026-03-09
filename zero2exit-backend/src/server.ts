@@ -21,10 +21,11 @@ const server = Fastify({
 
 // Ensure all error responses are JSON. For 500, do not leak internal error messages to clients.
 server.setErrorHandler((err, req, reply) => {
-  const statusCode = (err as { statusCode?: number }).statusCode ?? 500
+  const e = err as { statusCode?: number; message?: string }
+  const statusCode = e.statusCode ?? 500
   const isInternal = statusCode >= 500
   const safeMessage =
-    isInternal ? 'Internal Server Error' : (err.message ?? 'Internal Server Error')
+    isInternal ? 'Internal Server Error' : (e.message ?? 'Internal Server Error')
   reply.status(statusCode).type('application/json').send({
     error: safeMessage,
     code: statusCode,

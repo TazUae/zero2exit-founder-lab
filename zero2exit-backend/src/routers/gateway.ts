@@ -35,7 +35,25 @@ export const gatewayRouter = router({
   // 1. Submit onboarding questionnaire
   submitQuestionnaire: protectedProcedure
     .input(z.object({
-      responses: z.record(z.string(), z.unknown()),
+      responses: z.union([
+        // Structured payload from the new multi-choice wizard
+        z.object({
+          business_model: z.string(),
+          target_customer: z.array(z.string()),
+          stage: z.string(),
+          revenue: z.string(),
+          team_size: z.string(),
+          funding_status: z.string(),
+          actively_fundraising: z.boolean().default(false),
+          exit_plan: z.string(),
+          competitors: z.array(z.string()),
+          advantage: z.array(z.string()),
+          challenge: z.array(z.string()),
+          geographic_focus: z.array(z.string()),
+        }),
+        // Legacy free-text payload (backwards-compat during rollout)
+        z.record(z.string(), z.unknown()),
+      ]),
       language: z.enum(['en', 'ar']).default('en'),
     }))
     .mutation(async ({ ctx, input }) => {

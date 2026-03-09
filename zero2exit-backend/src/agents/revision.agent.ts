@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import type { AggregatorAgentOutput } from './aggregator.agent.js'
 import type { CriticAgentOutput } from './critic.agent.js'
 import type { ConsistencyAgentOutput } from './consistency.agent.js'
@@ -54,7 +55,7 @@ Return ONLY the updated roadmap JSON.`
     const parsed = JSON.parse(cleaned) as AggregatorAgentOutput
     return parsed
   } catch {
-    console.warn('Failed to parse revision agent response')
+    logger.warn('Failed to parse revision agent response')
     // If parsing fails, fall back to original roadmap
     return input.roadmap
   }

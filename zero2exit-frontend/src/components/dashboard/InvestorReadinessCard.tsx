@@ -1,11 +1,16 @@
 'use client'
 
-import { ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
+import { useLocale } from 'next-intl'
+import { ShieldCheck, ChevronRight, MessageCircle } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
+import { useOpenCoach } from '@/lib/open-coach-context'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function InvestorReadinessCard() {
+  const locale = useLocale()
+  const openCoach = useOpenCoach().openCoach
   const { data, isLoading, error } = trpc.dashboard.getInvestorReadiness.useQuery()
 
   if (isLoading) {
@@ -32,9 +37,28 @@ export function InvestorReadinessCard() {
 
   return (
     <div className="p-4 rounded-xl border border-slate-800 bg-slate-900">
-      <p className="text-xs text-slate-400 uppercase tracking-wide font-medium flex items-center gap-1.5 mb-2">
-        <ShieldCheck className="w-3.5 h-3.5" /> Readiness
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-xs text-slate-400 uppercase tracking-wide font-medium flex items-center gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5" /> Readiness
+        </p>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/${locale}/dashboard`}
+            className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            See progress
+            <ChevronRight className="w-3 h-3" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => openCoach('How can I improve my investor readiness?')}
+            className="inline-flex items-center gap-0.5 text-xs text-slate-500 hover:text-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-1 focus:ring-offset-slate-900 rounded px-1.5 py-0.5"
+          >
+            <MessageCircle className="w-3 h-3" />
+            Ask AI
+          </button>
+        </div>
+      </div>
       <div className="flex items-baseline gap-1">
         <span className={cn('text-2xl font-bold', scoreColor)}>{score}</span>
         <span className="text-xs text-slate-500">/ 100</span>

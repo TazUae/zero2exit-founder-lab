@@ -1,126 +1,173 @@
 "use client"
 
-import Link from "next/link"
+import { useRef, useEffect, useMemo } from "react"
 import { usePathname } from "next/navigation"
 import { useLocale } from "next-intl"
-import { Check, Circle } from "lucide-react"
+import { Check, Circle, Lock } from "lucide-react"
 import { trpc } from "@/lib/trpc"
+import {
+  STAGES,
+  getFounderStage,
+  getStageIndex,
+  isStageComplete,
+  type FounderProgress,
+} from "@/lib/stage-progress"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip"
 
-const STEPS = [
-  { key: "m01", label: "Idea Validation", href: "/dashboard/m01", moduleId: "M01" },
-  { key: "market", label: "Market Sizing", href: "/dashboard/m01", moduleId: "M01" },
-  { key: "icp", label: "ICP Profiles", href: "/dashboard/m01", moduleId: "M01" },
-  { key: "m02", label: "Legal Structure", href: "/dashboard/m02", moduleId: "M02" },
-  { key: "gtm", label: "Go-To-Market", href: "/dashboard", moduleId: "M03" },
-  { key: "roadmap", label: "Roadmap", href: "/dashboard/roadmap", moduleId: "M04" },
-] as const
+function buildProgress(
+  m01Data: unknown,
+  modulePlanData: { moduleProgress?: Array<{ moduleId: string; status?: string }> } | null | undefined
+): Partial<FounderProgress> {
+  const iv = (m01Data as { ideaValidation?: { scorecard?: unknown; marketSizing?: unknown; icpProfiles?: unknown } })?.ideaValidation
+  const moduleProgress = modulePlanData?.moduleProgress ?? []
 
-const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/dashboard/m01": "Idea Validation",
-  "/dashboard/m02": "Legal Structure",
-  "/dashboard/roadmap": "Startup Roadmap",
-  "/dashboard/coach": "AI Coach",
-  "/dashboard/documents": "Documents",
-  "/dashboard/settings": "Settings",
-  "/dashboard/knowledge": "Knowledge Graph",
-}
+  const m02 = moduleProgress.find((m) => m.moduleId === "M02")
+  const m03 = moduleProgress.find((m) => m.moduleId === "M03")
+  const m02Done = m02?.status === "complete" || m02?.status === "completed"
+  const m03Done = m03?.status === "complete" || m03?.status === "completed"
 
-function resolvePageTitle(pathname: string, prefix: string): string {
-  const relative = pathname.replace(prefix, "")
-  const sorted = Object.entries(PAGE_TITLES).sort(
-    (a, b) => b[0].length - a[0].length,
-  )
-  for (const [route, title] of sorted) {
-    if (relative === route || relative.startsWith(route + "/")) return title
+  return {
+    ideaValidationComplete: !!iv?.scorecard,
+    marketSizingComplete: !!iv?.marketSizing,
+    icpProfilesComplete: !!iv?.icpProfiles,
+    legalStructureComplete: m02Done,
+    gtmComplete: m03Done,
+    brandingComplete: false,
   }
-  return "Dashboard"
 }
 
 export function ModuleStepper() {
   const pathname = usePathname()
   const locale = useLocale()
   const prefix = `/${locale}`
+  const activeStageRef = useRef<HTMLDivElement | null>(null)
 
-  const isDashboard = pathname.startsWith(`${prefix}/dashboard`)
-
-  const { data: modulePlan } = trpc.gateway.getModulePlan.useQuery(undefined, {
+  const { data: m01Data } = trpc.m01.getState.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
-    enabled: isDashboard,
   })
 
-  const { data: m01 } = trpc.m01.getState.useQuery(undefined, {
+  const { data: modulePlanData } = trpc.gateway.getModulePlan.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
-    enabled: isDashboard,
   })
 
-  const iv = m01?.ideaValidation as {
-    scorecard?: unknown
-    marketSizing?: unknown
-    icpProfiles?: unknown
-  } | null | undefined
+  // tRPC inferred return type is excessively deep — narrow to unknown before useMemo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01DataNarrow = m01Data as any
+  const progress: Partial<FounderProgress> = useMemo(
+    () => buildProgress(m01DataNarrow, modulePlanData),
+    [m01DataNarrow, modulePlanData]
+  ) as Partial<FounderProgress>
 
-  const moduleProgress = modulePlan?.moduleProgress ?? []
+  const progressStageId = getFounderStage(progress)
+  const progressCurrentIndex = getStageIndex(progressStageId)
 
-  const steps = STEPS.map((step) => {
-    let done = false
-    if (step.key === "m01") done = !!iv?.scorecard
-    else if (step.key === "market") done = !!iv?.marketSizing
-    else if (step.key === "icp") done = !!iv?.icpProfiles
-    else {
-      const mp = moduleProgress.find((m: { moduleId: string }) => m.moduleId === step.moduleId)
-      done = (mp as { status?: string } | undefined)?.status === "completed"
-    }
-    return { ...step, done }
-  })
-
-  const activeIndex = steps.findIndex((s) => {
+  const pathnameIndex = STAGES.findIndex((s) => {
+    if (s.locked || !s.href) return false
     const full = `${prefix}${s.href}`
     return pathname === full || pathname.startsWith(full + "/")
   })
 
-  const currentIndex = activeIndex >= 0 ? activeIndex : steps.findIndex((s) => !s.done)
-  const pageTitle = resolvePageTitle(pathname, prefix)
+  const currentIndex = pathnameIndex >= 0 ? pathnameIndex : progressCurrentIndex
 
-  if (!isDashboard) return null
+  useEffect(() => {
+    activeStageRef.current?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    })
+  }, [currentIndex])
+
+  const lockedTooltip = "Available in a future stage"
+  const completedCount = STAGES.filter((s) => isStageComplete(s, progress)).length
 
   return (
-    <div className="flex items-center justify-between gap-4 mb-6">
-      <h1 className="text-lg font-bold text-white tracking-tight shrink-0">
-        {pageTitle}
-      </h1>
-      <nav className="hidden md:flex items-center gap-1 py-2 px-3 rounded-xl bg-slate-900/60 border border-slate-800/50 backdrop-blur-sm overflow-x-auto">
-        {steps.map((step, i) => {
-          const href = `${prefix}${step.href}`
-          const isActive = i === currentIndex
+    <TooltipProvider delayDuration={300}>
+      <div className="w-full border-b border-slate-800 bg-slate-900/50">
+        <p className="text-[10px] text-slate-500 text-center pt-2 pb-0.5 px-2" aria-hidden>
+          Founder Journey
+        </p>
+        <div
+          role="progressbar"
+          aria-valuenow={currentIndex + 1}
+          aria-valuemin={1}
+          aria-valuemax={STAGES.length}
+          aria-label="Founder journey progress"
+          className="w-full flex items-center justify-center gap-px py-1.5 px-2 overflow-x-auto overflow-y-hidden flex-nowrap min-w-0 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+        {STAGES.map((stage, i) => {
+          const completed = isStageComplete(stage, progress)
+          const isActive = !stage.locked && i === currentIndex
+
+          if (stage.locked) {
+            return (
+              <div
+                key={stage.id}
+                className="flex items-center shrink-0 min-w-0"
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] leading-tight whitespace-nowrap opacity-50 cursor-default select-none text-slate-500"
+                      aria-disabled="true"
+                      role="status"
+                    >
+                      <Lock className="h-2 w-2 shrink-0" />
+                      {stage.label}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-slate-800 text-slate-200 border border-slate-700">
+                    {lockedTooltip}
+                  </TooltipContent>
+                </Tooltip>
+                {i < STAGES.length - 1 && (
+                  <span className="text-slate-600 mx-px text-[8px] shrink-0" aria-hidden>›</span>
+                )}
+              </div>
+            )
+          }
+
           return (
-            <div key={step.key} className="flex items-center shrink-0">
-              <Link
-                href={href}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors whitespace-nowrap ${
-                  step.done
-                    ? "text-emerald-400 hover:text-emerald-300"
+            <div
+              key={stage.id}
+              ref={isActive ? activeStageRef : undefined}
+              className="flex items-center shrink-0 min-w-0"
+            >
+              <span
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] leading-tight whitespace-nowrap cursor-default ${
+                  completed
+                    ? "text-emerald-400"
                     : isActive
                       ? "bg-white/10 font-semibold text-white"
-                      : "text-slate-500 hover:text-slate-300"
+                      : "text-slate-500"
                 }`}
+                aria-current={isActive ? "step" : undefined}
               >
-                {step.done ? (
-                  <Check className="h-3 w-3 shrink-0" />
+                {completed ? (
+                  <Check className="h-2 w-2 shrink-0" aria-hidden />
                 ) : (
-                  <Circle className="h-3 w-3 shrink-0" />
+                  <Circle className="h-2 w-2 shrink-0" aria-hidden />
                 )}
-                {step.label}
-              </Link>
-              {i < steps.length - 1 && (
-                <span className="text-slate-700 mx-0.5">›</span>
+                {stage.label}
+              </span>
+              {i < STAGES.length - 1 && (
+                <span className="text-slate-600 mx-px text-[8px] shrink-0" aria-hidden>›</span>
               )}
             </div>
           )
         })}
-      </nav>
-    </div>
+        </div>
+        <p className="text-[10px] text-slate-500 text-center py-1.5 px-2" aria-hidden>
+          {completedCount} / {STAGES.length} stages completed
+        </p>
+      </div>
+    </TooltipProvider>
   )
 }

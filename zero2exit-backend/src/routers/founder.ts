@@ -6,6 +6,7 @@ import {
   invalidateFounderContext,
 } from '../lib/context/founderContext.js'
 import { writeAuditLog } from '../lib/audit.js'
+import { logger } from '../lib/logger.js'
 
 export const founderRouter = router({
   // Get full founder profile with stage and progress
@@ -36,7 +37,21 @@ export const founderRouter = router({
   // Get dashboard summary
   getDashboard: protectedProcedure.query(async ({ ctx }) => {
     const { founderId } = ctx
-    const context = await getFounderContext(founderId)
+    logger.info({ founderId }, 'founder.getDashboard load started')
+    let context
+    try {
+      context = await getFounderContext(founderId)
+    } catch (err) {
+      logger.error({ err, founderId }, 'founder.getDashboard getFounderContext failed')
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('Founder not found')) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Founder not found' })
+      }
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to load dashboard. Please try again.',
+      })
+    }
 
     // Determine next recommended action
     const activeModule = context.moduleProgress.find(

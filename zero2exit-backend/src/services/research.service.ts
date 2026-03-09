@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { llmCall } from '../lib/llm/router.js'
 import { db } from '../lib/db.js'
 import { perplexitySearch } from '../lib/research/perplexity.js'
@@ -12,6 +13,11 @@ type RawResearch = {
   facts?: unknown
   sources?: unknown
 }
+
+const PerplexityResearchSchema = z.object({
+  facts: z.array(z.string()),
+  sources: z.array(z.string()).optional().default([]),
+})
 
 function normalizeResearch(raw: RawResearch | null | undefined): ResearchResult {
   if (!raw) return { facts: [], sources: [] }
@@ -66,34 +72,41 @@ Return:
       return null
     }
 
-    let facts: string[] = []
-    let sources: string[] = []
+    const rawText = text
 
+    let parsed: unknown
     try {
-      const parsed = JSON.parse(text) as RawResearch
-      const normalized = normalizeResearch(parsed)
-      facts = normalized.facts
-      sources = normalized.sources
+      parsed = JSON.parse(rawText) as RawResearch
     } catch {
       logger.warn(
         { topic },
-        'Perplexity text response was not valid JSON, using line split',
+        'Perplexity text response was not valid JSON; returning raw text as single fact',
       )
-      facts = text
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean)
-      sources = []
+      return { facts: [rawText], sources: [] }
     }
 
-    return { facts, sources }
+    const validation = PerplexityResearchSchema.safeParse(parsed)
+
+    if (!validation.success) {
+      logger.warn(
+        { topic, issues: validation.error.issues },
+        'Perplexity response failed schema validation; returning raw text as single fact',
+      )
+      return { facts: [rawText], sources: [] }
+    }
+
+    const data = validation.data
+    return {
+      facts: data.facts,
+      sources: data.sources,
+    }
   } catch (error) {
     logger.warn({ err: error, topic }, 'perplexity_failure')
     return null
   }
 }
 
-async function runKimiResearch(
+async function runLLMResearch(
   topic: string,
   questions: string[],
 ): Promise<ResearchResult> {
@@ -145,7 +158,7 @@ Return JSON with:
       systemPrompt,
     )
   } catch (err) {
-    logger.warn({ err, topic }, 'Kimi research llmCall failed')
+    logger.warn({ err, topic }, 'LLM research llmCall failed')
     return { facts: [], sources: [] }
   }
 
@@ -155,7 +168,7 @@ Return JSON with:
     const parsed = JSON.parse(cleaned) as RawResearch
     return normalizeResearch(parsed)
   } catch (err) {
-    logger.warn({ err, topic }, 'Failed to parse researchTopic response from Kimi')
+    logger.warn({ err, topic }, 'Failed to parse researchTopic response from LLM')
     return { facts: [], sources: [] }
   }
 }
@@ -164,7 +177,7 @@ export async function researchTopic(
   topic: string,
   questions: string[],
 ): Promise<ResearchResult> {
-  const engine = process.env.RESEARCH_ENGINE || 'kimi'
+  const engine = process.env.RESEARCH_ENGINE || 'llm'
   logger.info({ engine, topic }, 'research_topic_start')
 
   // 1) Check cache first
@@ -186,7 +199,7 @@ export async function researchTopic(
 
   logger.debug({ topic }, 'Research cache miss')
 
-  // 2) Run selected engine with Kimi fallback
+  // 2) Run selected engine with LLM fallback
   let research: ResearchResult | null = null
 
   if (engine === 'perplexity') {
@@ -194,7 +207,7 @@ export async function researchTopic(
   }
 
   if (!research) {
-    research = await runKimiResearch(topic, questions)
+    research = await runLLMResearch(topic, questions)
   }
 
   // 3) Save cache (best-effort)

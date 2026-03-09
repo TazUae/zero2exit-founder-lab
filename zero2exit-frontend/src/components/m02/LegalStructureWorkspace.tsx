@@ -172,16 +172,20 @@ export function LegalStructureWorkspace() {
   } = trpc.m02.getState.useQuery()
 
   const { data: m01State } = trpc.m01.getState.useQuery()
+  // Narrow to break excessively deep tRPC generic inference in deps array (TS2589)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01StateDep = m01State as any
 
   // ── Pre-populate from M01 ──
   useEffect(() => {
-    const iv = m01State?.ideaValidation as {
+    const iv = m01StateDep?.ideaValidation as {
       businessDescription?: string
     } | null | undefined
     if (iv?.businessDescription && !businessDescription) {
-      setBusinessDescription(iv.businessDescription)
+      const desc = iv.businessDescription
+      setTimeout(() => setBusinessDescription(desc), 0)
     }
-  }, [m01State?.ideaValidation])
+  }, [m01StateDep?.ideaValidation, businessDescription])
 
   useEffect(() => {
     if (stateError) toast.error('Failed to load legal structure state.')
@@ -221,8 +225,10 @@ export function LegalStructureWorkspace() {
   })
 
   // ── Derived state ──
-  const ls = m02State?.legalStructure
-  const currentStep = (m02State?.progress?.outputs as { step?: number })?.step ?? 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC inference depth workaround
+  const state = m02State as any
+  const ls = state?.legalStructure
+  const currentStep = (state?.progress?.outputs as { step?: number })?.step ?? 0
 
   const jurisdictionData = useMemo(() => {
     const src = jurisdictionMutation.data?.jurisdictionComparison ?? ls?.jurisdictionComparison

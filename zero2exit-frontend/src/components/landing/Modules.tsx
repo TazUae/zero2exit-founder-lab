@@ -270,7 +270,7 @@ const modules: ModuleData[] = [
       { icon: "📋", title: "SOP Generator", desc: "AI generates function-specific SOPs pre-loaded in a rich text editor. Assign to team members in-platform.", ai: true },
     ],
     screen: {
-      title: "KPI Dashboard — Live Operations",
+      title: "KPI Command Center — Live Operations",
       content: (
         <>
           <div className="grid grid-cols-2 gap-2">

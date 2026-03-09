@@ -1,26 +1,31 @@
 import { Worker } from 'bullmq'
 import type { Job } from 'bullmq'
-import { Redis } from 'ioredis'
 import { env } from './config/env.js'
 import { logger } from './lib/logger.js'
 
-// BullMQ requires a dedicated connection — do NOT share with the app's redis instance
-function makeConnection() {
-  return new Redis(process.env.REDIS_URL!, {
-    maxRetriesPerRequest: null,
+// Parse REDIS_URL into a plain config object so BullMQ uses its own bundled ioredis.
+// Passing an external ioredis instance causes a type mismatch because BullMQ ships
+// its own pinned copy of ioredis internally.
+function makeConnectionConfig() {
+  const url = new URL(env.REDIS_URL)
+  return {
+    host: url.hostname,
+    port: Number(url.port) || 6379,
+    ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
+    ...(url.protocol === 'rediss:' ? { tls: {} } : {}),
+    maxRetriesPerRequest: null as null,
     enableReadyCheck: false,
-  })
+  }
 }
 
 const noopHandler = async (job: Job) => {
   logger.info({ jobId: job.id, name: job.name, queue: job.queueName }, 'Job processed (placeholder)')
 }
 
-const workerOpts = { connection: makeConnection() }
-
-const aiWorker = new Worker('ai-heavy', noopHandler, workerOpts)
-const webhooksWorker = new Worker('webhooks', noopHandler, workerOpts)
-const notificationsWorker = new Worker('notifications', noopHandler, workerOpts)
+// Each worker needs its own connection object — BullMQ uses blocking connections per worker.
+const aiWorker = new Worker('ai-heavy', noopHandler, { connection: makeConnectionConfig() })
+const webhooksWorker = new Worker('webhooks', noopHandler, { connection: makeConnectionConfig() })
+const notificationsWorker = new Worker('notifications', noopHandler, { connection: makeConnectionConfig() })
 
 const workers = [aiWorker, webhooksWorker, notificationsWorker]
 

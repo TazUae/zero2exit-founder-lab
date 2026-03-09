@@ -6,7 +6,7 @@ import type { LLMTask } from './router.js'
 /**
  * Strip markdown code fences from raw LLM output.
  */
-function stripCodeFences(text: string): string {
+export function stripCodeFences(text: string): string {
   let s = text.trim()
   const fenceMatch = s.match(/```(?:json)?\s*\n?([\s\S]*?)(?:\n?\s*```|$)/)
   if (fenceMatch && fenceMatch[1].trim()) return fenceMatch[1].trim()
@@ -22,7 +22,7 @@ function stripCodeFences(text: string): string {
  * Attempt to repair truncated JSON from LLM output by closing open
  * brackets/braces and removing incomplete trailing entries.
  */
-function repairTruncatedJSON(text: string): string {
+export function repairTruncatedJSON(text: string): string {
   let repaired = text.replace(/,\s*"[^"]*"?\s*:\s*"[^"]*$/, '')
   repaired = repaired.replace(/,\s*\{[^}]*$/, '')
 

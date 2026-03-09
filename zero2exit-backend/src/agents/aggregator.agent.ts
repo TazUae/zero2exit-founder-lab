@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import type { ValidationAgentOutput } from './validation.agent.js'
 import type { MarketAgentOutput } from './market.agent.js'
 import type { MarketSizingAgentOutput } from './marketsizing.agent.js'
@@ -132,7 +133,7 @@ ${JSON.stringify(input)}`
       },
     }
   } catch {
-    console.warn('Failed to parse aggregator agent response, using agent defaults')
+    logger.warn('Failed to parse aggregator agent response, using agent defaults')
   }
 
   return defaults

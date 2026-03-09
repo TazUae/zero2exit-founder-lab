@@ -54,28 +54,32 @@ export default function DashboardRoadmapPage() {
       | null
       | undefined
 
-    if (ideaVal?.businessDescription) {
-      setIdeaDescription(ideaVal.businessDescription)
-    } else if (onb?.businessIdea) {
-      setIdeaDescription(onb.businessIdea)
-    }
-
-    if (legal?.recommendedJurisdiction) {
-      setJurisdiction(legal.recommendedJurisdiction)
-    }
-
-    if (onb?.targetMarket) {
-      setTargetSegment(onb.targetMarket)
-    }
-  }, [m01State, m02State, modulePlan])
+    setTimeout(() => {
+      if (ideaVal?.businessDescription) {
+        setIdeaDescription(ideaVal.businessDescription)
+      } else if (onb?.businessIdea) {
+        setIdeaDescription(onb.businessIdea)
+      }
+      if (legal?.recommendedJurisdiction) {
+        setJurisdiction(legal.recommendedJurisdiction)
+      }
+      if (onb?.targetMarket) {
+        setTargetSegment(onb.targetMarket)
+      }
+    }, 0)
+  }, [
+    m01State as unknown,
+    m02State as unknown,
+    modulePlan as unknown,
+  ])
 
   useEffect(() => {
-    if (!generateRoadmap.isPending) {
-      setShowLongWaitHint(false)
-      return
-    }
+    if (!generateRoadmap.isPending) return
     const t = setTimeout(() => setShowLongWaitHint(true), 45_000)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      setShowLongWaitHint(false)
+    }
   }, [generateRoadmap.isPending])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -268,7 +272,7 @@ export default function DashboardRoadmapPage() {
               <li>GTM agent</li>
             </ul>
             <p className="text-xs text-slate-500">
-              This usually takes 2–5 minutes. Please don't close the page.
+              This usually takes 2–5 minutes. Please don&apos;t close the page.
             </p>
             {showLongWaitHint && (
               <p className="text-sm text-amber-400">

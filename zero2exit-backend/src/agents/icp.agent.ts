@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import { researchTopic, ResearchResult } from '../services/research.service.js'
 import {
   type StartupGraph,
@@ -94,7 +95,7 @@ ${JSON.stringify(research)}${graphFragment}`
         : [],
     }
   } catch {
-    console.warn('Failed to parse ICP agent response')
+    logger.warn('Failed to parse ICP agent response')
   }
 
   try {
@@ -105,7 +106,7 @@ ${JSON.stringify(research)}${graphFragment}`
       data: result,
     })
   } catch (err) {
-    console.warn('Failed to write ICP node to knowledge graph', err)
+    logger.warn({ err }, 'Failed to write ICP node to knowledge graph')
   }
 
   return result

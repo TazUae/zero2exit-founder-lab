@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 import { stripe } from '../lib/integrations/stripe.js'
 import { db } from '../lib/db.js'
 import { writeAuditLog } from '../lib/audit.js'
+import { logger } from '../lib/logger.js'
 
 export async function stripeWebhook(
   req: FastifyRequest,
@@ -11,7 +12,7 @@ export async function stripeWebhook(
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
   if (!webhookSecret) {
-    console.warn('STRIPE_WEBHOOK_SECRET not set — skipping verification')
+    logger.warn('STRIPE_WEBHOOK_SECRET not set — skipping verification')
     return reply.send({ received: true })
   }
 
@@ -101,16 +102,16 @@ export async function stripeWebhook(
           subscription?: string
           customer?: string
         }
-        console.warn('Payment failed for subscription:', invoice.subscription)
+        logger.warn({ subscriptionId: invoice.subscription }, 'Payment failed for subscription')
         // TODO: send notification email via Resend
         break
       }
 
       default:
-        console.log(`Unhandled Stripe event: ${event.type}`)
+        logger.info({ eventType: event.type }, 'Unhandled Stripe event')
     }
   } catch (err) {
-    console.error('Stripe webhook processing error:', err)
+    logger.error({ err }, 'Stripe webhook processing error')
     return reply.status(500).send({ error: 'Webhook processing failed' })
   }
 

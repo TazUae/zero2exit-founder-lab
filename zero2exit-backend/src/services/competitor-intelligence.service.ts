@@ -10,6 +10,9 @@ export type Competitor = {
   name: string
   strength: string
   weakness: string
+  pricing?: string
+  positioning?: string
+  differentiation?: string
 }
 
 export type CompetitorSnapshot = {
@@ -75,21 +78,29 @@ export async function getCompetitorSnapshot(
   }
 
   // 4. LLM summarisation
-  const systemPrompt = `You are a competitive intelligence analyst. Given raw research about an industry and competitors, extract the top 3 competitors and summarize each with a key strength and weakness.
+  const systemPrompt = `You are a competitive intelligence analyst. Given raw research about an industry and competitors, extract the top 3 competitors and summarize each with the requested fields.
 
 Respond with valid JSON only:
 {
   "competitors": [
-    { "name": "Company Name", "strength": "Key strength in 1-2 sentences", "weakness": "Key weakness in 1-2 sentences" }
+    {
+      "name": "Company Name",
+      "strength": "Key strength in 1-2 sentences",
+      "weakness": "Key weakness in 1-2 sentences",
+      "pricing": "Pricing model or typical price range in 1-2 sentences (e.g. subscription, freemium, enterprise). Use "Unknown" if not available.",
+      "positioning": "How they position themselves in the market in 1-2 sentences (e.g. premium, volume, niche). Use "Unknown" if not available.",
+      "differentiation": "What sets them apart from others in 1-2 sentences. Use "Unknown" if not available."
+    }
   ]
 }
 
 Rules:
 - Exactly 3 competitors (or fewer if the industry truly has fewer)
 - Be specific and factual
+- Always include pricing, positioning, and differentiation; use "Unknown" or a short phrase when research data is limited
 - If research data is limited, use your knowledge but note uncertainty`
 
-  let competitors: Competitor[] = []
+  let competitors: Competitor[]
 
   try {
     const raw = await llmCall(
@@ -107,7 +118,7 @@ Rules:
     competitors = (parsed.competitors ?? []).slice(0, 3)
   } catch (err) {
     logger.error({ err, industry }, 'competitor_snapshot_llm_failed')
-    throw new Error('Failed to generate competitor analysis. Please try again.')
+    throw new Error('Failed to generate competitor analysis. Please try again.', { cause: err })
   }
 
   const snapshot: CompetitorSnapshot = {

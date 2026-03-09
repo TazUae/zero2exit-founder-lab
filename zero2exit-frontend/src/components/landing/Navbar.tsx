@@ -52,7 +52,7 @@ export function Navbar() {
             href="/en/dashboard"
             className="bg-z-gold text-z-black px-6 py-2.5 rounded-md font-body font-semibold text-sm cursor-pointer transition-all duration-200 hover:bg-z-gold-light hover:-translate-y-0.5"
           >
-            Dashboard →
+            Command Center →
           </Link>
         ) : (
           <>

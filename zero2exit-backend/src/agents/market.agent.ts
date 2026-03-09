@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import {
   type StartupGraph,
   createNode,
@@ -77,7 +78,7 @@ Target Segment: ${input.targetSegment ?? 'unspecified'}${graphFragment}`
         : '',
     }
   } catch {
-    console.warn('Failed to parse market agent response')
+    logger.warn('Failed to parse market agent response')
   }
 
   try {
@@ -88,7 +89,7 @@ Target Segment: ${input.targetSegment ?? 'unspecified'}${graphFragment}`
       data: result,
     })
   } catch (err) {
-    console.warn('Failed to write market node to knowledge graph', err)
+    logger.warn({ err }, 'Failed to write market node to knowledge graph')
   }
 
   return result

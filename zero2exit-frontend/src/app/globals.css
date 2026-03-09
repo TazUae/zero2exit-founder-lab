@@ -169,3 +169,26 @@
   z-index: 50;
   opacity: 0.4;
 }
+
+/* Cursor-style subtle scrollbar: thin, low-contrast, track matches page */
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) rgb(2 6 23); /* thumb | track (slate-950) */
+}
+.scrollbar-subtle::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-subtle::-webkit-scrollbar-track {
+  background: rgb(2 6 23); /* slate-950, matches dark page */
+}
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 3px;
+}
+.scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+.scrollbar-subtle::-webkit-scrollbar-corner {
+  background: rgb(2 6 23);
+}

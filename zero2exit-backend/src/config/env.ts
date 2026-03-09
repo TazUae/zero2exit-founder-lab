@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { z } from 'zod'
+import { logger } from '../lib/logger.js'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -50,13 +51,13 @@ function parseEnv(): Env {
 
   for (const { key, service } of OPTIONAL_SERVICE_KEYS) {
     if (!result.data[key as keyof Env]) {
-      console.warn(`[env] ⚠ ${key} is not set — ${service} will be unavailable`)
+      logger.warn(`[env] ${key} is not set — ${service} will be unavailable`)
     }
   }
 
   const hasLLM = result.data.GEMINI_API_KEY || result.data.GROQ_API_KEY || result.data.NVIDIA_API_KEY
   if (!hasLLM) {
-    console.warn('[env] ⚠ No LLM API key configured (GEMINI/GROQ/NVIDIA) — AI features will fail')
+    logger.warn('[env] No LLM API key configured (GEMINI/GROQ/NVIDIA) — AI features will fail')
   }
 
   return result.data

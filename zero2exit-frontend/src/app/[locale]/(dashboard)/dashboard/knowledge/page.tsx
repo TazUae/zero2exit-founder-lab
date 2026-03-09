@@ -14,6 +14,17 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
 })
 
+type GraphNode = {
+  id?: string | number
+  name?: string
+  type?: string
+  x?: number
+  y?: number
+}
+
+type KnowledgeNode = { id: string; type: string; title?: string }
+type KnowledgeEdge = { fromNodeId: string; toNodeId: string; relation: string }
+
 const nodeColors: Record<string, string> = {
   startup: "#22c55e",
   validation: "#6366f1",
@@ -28,13 +39,13 @@ const nodeColors: Record<string, string> = {
 export default function KnowledgeGraphPage() {
   const { data, isLoading, error } = trpc.knowledge.getGraph.useQuery()
 
-  const nodes = (data?.nodes ?? []).map((n: any) => ({
+  const nodes = (data?.nodes ?? [] as KnowledgeNode[]).map((n) => ({
     id: n.id,
-    name: n.title || n.type,
+    name: n.title ?? n.type,
     type: n.type,
   }))
 
-  const links = (data?.edges ?? []).map((e: any) => ({
+  const links = (data?.edges ?? [] as KnowledgeEdge[]).map((e: KnowledgeEdge) => ({
     source: e.fromNodeId,
     target: e.toNodeId,
     label: e.relation,
@@ -64,6 +75,9 @@ export default function KnowledgeGraphPage() {
   }
 
   if (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[KnowledgeGraph] getGraph failed:", error)
+    }
     return (
       <div className="space-y-6">
         <div>
@@ -75,8 +89,8 @@ export default function KnowledgeGraphPage() {
         </div>
         <Card className="bg-slate-900 border-slate-800">
           <CardContent className="p-6">
-            <p className="text-sm text-red-400">
-              {error.message ?? "Failed to load knowledge graph."}
+            <p className="text-sm text-slate-400">
+              No knowledge data yet. Run Idea Validation to populate insights.
             </p>
           </CardContent>
         </Card>
@@ -103,8 +117,7 @@ export default function KnowledgeGraphPage() {
         <CardContent className="h-[600px]">
           {nodes.length === 0 ? (
             <p className="text-sm text-slate-400">
-              No nodes found yet. Generate a roadmap or run agents to populate
-              the graph.
+              No knowledge data yet. Run Idea Validation to populate insights.
             </p>
           ) : (
             <ForceGraph2D
@@ -113,7 +126,7 @@ export default function KnowledgeGraphPage() {
               linkLabel="label"
               nodeAutoColorBy="type"
               nodeCanvasObject={(
-                node: any,
+                node: GraphNode,
                 ctx: CanvasRenderingContext2D,
                 globalScale: number,
               ) => {
@@ -121,20 +134,20 @@ export default function KnowledgeGraphPage() {
                 const fontSize = 12 / globalScale
                 ctx.font = `${fontSize}px Sans-Serif`
 
-                const color = nodeColors[node.type] || "#94a3b8"
+                const color = nodeColors[node.type ?? ''] || "#94a3b8"
 
                 ctx.fillStyle = color
                 ctx.beginPath()
-                ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI)
+                ctx.arc(node.x ?? 0, node.y ?? 0, 6, 0, 2 * Math.PI)
                 ctx.fill()
 
                 ctx.fillStyle = "#e2e8f0"
-                ctx.fillText(label, node.x + 8, node.y + 4)
+                ctx.fillText(label, (node.x ?? 0) + 8, (node.y ?? 0) + 4)
               }}
               linkDirectionalArrowLength={4}
               linkDirectionalArrowRelPos={1}
               linkWidth={1.5}
-              onNodeClick={(node: any) => {
+              onNodeClick={(node: GraphNode) => {
                 console.log("Node selected:", node)
               }}
             />

@@ -32,6 +32,22 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
 
+  // Playwright E2E bypass — allow tests to skip Clerk auth without real credentials.
+  // The secret is exposed to Edge Runtime via next.config.ts env key.
+  // Guard: bypass is disabled in production even if the secret somehow leaks in.
+  const bypassSecret = process.env.PLAYWRIGHT_BYPASS_SECRET
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    bypassSecret &&
+    req.headers.get("x-playwright-bypass") === bypassSecret
+  ) {
+    return intlMiddleware(req)
+  }
+
+  // Resolve locale from path for auth redirects (next-intl uses localePrefix "always")
+  const firstSeg = pathname.split("/")[1]
+  const locale = locales.includes(firstSeg) ? firstSeg : defaultLocale
+
   // With localePrefix "always", paths without /en/ or /ar/ need to be redirected once.
   // Redirect /dashboard/* to /en/dashboard/* so [locale] is not "dashboard" (which 404s).
   if (pathname.startsWith("/dashboard") && !pathname.startsWith("/en/") && !pathname.startsWith("/ar/")) {
@@ -41,12 +57,15 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   if (!isPublicRoute(req)) {
-    await auth.protect()
+    await auth.protect({
+      unauthenticatedUrl: new URL(`/${locale}/sign-in`, req.url).toString(),
+      unauthorizedUrl: new URL(`/${locale}/sign-in`, req.url).toString(),
+    })
   }
   return intlMiddleware(req)
 })
 
 export const config = {
-  matcher: ["/((?!_next|_vercel|.*\\..*).*)"],
+  matcher: ["/((?!_next|_vercel|api|.*\\..*).*)"],
 }
 

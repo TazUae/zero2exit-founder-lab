@@ -1,25 +1,36 @@
 'use client'
 
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { FileText, ArrowRight } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
+type StructuredResponses = Record<string, string | string[] | boolean>
+
 const DISPLAY_FIELDS: { key: string; label: string }[] = [
-  { key: 'businessIdea', label: 'Business Idea' },
-  { key: 'targetMarket', label: 'Target Customer' },
-  { key: 'uniqueAdvantage', label: 'Unique Advantage' },
-  { key: 'mainChallenge', label: 'Main Challenge' },
-  { key: 'exitHorizon', label: 'Exit Plan' },
-  { key: 'currentStage', label: 'Stage' },
+  { key: 'business_model', label: 'Business Model' },
+  { key: 'stage', label: 'Stage' },
+  { key: 'revenue', label: 'Revenue' },
+  { key: 'exit_plan', label: 'Exit Plan' },
+  { key: 'advantage', label: 'Advantage' },
+  { key: 'geographic_focus', label: 'Geography' },
 ]
+
+function formatValue(value: string | string[] | boolean | undefined): string {
+  if (value === undefined || value === null || value === '') return ''
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (Array.isArray(value)) return value.join(', ')
+  return String(value)
+}
 
 export function FounderOnboardingSummary() {
   const { data, isLoading, error } = trpc.gateway.getModulePlan.useQuery(
     undefined,
     { retry: false },
   )
+  const locale = useLocale()
 
   if (isLoading) {
     return (
@@ -34,7 +45,7 @@ export function FounderOnboardingSummary() {
     )
   }
 
-  const responses = (data?.onboardingResponses ?? null) as Record<string, string> | null
+  const responses = (data?.onboardingResponses ?? null) as StructuredResponses | null
 
   if (error || !responses) {
     return (
@@ -54,18 +65,34 @@ export function FounderOnboardingSummary() {
     )
   }
 
-  const populated = DISPLAY_FIELDS.filter(({ key }) => responses[key])
+  const populated = DISPLAY_FIELDS.filter(({ key }) => {
+    const v = responses[key]
+    if (!v) return false
+    if (Array.isArray(v)) return v.length > 0
+    return true
+  })
 
   return (
     <div className="p-5 rounded-xl border border-slate-800 bg-slate-900">
-      <p className="text-sm font-semibold text-slate-200 flex items-center gap-1.5 mb-3">
-        <FileText className="w-4 h-4 text-slate-400" /> Onboarding Summary
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <p className="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
+          <FileText className="w-4 h-4 text-slate-400" /> Onboarding Summary
+        </p>
+        <Link
+          href={`/${locale}/onboarding`}
+          className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          View details
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
         {populated.map(({ key, label }) => (
           <div key={key} className="min-w-0">
             <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">{label}</p>
-            <p className="text-sm text-slate-200 line-clamp-1">{responses[key]}</p>
+            <p className="text-sm text-slate-200 line-clamp-1">
+              {formatValue(responses[key] as string | string[] | boolean)}
+            </p>
           </div>
         ))}
       </div>

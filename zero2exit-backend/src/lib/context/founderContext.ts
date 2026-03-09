@@ -29,13 +29,18 @@ export interface FounderContext {
 
 import { db } from '../db.js'
 import { redis } from '../storage/redis.js'
+import { logger } from '../logger.js'
 
 export async function getFounderContext(
   founderId: string,
 ): Promise<FounderContext> {
   const cacheKey = `founder:context:${founderId}`
-  const cached = await redis.get(cacheKey)
-  if (cached) return JSON.parse(cached) as FounderContext
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached) return JSON.parse(cached) as FounderContext
+  } catch (err) {
+    logger.warn({ err, founderId }, 'founderContext: Redis cache read failed, falling back to DB')
+  }
 
   const [founder, onboarding, progress, ideaVal, legalStr, subscription] =
     await Promise.all([
@@ -90,7 +95,11 @@ export async function getFounderContext(
       : null,
   }
 
-  await redis.setex(cacheKey, 300, JSON.stringify(context))
+  try {
+    await redis.setex(cacheKey, 300, JSON.stringify(context))
+  } catch (err) {
+    logger.warn({ err, founderId }, 'founderContext: Redis cache write failed')
+  }
   return context
 }
 

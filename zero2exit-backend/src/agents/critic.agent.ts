@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import type { AggregatorAgentOutput } from './aggregator.agent.js'
 
 export type CriticAgentInput = {
@@ -72,7 +73,7 @@ ${JSON.stringify(input.roadmap)}`
         : [],
     }
   } catch {
-    console.warn('Failed to parse critic agent response')
+    logger.warn('Failed to parse critic agent response')
   }
 
   return result

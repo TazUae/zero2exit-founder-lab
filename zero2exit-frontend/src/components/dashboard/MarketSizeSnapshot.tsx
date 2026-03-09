@@ -1,7 +1,10 @@
 'use client'
 
-import { BarChart3 } from 'lucide-react'
+import Link from 'next/link'
+import { useLocale } from 'next-intl'
+import { BarChart3, ChevronRight, MessageCircle } from 'lucide-react'
 import { trpc } from '@/lib/trpc'
+import { useOpenCoach } from '@/lib/open-coach-context'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type MarketSizingData = {
@@ -32,7 +35,11 @@ const FUNNEL = [
   { key: 'som' as const, label: 'SOM', barClass: 'w-1/4', color: 'bg-blue-300' },
 ] as const
 
+const MARKET_AI_PROMPT = 'Explain my market opportunity.'
+
 export function MarketSizeSnapshot() {
+  const locale = useLocale()
+  const openCoach = useOpenCoach().openCoach
   const { data, isLoading, error } = trpc.m01.getState.useQuery()
 
   if (isLoading) {
@@ -59,7 +66,9 @@ export function MarketSizeSnapshot() {
     )
   }
 
-  const marketSizing = data?.ideaValidation?.marketSizing as MarketSizingData | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC inference depth workaround
+  const raw = (data as any)?.ideaValidation?.marketSizing
+  const marketSizing = (raw ?? null) as MarketSizingData | null
 
   const values = {
     tam: marketSizing?.tam?.value ?? marketSizing?.TAM,
@@ -71,9 +80,30 @@ export function MarketSizeSnapshot() {
 
   return (
     <div className="p-5 rounded-xl border border-slate-800 bg-slate-900">
-      <p className="text-sm font-semibold text-slate-200 flex items-center gap-1.5 mb-3">
-        <BarChart3 className="w-4 h-4 text-slate-400" /> Market Size
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <p className="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
+          <BarChart3 className="w-4 h-4 text-slate-400" /> Market Size
+        </p>
+        <div className="flex items-center gap-2">
+          {hasData && (
+            <Link
+              href={`/${locale}/dashboard/m01`}
+              className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              View details
+              <ChevronRight className="w-3 h-3" />
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => openCoach(MARKET_AI_PROMPT)}
+            className="inline-flex items-center gap-0.5 text-xs text-slate-500 hover:text-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-1 focus:ring-offset-slate-900 rounded px-1.5 py-0.5"
+          >
+            <MessageCircle className="w-3 h-3" />
+            Ask AI
+          </button>
+        </div>
+      </div>
       {hasData ? (
         <div className="space-y-2.5">
           {FUNNEL.map(({ key, label, barClass, color }) => (

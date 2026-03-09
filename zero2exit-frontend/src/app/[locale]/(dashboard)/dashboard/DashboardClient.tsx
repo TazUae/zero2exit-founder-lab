@@ -13,7 +13,6 @@ import { MarketSizeSnapshot } from "@/components/dashboard/MarketSizeSnapshot"
 import { InvestorReadinessCard } from "@/components/dashboard/InvestorReadinessCard"
 import { FounderOnboardingSummary } from "@/components/dashboard/FounderOnboardingSummary"
 import { CompetitorSnapshot } from "@/components/dashboard/CompetitorSnapshot"
-import { RiskAlerts } from "@/components/dashboard/RiskAlerts"
 
 const stageColors: Record<string, string> = {
   idea: "bg-slate-500/20 text-slate-300 border-slate-500/30",
@@ -25,6 +24,7 @@ const stageColors: Record<string, string> = {
 
 export function DashboardClient() {
   const t = useTranslations("dashboard")
+  const tNav = useTranslations("nav")
   const { data, isLoading, error } = trpc.founder.getDashboard.useQuery()
 
   if (isLoading) {
@@ -48,14 +48,31 @@ export function DashboardClient() {
   }
 
   if (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[Command Center] founder.getDashboard failed:", error)
+      console.error("[Command Center] Error code:", error.data?.code, "| HTTP status:", error.data?.httpStatus)
+    }
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold text-white mb-4">
           Something went wrong
         </h2>
-        <p className="text-slate-400 mb-8">
-          Unable to load your dashboard. Please try refreshing the page.
+        <p className="text-slate-400 mb-4">
+          {process.env.NODE_ENV === "development"
+            ? t("loadErrorDev", { message: error.message })
+            : t("loadError")}
         </p>
+        {process.env.NODE_ENV === "development" && error.data?.code && (
+          <p className="text-xs text-slate-600 mb-4 font-mono">
+            tRPC code: {error.data.code} | HTTP: {error.data.httpStatus}
+          </p>
+        )}
+        <Button
+          onClick={() => window.location.reload()}
+          className="bg-emerald-500 hover:bg-emerald-600"
+        >
+          Retry
+        </Button>
       </div>
     )
   }
@@ -93,8 +110,8 @@ export function DashboardClient() {
       {/* Compact header */}
       <div className="flex items-center justify-between mb-1">
         <div className="space-y-0.5">
-          <h1 className="text-xl font-semibold text-white">Dashboard</h1>
-          <p className="text-xs text-slate-400">Founder overview</p>
+          <h1 className="text-xl font-semibold text-white">{tNav("dashboard")}</h1>
+          <p className="text-xs text-slate-400">Your command center at a glance</p>
         </div>
         <Badge
           className={cn(
@@ -183,10 +200,9 @@ export function DashboardClient() {
         <FounderOnboardingSummary />
       </div>
 
-      {/* Row 3 — Competitor Snapshot + Risk Alerts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Row 3 — Competitor Snapshot (full width) */}
+      <div className="grid grid-cols-1 gap-4">
         <CompetitorSnapshot />
-        <RiskAlerts />
       </div>
     </div>
   )

@@ -83,6 +83,10 @@ export type LLMTask =
   | 'coach.conversation'
   | 'coach.proactiveSuggestion'
   | 'dashboard.competitorSnapshot'
+  | 'gtm.roadmap'
+  | 'gtm.section'
+  | 'gtm.critique'
+  | 'brand.generate'
 
 export type LLMMessage = {
   role: 'user' | 'assistant' | 'system'
@@ -107,8 +111,12 @@ const TASK_CONFIG: Record<LLMTask, { maxTokens: number; jsonMode: boolean }> = {
   'm02.legalRoadmap':          { maxTokens: 3000, jsonMode: true  },
   'm02.documentGeneration':    { maxTokens: 8000, jsonMode: false },
   'coach.conversation':        { maxTokens: 2000, jsonMode: false },
-  'coach.proactiveSuggestion': { maxTokens: 500,  jsonMode: false },
+  'coach.proactiveSuggestion': { maxTokens: 500,  jsonMode: true  },
   'dashboard.competitorSnapshot': { maxTokens: 2000, jsonMode: true },
+  'gtm.roadmap':               { maxTokens: 2000, jsonMode: true  },
+  'gtm.section':               { maxTokens: 2500, jsonMode: true  },
+  'gtm.critique':              { maxTokens: 2500, jsonMode: true  },
+  'brand.generate':            { maxTokens: 4000, jsonMode: true  },
 }
 
 // ── Task-aware provider routing ──────────────────────────────────────────────
@@ -132,6 +140,7 @@ const TASK_PROVIDER_ORDER: Partial<Record<LLMTask, Provider[]>> = {
   'm02.entityRecommendation':  ['groq', 'gemini', 'nvidia'],
   'm02.legalRoadmap':          ['groq', 'gemini', 'nvidia'],
   'dashboard.competitorSnapshot': ['groq', 'gemini', 'nvidia'],
+  'gtm.critique':              ['groq', 'gemini', 'nvidia'],
 }
 
 const DEFAULT_PROVIDER_ORDER: Provider[] = ['gemini', 'groq', 'nvidia']
@@ -207,7 +216,7 @@ async function callProvider(
     clearTimeout(timeoutId)
     const message = err instanceof Error ? err.message : String(err)
     if (message.includes('abort') || (err instanceof Error && err.name === 'AbortError')) {
-      throw new Error(`LLM call [${provider}/${model}] (${task}) timed out after ${LLM_CALL_TIMEOUT_MS / 1000}s.`)
+      throw new Error(`LLM call [${provider}/${model}] (${task}) timed out after ${LLM_CALL_TIMEOUT_MS / 1000}s.`, { cause: err })
     }
     throw err
   }

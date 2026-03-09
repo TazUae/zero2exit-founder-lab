@@ -21,17 +21,19 @@ model Founder {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  onboardingResponse  OnboardingResponse?
-  moduleProgress      ModuleProgress[]
-  ideaValidation      IdeaValidation?
-  legalStructure      LegalStructure?
-  documents           Document[]
-  coachSessions       CoachSession[]
-  subscriptions       Subscription[]
-  auditLogs           AuditLog[]
-  knowledgeNodes      KnowledgeNode[]
-  knowledgeEdges      KnowledgeEdge[]
-  roadmaps            FounderRoadmap[]
+  onboardingResponse OnboardingResponse?
+  moduleProgress     ModuleProgress[]
+  ideaValidation     IdeaValidation?
+  legalStructure     LegalStructure?
+  documents          Document[]
+  coachSessions      CoachSession[]
+  subscriptions      Subscription[]
+  auditLogs          AuditLog[]
+  knowledgeNodes     KnowledgeNode[]
+  knowledgeEdges     KnowledgeEdge[]
+  roadmaps           FounderRoadmap[]
+  gtmDocument        GtmDocument?
+  brandIdentity      BrandIdentity?
 
   @@map("founders")
 }
@@ -175,11 +177,11 @@ model MarketResearch {
 }
 
 model FounderRoadmap {
-  id        String   @id @default(uuid())
-  founderId String   @map("founder_id")
+  id        String            @id @default(uuid())
+  founderId String            @map("founder_id")
   roadmap   Json
-  createdAt DateTime @default(now()) @map("created_at")
-  founder   Founder  @relation(fields: [founderId], references: [id])
+  createdAt DateTime          @default(now()) @map("created_at")
+  founder   Founder           @relation(fields: [founderId], references: [id])
   revisions RoadmapRevision[]
 
   @@index([founderId])
@@ -187,11 +189,11 @@ model FounderRoadmap {
 }
 
 model RoadmapRevision {
-  id        String   @id @default(uuid())
-  roadmapId String   @map("roadmap_id")
+  id        String         @id @default(uuid())
+  roadmapId String         @map("roadmap_id")
   version   Int
   data      Json
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime       @default(now()) @map("created_at")
   roadmap   FounderRoadmap @relation(fields: [roadmapId], references: [id])
 
   @@index([roadmapId])
@@ -199,14 +201,14 @@ model RoadmapRevision {
 }
 
 model KnowledgeNode {
-  id        String   @id @default(uuid())
-  founderId String   @map("founder_id")
+  id        String          @id @default(uuid())
+  founderId String          @map("founder_id")
   type      String
   title     String?
   data      Json
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  founder   Founder  @relation(fields: [founderId], references: [id])
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  founder   Founder         @relation(fields: [founderId], references: [id])
   outgoing  KnowledgeEdge[] @relation("KnowledgeEdgeFrom")
   incoming  KnowledgeEdge[] @relation("KnowledgeEdgeTo")
 
@@ -231,6 +233,58 @@ model KnowledgeEdge {
   @@map("knowledge_edges")
 }
 
+model BrandIdentity {
+  id            String   @id @default(cuid())
+  founderId     String   @unique @map("founder_id")
+  questionnaire Json     @default("{}")
+  brandNames    Json     @default("[]") @map("brand_names")
+  logoDirection Json     @default("{}") @map("logo_direction")
+  colorPalette  Json     @default("[]") @map("color_palette")
+  typography    Json     @default("{}")
+  positioning   String?
+  taglines      Json     @default("[]")
+  brandVoice    Json     @default("{}") @map("brand_voice")
+  pdfUrl        String?  @map("pdf_url")
+  logoUrl       String?  @map("logo_url")
+  logoPrompt    String?  @map("logo_prompt")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
+  founder Founder @relation(fields: [founderId], references: [id])
 
+  @@map("brand_identities")
+}
 
+model GtmDocument {
+  id        String   @id @default(cuid())
+  founderId String   @unique @map("founder_id")
+  title     String
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  founder  Founder      @relation(fields: [founderId], references: [id])
+  sections GtmSection[]
+
+  @@index([founderId])
+  @@map("gtm_documents")
+}
+
+model GtmSection {
+  id            String   @id @default(cuid())
+  gtmDocumentId String   @map("gtm_document_id")
+  sectionKey    String   @map("section_key")
+  title         String
+  content       Json
+  plainText     String?  @map("plain_text")
+  status        String   @default("pending")
+  sortOrder     Int      @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  gtmDocument GtmDocument @relation(fields: [gtmDocumentId], references: [id])
+
+  @@unique([gtmDocumentId, sectionKey])
+  @@index([gtmDocumentId])
+  @@map("gtm_sections")
+}

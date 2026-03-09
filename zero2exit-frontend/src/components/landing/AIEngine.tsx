@@ -7,7 +7,7 @@ const engineSteps = [
   { num: "01", title: "INGEST", desc: "Founder completes the 12–18 question gateway questionnaire before account creation." },
   { num: "02", title: "CLASSIFY", desc: "AI scores responses across 6 dimensions: stage, industry, funding status, team size, jurisdiction, and exit horizon." },
   { num: "03", title: "ROUTE", desc: "A founder stage is assigned and an ordered module activation plan is generated — unique to you." },
-  { num: "04", title: "ACTIVATE", desc: "Your personalised journey dashboard renders with AI Coach pre-loaded with all your context." },
+  { num: "04", title: "ACTIVATE", desc: "Your personalised Command Center renders with AI Coach pre-loaded with all your context." },
   { num: "05", title: "RE-EVALUATE", desc: "Engine re-scores every 30 days and after each module completion. Your plan evolves as you grow." },
 ]
 

@@ -4,6 +4,7 @@ import { router, protectedProcedure } from '../trpc.js'
 import { llmCall } from '../lib/llm/router.js'
 import { getFounderContext } from '../lib/context/founderContext.js'
 import { writeAuditLog } from '../lib/audit.js'
+import { logger } from '../lib/logger.js'
 import {
   buildSystemPrompt,
   buildProactiveSuggestionPrompt,
@@ -74,7 +75,6 @@ export const coachRouter = router({
         where: { id: session.id },
         data: {
           messages: finalHistory,
-          updatedAt: new Date(),
         },
       })
 
@@ -164,8 +164,10 @@ export const coachRouter = router({
     try {
       const parsed = JSON.parse(cleaned)
       suggestions = parsed.suggestions ?? []
-    } catch {
-      console.warn('Failed to parse proactive suggestions')
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn({ err }, 'Failed to parse proactive suggestions')
+      }
     }
 
     return { suggestions }

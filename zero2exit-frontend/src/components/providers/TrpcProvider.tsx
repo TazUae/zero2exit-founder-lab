@@ -2,12 +2,15 @@
 
 import { trpc } from "@/lib/trpc"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { httpBatchLink } from "@trpc/client"
+import { httpBatchLink, TRPCClientError } from "@trpc/client"
 import { useAuth } from "@clerk/nextjs"
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003"
+// tRPC calls go through the same origin via Next.js rewrites (/api/trpc -> backend).
+// This avoids CORS issues and allows a single tunnel for remote access.
+// The actual backend URL is configured in next.config.ts rewrites.
 
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes for long-running e.g. roadmap generation
 
@@ -25,21 +28,60 @@ function fetchWithTimeout(
 
 export function TrpcProvider({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth()
+  const router = useRouter()
+
+  const handleGlobalError = useCallback(
+    (error: unknown) => {
+      if (!(error instanceof TRPCClientError)) return
+
+      const code = error.data?.code as string | undefined
+
+      if (code === "UNAUTHORIZED") {
+        toast.error("Session expired. Redirecting to sign in...")
+        router.push("/sign-in")
+        return
+      }
+
+      if (
+        error.message?.includes("Failed to fetch") ||
+        error.message?.includes("Load failed") ||
+        error.message?.includes("NetworkError")
+      ) {
+        toast.error("Server connection lost. Retrying...")
+        return
+      }
+
+      if (code === "INTERNAL_SERVER_ERROR") {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[tRPC] INTERNAL_SERVER_ERROR:", error.message)
+        }
+      }
+    },
+    [router],
+  )
 
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { retry: 1, staleTime: 30_000 },
+          queries: {
+            retry: 3,
+            retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+            staleTime: 30_000,
+          },
+          mutations: {
+            retry: 1,
+            onError: handleGlobalError,
+          },
         },
-      })
+      }),
   )
 
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: `${API_BASE_URL}/api/trpc`,
+          url: `/api/trpc`,
           fetch: fetchWithTimeout,
           async headers() {
             const token = await getToken()
@@ -47,7 +89,7 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
           },
         }),
       ],
-    })
+    }),
   )
 
   return (
@@ -58,5 +100,3 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
     </trpc.Provider>
   )
 }
-
-

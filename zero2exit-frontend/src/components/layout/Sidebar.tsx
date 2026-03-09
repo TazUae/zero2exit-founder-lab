@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
@@ -15,16 +16,36 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Target,
+  Palette,
+  Lock,
+  TrendingUp,
+  Wallet,
+  Flag,
 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip"
 
 const navItems = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "ideaValidation", href: "/dashboard/m01", icon: Lightbulb },
   { key: "legalStructure", href: "/dashboard/m02", icon: Scale },
+  { key: "gtm", href: "/gtm", icon: Target },
+  { key: "brand", href: "/brand", icon: Palette },
   { key: "coach", href: "/dashboard/coach", icon: MessageSquare },
   { key: "documents", href: "/dashboard/documents", icon: FileText },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
+]
+
+const lockedRoadmapItems = [
+  { key: "scalingStrategy", icon: TrendingUp },
+  { key: "fundraisingReadiness", icon: Wallet },
+  { key: "exitPlanning", icon: Flag },
 ]
 
 export function Sidebar() {
@@ -33,6 +54,8 @@ export function Sidebar() {
   const locale = useLocale()
   const { sidebarOpen, setSidebarOpen } = useAppStore()
   const prefix = `/${locale}`
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])
 
   return (
     <aside
@@ -52,7 +75,8 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1">
+      <TooltipProvider delayDuration={300}>
+      <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-subtle">
         {navItems.map((item) => {
           const Icon = item.icon
           const href = `${prefix}${item.href}`
@@ -78,7 +102,52 @@ export function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Roadmap section: locked future stages */}
+        {sidebarOpen && (
+          <>
+            <div className="pt-3 mt-2 border-t border-slate-800">
+              <p className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">
+                {t("roadmap")}
+              </p>
+            </div>
+            {lockedRoadmapItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Tooltip key={item.key}>
+                  <TooltipTrigger asChild>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => e.preventDefault()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") e.preventDefault()
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                        "opacity-50 cursor-not-allowed select-none text-slate-500",
+                        "focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-inset"
+                      )}
+                      aria-disabled="true"
+                    >
+                      <Lock className="w-4 h-4 flex-shrink-0 text-slate-500" />
+                      <span className="text-sm font-medium">{t(item.key)}</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    sideOffset={8}
+                    className="bg-slate-800 text-slate-200 border border-slate-700"
+                  >
+                    {t("lockedStageTooltip")}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </>
+        )}
       </nav>
+      </TooltipProvider>
 
       {/* Bottom: User + Toggle */}
       <div className="p-3 border-t border-slate-800 space-y-3">
@@ -88,13 +157,18 @@ export function Sidebar() {
             sidebarOpen ? "gap-3" : "justify-center"
           )}
         >
-          <UserButton />
+          {mounted ? (
+            <UserButton />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0" aria-hidden />
+          )}
           {sidebarOpen && (
             <span className="text-sm text-slate-400 truncate">Account</span>
           )}
         </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
         >
           {sidebarOpen ? (

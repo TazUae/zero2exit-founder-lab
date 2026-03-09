@@ -1,11 +1,11 @@
 import {
   S3Client,
   CreateBucketCommand,
-  PutBucketCorsCommand,
   PutPublicAccessBlockCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { logger } from '../logger.js'
 
 export const s3 = new S3Client({
   region: process.env.AWS_REGION ?? 'us-east-1',
@@ -40,14 +40,14 @@ export async function provisionFounderBucket(founderId: string): Promise<string>
       }),
     )
 
-    console.log(`S3 bucket provisioned: ${bucketName}`)
+    logger.info({ bucketName }, 'S3 bucket provisioned')
   } catch (err: unknown) {
     // Bucket may already exist — that is fine
     const code =
       (err as { Code?: string; name?: string }).Code ??
       (err as { name?: string }).name
     if (code !== 'BucketAlreadyOwnedByYou' && code !== 'BucketAlreadyExists') {
-      console.error(`Failed to provision S3 bucket ${bucketName}:`, err)
+      logger.error({ err, bucketName }, 'Failed to provision S3 bucket')
       // Do not throw — founder record creation should not fail due to S3
     }
   }

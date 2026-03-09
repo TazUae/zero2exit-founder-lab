@@ -78,6 +78,7 @@ export async function perplexitySearch(query: string): Promise<string> {
       if (isAbort) {
         throw new Error(
           `Perplexity request timed out after ${PERPLEXITY_TIMEOUT_MS / 1000}s`,
+          { cause: err },
         )
       }
       logger.warn({ err, model }, 'perplexity_model_error')

@@ -279,7 +279,8 @@ export function IdeaValidationWorkspace() {
       | null
       | undefined
     if (ideaValidation?.businessDescription) {
-      setDescription(ideaValidation.businessDescription)
+      const desc = ideaValidation.businessDescription
+      setTimeout(() => setDescription(desc), 0)
     }
   }, [state?.ideaValidation])
 
@@ -650,17 +651,17 @@ export function IdeaValidationWorkspace() {
         <div className="space-y-6">
           <PanelSection title="Insight"><p className="text-sm text-slate-300">{effectiveIcps.length > 0 ? "Persona-level intelligence mapped across willingness-to-pay, pain intensity, and acquisition channel fit." : "Run analysis to unlock persona-level strategy guidance."}</p></PanelSection>
           <PanelSection title="Reasoning">
-            {effectiveIcps.slice(0, 3).map((icp: any, index: number) => (
-              <div key={icp.id ?? index} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+            {(effectiveIcps as Record<string, unknown>[]).slice(0, 3).map((icp, index) => (
+              <div key={(icp.id as string | number) ?? index} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
                 <p className="text-sm font-medium text-white">Persona {index + 1}</p>
-                <p className="mt-1 text-xs text-slate-400">{icp.description ?? "No description available yet."}</p>
-                {Array.isArray(icp.painPoints) && icp.painPoints.length > 0 && <p className="mt-2 text-xs text-slate-300">Top pain: {icp.painPoints[0]}</p>}
+                <p className="mt-1 text-xs text-slate-400">{(icp.description as string) ?? "No description available yet."}</p>
+                {Array.isArray(icp.painPoints) && icp.painPoints.length > 0 && <p className="mt-2 text-xs text-slate-300">Top pain: {icp.painPoints[0] as string}</p>}
               </div>
             ))}
             {effectiveIcps.length === 0 && <p className="text-sm text-slate-400">No persona data yet.</p>}
           </PanelSection>
           <PanelSection title="Evidence">
-            {effectiveIcps.slice(0, 3).map((icp: any, index: number) => (<div key={icp.id ?? `ev-${index}`} className="text-sm text-slate-300"><span className="font-medium text-white">P{index + 1}:</span> {icp.willingnessToPay ? `WTP ${icp.willingnessToPay}` : "WTP not estimated"}{icp.incomeRange ? ` · Income: ${icp.incomeRange}` : ""}</div>))}
+            {(effectiveIcps as Record<string, unknown>[]).slice(0, 3).map((icp, index) => (<div key={(icp.id as string | number) ?? `ev-${index}`} className="text-sm text-slate-300"><span className="font-medium text-white">P{index + 1}:</span> {icp.willingnessToPay ? `WTP ${icp.willingnessToPay}` : "WTP not estimated"}{icp.incomeRange ? ` · Income: ${icp.incomeRange}` : ""}</div>))}
             {effectiveIcps.length === 0 && <p className="text-sm text-slate-400">Run analysis to see evidence.</p>}
           </PanelSection>
           <PanelSection title="Mitigation"><p className="text-sm text-slate-300">Prioritize one beachhead persona and craft messaging directly around their strongest urgent pain point.</p></PanelSection>
@@ -768,7 +769,7 @@ export function IdeaValidationWorkspace() {
                   <label className="text-[11px] font-medium text-slate-400">
                     Industry <span className="text-red-400">*</span>
                   </label>
-                  <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={`${SELECT_CLASS} ${!industry ? "text-slate-600" : ""}`}>
+                  <select aria-label="Industry" value={industry} onChange={(e) => setIndustry(e.target.value)} className={`${SELECT_CLASS} ${!industry ? "text-slate-600" : ""}`}>
                     <option value="" disabled>Select industry</option>
                     {INDUSTRY_OPTIONS.map((opt) => (
                       <option key={opt} value={opt} className="text-white bg-slate-950">{opt}</option>
@@ -779,7 +780,7 @@ export function IdeaValidationWorkspace() {
                   <label className="text-[11px] font-medium text-slate-400">
                     Geography <span className="text-red-400">*</span>
                   </label>
-                  <select value={geography} onChange={(e) => setGeography(e.target.value)} className={`${SELECT_CLASS} ${!geography ? "text-slate-600" : ""}`}>
+                  <select aria-label="Geography" value={geography} onChange={(e) => setGeography(e.target.value)} className={`${SELECT_CLASS} ${!geography ? "text-slate-600" : ""}`}>
                     <option value="" disabled>Select geography</option>
                     {GEOGRAPHY_OPTIONS.map((opt) => (
                       <option key={opt} value={opt} className="text-white bg-slate-950">{opt}</option>
@@ -790,7 +791,7 @@ export function IdeaValidationWorkspace() {
                   <label className="text-[11px] font-medium text-slate-400">
                     Target Segment <span className="text-red-400">*</span>
                   </label>
-                  <select value={targetSegment} onChange={(e) => setTargetSegment(e.target.value)} className={`${SELECT_CLASS} ${!targetSegment ? "text-slate-600" : ""}`}>
+                  <select aria-label="Target Segment" value={targetSegment} onChange={(e) => setTargetSegment(e.target.value)} className={`${SELECT_CLASS} ${!targetSegment ? "text-slate-600" : ""}`}>
                     <option value="" disabled>Select segment</option>
                     {TARGET_SEGMENT_OPTIONS.map((opt) => (
                       <option key={opt} value={opt} className="text-white bg-slate-950">{opt}</option>
@@ -1020,36 +1021,36 @@ export function IdeaValidationWorkspace() {
             <CardContent id="a7" className="px-3 pb-3">
               {effectiveIcps.length > 0 ? (
                 <div className="space-y-1.5">
-                  {effectiveIcps.slice(0, 3).map((icp: any, index: number) => {
+                  {(effectiveIcps as Record<string, unknown>[]).slice(0, 3).map((icp, index) => {
                     const Icons = [User, Users, Briefcase]
                     const Icon = Icons[index % Icons.length]
                     const colors = ["text-blue-400", "text-amber-400", "text-emerald-400"]
                     const name =
                       icp.title ?? icp.name ??
                       (icp.description
-                        ? icp.description.split(/[.!?\n]/)[0].slice(0, 30)
+                        ? String(icp.description).split(/[.!?\n]/)[0].slice(0, 30)
                         : `Persona ${index + 1}`)
                     return (
                       <div
-                        key={icp.id ?? index}
+                        key={(icp.id as string | number | undefined) ?? index}
                         className="rounded-lg bg-slate-800/60 px-2.5 py-1.5 space-y-0.5"
                       >
                         <div className="flex items-center gap-2">
                           <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${colors[index % 3]}`} />
                           <span className="text-xs font-semibold text-white truncate">
-                            {name}
+                            {name as string}
                           </span>
                         </div>
                         {Array.isArray(icp.painPoints) && icp.painPoints.length > 0 && (
                           <p className="text-[11px] text-slate-400 line-clamp-1">
                             <span className="text-slate-500 font-medium">Pain:</span>{" "}
-                            {icp.painPoints[0]}
+                            {String(icp.painPoints[0])}
                           </p>
                         )}
-                        {icp.willingnessToPay && (
+                        {!!icp.willingnessToPay && (
                           <p className="text-[11px] text-emerald-400">
                             <span className="text-slate-500 font-medium">WTP:</span>{" "}
-                            {icp.willingnessToPay}
+                            {String(icp.willingnessToPay)}
                           </p>
                         )}
                       </div>
@@ -1087,12 +1088,12 @@ export function IdeaValidationWorkspace() {
           <CardContent className="px-4 pb-3">
             {effectiveObjections.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-1.5">
-                {effectiveObjections.map((obj: any, index: number) => {
+                {(effectiveObjections as Record<string, unknown>[]).map((obj, index) => {
                   const isHigh =
                     String(obj.severity ?? "").toUpperCase() === "HIGH"
                   return (
                     <div
-                      key={obj.id ?? index}
+                      key={(obj.id as string | number | undefined) ?? index}
                       className={`flex items-start gap-1.5 rounded-lg p-2 ${
                         isHigh ? "bg-red-500/10" : "bg-slate-800/60"
                       }`}
@@ -1104,11 +1105,11 @@ export function IdeaValidationWorkspace() {
                       />
                       <div className="min-w-0">
                         <p className="text-[11px] font-medium text-white leading-tight">
-                          {obj.title}
+                          {String(obj.title ?? '')}
                         </p>
-                        {obj.description && (
+                        {!!obj.description && (
                           <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
-                            {obj.description}
+                            {String(obj.description)}
                           </p>
                         )}
                       </div>

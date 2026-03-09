@@ -3,6 +3,7 @@ import { Webhook } from 'svix'
 import { db } from '../lib/db.js'
 import { provisionFounderBucket } from '../lib/storage/s3.js'
 import { writeAuditLog } from '../lib/audit.js'
+import { logger } from '../lib/logger.js'
 
 interface ClerkUserCreatedEvent {
   type: string
@@ -89,7 +90,7 @@ export async function clerkWebhook(req: FastifyRequest, reply: FastifyReply) {
         data: { s3BucketName: bucketName },
       })
     } catch (s3Err) {
-      console.error('S3 provisioning failed (non-fatal):', s3Err)
+      logger.error({ err: s3Err }, 'S3 provisioning failed (non-fatal)')
     }
 
     // Write audit log
@@ -101,10 +102,10 @@ export async function clerkWebhook(req: FastifyRequest, reply: FastifyReply) {
       metadata: { clerkUserId, email: primaryEmail, bucketName },
     })
 
-    console.log(`Founder provisioned: ${founder.id} (${primaryEmail})`)
+    logger.info({ founderId: founder.id, email: primaryEmail }, 'Founder provisioned')
     return reply.send({ received: true, handled: true, founderId: founder.id })
   } catch (err) {
-    console.error('Clerk webhook error:', err)
+    logger.error({ err }, 'Clerk webhook error')
     return reply.status(500).send({ error: 'Internal server error' })
   }
 }

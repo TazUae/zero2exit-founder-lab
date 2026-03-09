@@ -1,13 +1,17 @@
-"use client"
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
+import { headers } from "next/headers"
+import { CoachClient } from "@/app/[locale]/(dashboard)/coach/CoachClient"
 
-export default function DashboardCoachPage() {
-  return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Founder Coach</h1>
-      <p className="text-muted-foreground">
-        Chat with your Zero2Exit coach, review insights, and get guidance on your next steps.
-      </p>
-    </div>
-  )
+export default async function DashboardCoachPage() {
+  // Playwright E2E bypass — dev/test only, never runs in production
+  const bypassSecret = process.env.PLAYWRIGHT_BYPASS_SECRET
+  if (bypassSecret && process.env.NODE_ENV !== 'production' &&
+      (await headers()).get('x-playwright-bypass') === bypassSecret) {
+    return <CoachClient />
+  }
+
+  const { userId } = await auth()
+  if (!userId) redirect("/sign-in")
+  return <CoachClient />
 }
-

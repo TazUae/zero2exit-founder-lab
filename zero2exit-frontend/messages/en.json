@@ -1,19 +1,27 @@
 {
   "nav": {
-    "dashboard": "Dashboard",
+    "dashboard": "Command Center",
     "ideaValidation": "Idea Validation",
     "legalStructure": "Legal Structure",
+    "gtm": "Go-To-Market",
     "roadmap": "Roadmap",
     "knowledge": "Knowledge Graph",
+    "brand": "Brand Identity",
+    "scalingStrategy": "Scaling Strategy",
+    "fundraisingReadiness": "Fundraising Readiness",
+    "exitPlanning": "Exit Planning",
     "coach": "AI Coach",
     "documents": "Documents",
-    "settings": "Settings"
+    "settings": "Settings",
+    "lockedStageTooltip": "Available in a future stage"
   },
   "dashboard": {
     "welcome": "Welcome back",
     "stage": "Your Stage",
     "nextAction": "Next Action",
-    "progress": "Progress"
+    "progress": "Progress",
+    "loadError": "Unable to load your Command Center. Please try refreshing the page.",
+    "loadErrorDev": "Unable to load your Command Center: {message}. Check console for details."
   },
   "onboarding": {
     "title": "Tell us about your business",

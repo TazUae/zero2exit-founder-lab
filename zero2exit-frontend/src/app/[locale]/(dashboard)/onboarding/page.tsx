@@ -1,148 +1,307 @@
 'use client'
 
-import React, { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
-import { Loader2, ArrowRight, ArrowLeft } from "lucide-react"
-import { toast } from "sonner"
-import { trpc } from "@/lib/trpc"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import React, { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { useForm, Controller, type Control } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { trpc } from '@/lib/trpc'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  QUESTIONS,
+  onboardingSchema,
+  ONBOARDING_DEFAULTS,
+  type OnboardingFormValues,
+  type Question,
+  type SingleSelectQuestion,
+  type MultiSelectQuestion,
+} from '@/lib/onboarding-schema'
 
-const questions = [
-  {
-    id: "businessIdea",
-    label: "Describe your business idea",
-    placeholder: "We help X do Y by Z...",
-  },
-  {
-    id: "targetMarket",
-    label: "Who is your target customer?",
-    placeholder: "SMEs in the UAE, individual consumers...",
-  },
-  {
-    id: "currentStage",
-    label: "What stage are you at?",
-    placeholder:
-      "Just an idea, MVP in progress, live with customers...",
-  },
-  {
-    id: "hasRevenue",
-    label: "Do you have any revenue?",
-    placeholder: "No revenue yet / $X MRR / profitable...",
-  },
-  {
-    id: "teamSize",
-    label: "What is your team size?",
-    placeholder: "Solo founder / 2 co-founders / 5 person team...",
-  },
-  {
-    id: "fundingStatus",
-    label: "What is your funding status?",
-    placeholder: "Bootstrapped / raised $X / seeking investment...",
-  },
-  {
-    id: "exitHorizon",
-    label: "What is your exit plan?",
-    placeholder: "Acquisition in 5 years / IPO / lifestyle business...",
-  },
-  {
-    id: "competitorAware",
-    label: "Who are your main competitors?",
-    placeholder: "Company X, Company Y, or no direct competitors...",
-  },
-  {
-    id: "uniqueAdvantage",
-    label: "What makes you different?",
-    placeholder: "Our unique advantage is...",
-  },
-  {
-    id: "mainChallenge",
-    label: "What is your biggest challenge right now?",
-    placeholder:
-      "Finding customers, hiring, product development...",
-  },
-]
+// ─── Single-select option grid ───────────────────────────────────────────────
 
-export default function OnboardingPage() {
-  const t = useTranslations("onboarding")
-  const router = useRouter()
-  const [step, setStep] = useState(0)
-  const [responses, setResponses] = useState<Record<string, string>>({})
-  const [current, setCurrent] = useState("")
+function SingleSelect({
+  question,
+  value,
+  onChange,
+}: {
+  question: SingleSelectQuestion
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {question.options.map((opt) => {
+        const selected = value === opt.value
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              'text-left rounded-lg border px-4 py-3 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
+              selected
+                ? 'border-emerald-500 bg-emerald-500/10 text-white'
+                : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-500 hover:text-white',
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'mt-0.5 flex h-4 w-4 shrink-0 rounded-full border-2 transition-colors',
+                  selected ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600',
+                )}
+              />
+              {opt.label}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
-  const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
-    onSuccess: (data: { stage: string }) => {
-      toast.success(`Stage identified: ${data.stage.replace("_", " ")}`)
-      router.push("/dashboard")
-    },
-    onError: () =>
-      toast.error("Something went wrong. Please try again."),
-  })
+// ─── Multi-select option grid ─────────────────────────────────────────────────
 
-  const isLast = step === questions.length - 1
-  const question = questions[step]
-  const progress = ((step + 1) / questions.length) * 100
+function MultiSelect({
+  question,
+  value,
+  onChange,
+}: {
+  question: MultiSelectQuestion
+  value: string[]
+  onChange: (v: string[]) => void
+}) {
+  const max = question.maxSelections ?? Infinity
 
-  function handleNext() {
-    if (!current.trim()) return
-    const updated = { ...responses, [question.id]: current }
-    setResponses(updated)
-    setCurrent(responses[questions[step + 1]?.id] ?? "")
-
-    if (isLast) {
-      submitQuestionnaire.mutate({ responses: updated, language: "en" })
-    } else {
-      setStep(step + 1)
+  function toggle(optValue: string) {
+    if (value.includes(optValue)) {
+      onChange(value.filter((v) => v !== optValue))
+    } else if (value.length < max) {
+      onChange([...value, optValue])
     }
   }
 
-  function handleBack() {
-    if (step === 0) return
-    setResponses((prev) => ({ ...prev, [question.id]: current }))
-    setCurrent(responses[questions[step - 1].id] ?? "")
-    setStep(step - 1)
+  return (
+    <div className="space-y-2">
+      {question.maxSelections && (
+        <p className="text-xs text-slate-500">
+          {value.length} / {question.maxSelections} selected
+        </p>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        {question.options.map((opt) => {
+          const selected = value.includes(opt.value)
+          const disabled = !selected && value.length >= max
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggle(opt.value)}
+              disabled={disabled}
+              className={cn(
+                'text-left rounded-lg border px-4 py-3 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-40',
+                selected
+                  ? 'border-emerald-500 bg-emerald-500/10 text-white'
+                  : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-500 hover:text-white',
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'mt-0.5 flex h-4 w-4 shrink-0 rounded-md border-2 transition-colors',
+                    selected
+                      ? 'border-emerald-500 bg-emerald-500'
+                      : 'border-slate-600',
+                  )}
+                >
+                  {selected && (
+                    <CheckCircle2 className="h-3 w-3 text-white m-auto" />
+                  )}
+                </span>
+                {opt.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Per-question field renderer ─────────────────────────────────────────────
+
+function QuestionField({
+  question,
+  control,
+}: {
+  question: Question
+  control: Control<OnboardingFormValues>
+}) {
+  if (question.kind === 'single') {
+    return (
+      <div className="space-y-3">
+        <Controller
+          control={control}
+          name={question.id as keyof OnboardingFormValues}
+          render={({ field }) => (
+            <SingleSelect
+              question={question}
+              value={(field.value as string) ?? ''}
+              onChange={field.onChange}
+            />
+          )}
+        />
+        {question.extraCheckbox != null && (
+          <Controller
+            control={control}
+            name={question.extraCheckbox.id as keyof OnboardingFormValues}
+            render={({ field }) => (
+              <label className="flex items-center gap-2.5 cursor-pointer select-none mt-3 px-1">
+                <input
+                  type="checkbox"
+                  checked={!!field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-emerald-500"
+                />
+                <span className="text-sm text-slate-400">
+                  { }
+                  {question.extraCheckbox!.label}
+                </span>
+              </label>
+            )}
+          />
+        )}
+      </div>
+    )
   }
+
+  return (
+    <Controller
+      control={control}
+      name={question.id as keyof OnboardingFormValues}
+      render={({ field }) => (
+        <MultiSelect
+          question={question}
+          value={(field.value as string[]) ?? []}
+          onChange={field.onChange}
+        />
+      )}
+    />
+  )
+}
+
+// ─── Wizard page ──────────────────────────────────────────────────────────────
+
+export default function OnboardingPage() {
+  const t = useTranslations('onboarding')
+  const router = useRouter()
+  const [step, setStep] = React.useState(0)
+
+  const { control, trigger, getValues, watch, formState: { errors } } = useForm<OnboardingFormValues>({
+    resolver: zodResolver(onboardingSchema) as any,
+    defaultValues: ONBOARDING_DEFAULTS,
+    mode: 'onChange',
+  })
+
+  const question = QUESTIONS[step]
+  const isLast = step === QUESTIONS.length - 1
+  const progress = ((step + 1) / QUESTIONS.length) * 100
+
+  const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
+    onSuccess: (data: { stage: string }) => {
+      toast.success(`Stage identified: ${data.stage.replace('_', ' ')}`)
+      router.push('/dashboard')
+    },
+    onError: () => toast.error('Something went wrong. Please try again.'),
+  })
+
+  /** watch() subscribes to value changes and triggers re-renders, unlike getValues(). */
+  const currentFieldId = question.id as keyof OnboardingFormValues
+  const currentValue = watch(currentFieldId)
+  const isAnswered =
+    question.kind === 'single'
+      ? typeof currentValue === 'string' && currentValue.length > 0
+      : Array.isArray(currentValue) && currentValue.length > 0
+
+  const handleNext = useCallback(async () => {
+    const fieldsToValidate: (keyof OnboardingFormValues)[] = [currentFieldId]
+    if (question.kind === 'single' && question.extraCheckbox) {
+      fieldsToValidate.push(question.extraCheckbox.id as keyof OnboardingFormValues)
+    }
+    const valid = await trigger(fieldsToValidate)
+    if (!valid) return
+
+    if (isLast) {
+      const values = getValues()
+      submitQuestionnaire.mutate({ responses: values, language: 'en' })
+    } else {
+      setStep((s) => s + 1)
+    }
+  }, [currentFieldId, isLast, question, trigger, getValues, submitQuestionnaire])
+
+  const handleBack = useCallback(() => {
+    if (step > 0) setStep((s) => s - 1)
+  }, [step])
+
+  // Keyboard: Enter / Cmd+Enter → next
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.key === 'Enter' && e.metaKey) || (e.key === 'Enter' && e.ctrlKey)) {
+        if (isAnswered) handleNext()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [handleNext, isAnswered])
+
+  const errorMsg =
+    errors[currentFieldId]?.message as string | undefined
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">{t("title")}</h1>
-        <p className="text-slate-400 mt-2">{t("subtitle")}</p>
+        <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+        <p className="text-slate-400 mt-2">{t('subtitle')}</p>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-slate-800 rounded-full h-2">
-        <div
-          className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
+      {/* Progress */}
+      <div className="space-y-1.5">
+        <div className="w-full bg-slate-800 rounded-full h-1.5">
+          <div
+            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-slate-500 text-xs">
+          Question {step + 1} of {QUESTIONS.length}
+        </p>
       </div>
-      <p className="text-slate-500 text-sm">
-        Question {step + 1} of {questions.length}
-      </p>
 
       {/* Question card */}
       <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white text-xl">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-white text-xl leading-snug">
             {question.label}
           </CardTitle>
+          {question.kind === 'multi' && !question.maxSelections && (
+            <p className="text-xs text-slate-500 mt-1">Select all that apply</p>
+          )}
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            placeholder={question.placeholder}
-            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 min-h-[120px] resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && e.metaKey) handleNext()
-            }}
-          />
-          <div className="flex justify-between">
+        <CardContent className="space-y-5">
+          <QuestionField question={question} control={control} />
+
+          {errorMsg && (
+            <p className="text-red-400 text-xs">{errorMsg}</p>
+          )}
+
+          <div className="flex justify-between pt-2">
             <Button
+              type="button"
               variant="ghost"
               onClick={handleBack}
               disabled={step === 0}
@@ -151,19 +310,18 @@ export default function OnboardingPage() {
               <ArrowLeft className="mr-2 w-4 h-4" /> Back
             </Button>
             <Button
+              type="button"
               onClick={handleNext}
-              disabled={!current.trim() || submitQuestionnaire.isPending}
-              className="bg-emerald-500 hover:bg-emerald-600"
+              disabled={!isAnswered || submitQuestionnaire.isPending}
+              className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40"
             >
               {submitQuestionnaire.isPending ? (
                 <>
-                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />{" "}
-                  Analysing...
+                  <Loader2 className="mr-2 w-4 h-4 animate-spin" /> Analysing…
                 </>
               ) : isLast ? (
                 <>
-                  {t("submit")}{" "}
-                  <ArrowRight className="ml-2 w-4 h-4" />
+                  {t('submit')} <ArrowRight className="ml-2 w-4 h-4" />
                 </>
               ) : (
                 <>
@@ -174,7 +332,10 @@ export default function OnboardingPage() {
           </div>
         </CardContent>
       </Card>
+
+      <p className="text-slate-600 text-xs text-center">
+        Press <kbd className="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">⌘ Enter</kbd> to advance
+      </p>
     </div>
   )
 }
-

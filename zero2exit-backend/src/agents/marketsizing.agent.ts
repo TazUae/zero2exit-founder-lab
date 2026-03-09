@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import {
   buildSystemPrompt as marketSizingSystem,
   buildUserMessage as marketSizingUser,
@@ -85,7 +86,7 @@ export async function marketSizingAgent(
         : research.sources ?? [],
     }
   } catch {
-    console.warn('Failed to parse market sizing agent response')
+    logger.warn('Failed to parse market sizing agent response')
   }
 
   try {
@@ -96,7 +97,7 @@ export async function marketSizingAgent(
       data: result,
     })
   } catch (err) {
-    console.warn('Failed to write market sizing node to knowledge graph', err)
+    logger.warn({ err }, 'Failed to write market sizing node to knowledge graph')
   }
 
   return result

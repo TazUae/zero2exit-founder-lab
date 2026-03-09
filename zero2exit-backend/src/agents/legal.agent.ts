@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import {
   type StartupGraph,
   createNode,
@@ -73,7 +74,7 @@ Startup Type: ${input.startupType}${graphFragment}`
       timeline: parsed.timeline ? String(parsed.timeline) : '',
     }
   } catch {
-    console.warn('Failed to parse legal agent response')
+    logger.warn('Failed to parse legal agent response')
   }
 
   try {
@@ -84,7 +85,7 @@ Startup Type: ${input.startupType}${graphFragment}`
       data: result,
     })
   } catch (err) {
-    console.warn('Failed to write legal node to knowledge graph', err)
+    logger.warn({ err }, 'Failed to write legal node to knowledge graph')
   }
 
   return result

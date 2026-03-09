@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import type { AggregatorAgentOutput } from './aggregator.agent.js'
 
 export type ConsistencyAgentInput = {
@@ -60,7 +61,7 @@ ${JSON.stringify(input.roadmap)}`
           : 0,
     }
   } catch {
-    console.warn('Failed to parse consistency agent response')
+    logger.warn('Failed to parse consistency agent response')
   }
 
   return result

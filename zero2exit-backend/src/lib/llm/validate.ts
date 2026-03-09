@@ -82,6 +82,9 @@ const CompetitorEntrySchema = z.object({
   name: z.string(),
   strength: z.string(),
   weakness: z.string(),
+  pricing: z.string().optional(),
+  positioning: z.string().optional(),
+  differentiation: z.string().optional(),
 }).passthrough()
 
 export const CompetitorSnapshotOutputSchema = z.object({
@@ -98,3 +101,15 @@ export const GatewayClassifyOutputSchema = z.object({
 }).passthrough()
 
 export type GatewayClassifyOutput = z.infer<typeof GatewayClassifyOutputSchema>
+
+// ── GTM Critique ────────────────────────────────────────────────────────────
+
+export const GTMCritiqueOutputSchema = z.object({
+  overallScore: z.coerce.number().min(0).max(100).optional(),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
+  contradictions: z.array(z.string()).default([]),
+  recommendations: z.array(z.string()).default([]),
+}).passthrough()
+
+export type GTMCritiqueOutput = z.infer<typeof GTMCritiqueOutputSchema>

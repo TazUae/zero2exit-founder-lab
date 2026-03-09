@@ -1,5 +1,6 @@
 import type { Redis } from 'ioredis'
 import { TRPCError } from '@trpc/server'
+import { logger } from '../logger.js'
 
 const LOCK_TTL_SEC = 120
 
@@ -16,6 +17,7 @@ export async function withFounderLock<T>(
   founderId: string,
   scope: string,
   fn: () => Promise<T>,
+  opts?: { busyMessage?: string },
 ): Promise<T> {
   const lockKey = `lock:founder:${founderId}:${scope}`
 
@@ -23,17 +25,14 @@ export async function withFounderLock<T>(
   try {
     acquired = await redis.set(lockKey, '1', 'EX', LOCK_TTL_SEC, 'NX')
   } catch (err) {
-    console.warn('[lock] Redis unavailable, proceeding without lock', {
-      lockKey,
-      error: err instanceof Error ? err.message : String(err),
-    })
+    logger.warn({ err, lockKey }, 'founderLock: Redis unavailable, proceeding without lock')
     return fn()
   }
 
   if (!acquired) {
     throw new TRPCError({
       code: 'TOO_MANY_REQUESTS',
-      message: 'Another M02 operation is currently running. Please wait.',
+      message: opts?.busyMessage ?? 'Another operation is currently running. Please wait.',
     })
   }
 
@@ -43,10 +42,7 @@ export async function withFounderLock<T>(
     try {
       await redis.del(lockKey)
     } catch (err) {
-      console.warn('[lock] Failed to release lock (will auto-expire)', {
-        lockKey,
-        error: err instanceof Error ? err.message : String(err),
-      })
+      logger.warn({ err, lockKey }, 'founderLock: failed to release lock (will auto-expire)')
     }
   }
 }

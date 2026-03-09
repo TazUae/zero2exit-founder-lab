@@ -1,4 +1,5 @@
 import { llmCall } from '../lib/llm/router.js'
+import { logger } from '../lib/logger.js'
 import {
   type StartupGraph,
   createNode,
@@ -50,7 +51,7 @@ Industry: ${input.industry ?? 'unknown'}
 Target Segment: ${input.targetSegment ?? 'unspecified'}${graphFragment}`
 
   const raw = await llmCall(
-    'coach.proactiveSuggestion',
+    'gtm.roadmap',
     [{ role: 'user', content: userMessage }],
     systemPrompt,
   )
@@ -80,8 +81,8 @@ Target Segment: ${input.targetSegment ?? 'unspecified'}${graphFragment}`
         ? parsed.keyExperiments.map(String)
         : [],
     }
-  } catch {
-    console.warn('Failed to parse GTM agent response')
+  } catch (err) {
+    logger.warn({ err }, 'gtm_agent: failed to parse LLM response as JSON')
   }
 
   try {
@@ -92,7 +93,7 @@ Target Segment: ${input.targetSegment ?? 'unspecified'}${graphFragment}`
       data: result,
     })
   } catch (err) {
-    console.warn('Failed to write GTM node to knowledge graph', err)
+    logger.warn({ err, founderId: input.founderId }, 'gtm_agent: failed to write knowledge graph node')
   }
 
   return result

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { router, protectedProcedure } from '../../trpc.js'
 import { getStartupGraph } from '../../services/knowledge-graph.service.js'
+import { logger } from '../../lib/logger.js'
 
 export const knowledgeRouter = router({
   getGraph: protectedProcedure
@@ -14,9 +15,12 @@ export const knowledgeRouter = router({
     .query(async ({ ctx, input }) => {
       const founderId = input?.founderId ?? ctx.founderId
 
-      const graph = await getStartupGraph(founderId)
-
-      return graph
+      try {
+        return await getStartupGraph(founderId)
+      } catch (err) {
+        logger.error({ err, founderId }, 'knowledge.getGraph failed')
+        return { nodes: [], edges: [] }
+      }
     }),
 })
 
