@@ -9,6 +9,8 @@ import { founderRouter } from './founder.js'
 import { dashboardRouter } from './dashboard.js'
 import { startupRouter } from '../modules/startup/startup.router.js'
 import { knowledgeRouter } from '../modules/knowledge/knowledge.router.js'
+import { gtmRouter } from '../modules/gtm/gtm.router.js'
+import { brandRouter } from './brand.js'
 
 export const appRouter = router({
   gateway: gatewayRouter,
@@ -21,6 +23,8 @@ export const appRouter = router({
   dashboard: dashboardRouter,
   knowledge: knowledgeRouter,
   startup: startupRouter,
+  gtm: gtmRouter,
+  brand: brandRouter,
 })
 
 export type AppRouter = typeof appRouter

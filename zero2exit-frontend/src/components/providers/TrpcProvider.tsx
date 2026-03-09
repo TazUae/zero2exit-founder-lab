@@ -68,6 +68,8 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
             retry: 3,
             retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
             staleTime: 30_000,
+            refetchOnWindowFocus: false,
+            onError: handleGlobalError,
           },
           mutations: {
             retry: 1,
