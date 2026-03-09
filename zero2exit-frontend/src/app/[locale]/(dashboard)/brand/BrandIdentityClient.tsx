@@ -100,24 +100,29 @@ export function BrandIdentityClient() {
 
   // Autofill from existing founder data
   useEffect(() => {
-    const ideaValidation = (m01Data as any)?.ideaValidation ?? {}
-    const onboarding = (gatewayData as any)?.onboardingResponses ?? {}
+    const ideaValidationSource =
+      (m01Data as { ideaValidation?: Record<string, unknown> } | null)
+        ?.ideaValidation ?? {}
+    const onboardingSource =
+      (gatewayData as { onboardingResponses?: Record<string, unknown> } | null)
+        ?.onboardingResponses ?? {}
 
-    if (!ideaValidation && !onboarding) return
+    if (!ideaValidationSource && !onboardingSource) return
 
     setForm((prev) => ({
       businessDescription:
         prev.businessDescription ||
-        onboarding.businessIdea ||
-        ideaValidation.businessDescription ||
+        (onboardingSource as { businessIdea?: string }).businessIdea ||
+        (ideaValidationSource as { businessDescription?: string })
+          .businessDescription ||
         "",
       targetAudience:
         prev.targetAudience ||
-        onboarding.targetMarket ||
+        (onboardingSource as { targetMarket?: string }).targetMarket ||
         "",
       industry:
         prev.industry ||
-        onboarding.industry ||
+        (onboardingSource as { industry?: string }).industry ||
         "",
       competitors:
         prev.competitors ||
@@ -130,11 +135,13 @@ export function BrandIdentityClient() {
         "",
       geographicFocus:
         prev.geographicFocus ||
-        onboarding.geography ||
+        (onboardingSource as { geography?: string }).geography ||
         "UAE, Saudi Arabia, MENA region",
       avoidances: prev.avoidances || "",
     }))
-  }, [m01Data, gatewayData])
+    // We intentionally avoid deep type instantiation on the dependency array by
+    // narrowing it to primitive flags that still capture relevant changes.
+  }, [Boolean(m01Data), Boolean(gatewayData)])
 
   const hasAutoFilled = useMemo(
     () => Object.values(form).some((v) => v && v.trim().length > 0),

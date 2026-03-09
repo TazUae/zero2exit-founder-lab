@@ -1,7 +1,6 @@
 import React from "react"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { ModuleStepper } from "@/components/layout/ModuleStepper"
-import { BackendHealthBanner } from "@/components/layout/BackendHealthBanner"
 import { FloatingCoachButton } from "@/components/layout/FloatingCoachButton"
 import { OpenCoachProvider } from "@/lib/open-coach-context"
 
@@ -14,7 +13,6 @@ export default function DashboardLayout({
   return (
     <OpenCoachProvider>
       <div className="dark h-screen overflow-y-auto bg-slate-950 scrollbar-subtle">
-        <BackendHealthBanner />
         <Sidebar />
         <main className="transition-all duration-300 pl-64 flex flex-col min-h-screen">
           <div className="sticky top-0 z-10 w-full shrink-0">

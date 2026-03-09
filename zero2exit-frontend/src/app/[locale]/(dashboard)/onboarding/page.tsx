@@ -3,7 +3,7 @@
 import React, { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useForm, Controller, type Control } from 'react-hook-form'
+import { useForm, Controller, type Control, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -202,7 +202,7 @@ export default function OnboardingPage() {
   const [step, setStep] = React.useState(0)
 
   const { control, trigger, getValues, watch, formState: { errors } } = useForm<OnboardingFormValues>({
-    resolver: zodResolver(onboardingSchema) as any,
+    resolver: zodResolver(onboardingSchema) as Resolver<OnboardingFormValues>,
     defaultValues: ONBOARDING_DEFAULTS,
     mode: 'onChange',
   })

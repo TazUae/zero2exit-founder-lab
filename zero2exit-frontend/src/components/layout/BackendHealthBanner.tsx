@@ -42,16 +42,14 @@ export function BackendHealthBanner({
         className
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-40" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
         </span>
         <span className="font-medium tracking-tight">{label}</span>
       </div>
-      <span className="hidden text-xs text-emerald-200/80 md:inline">
-        This banner is a placeholder — hook it up to your monitoring later.
-      </span>
+      {/* Secondary copy removed for now; wire this banner to real monitoring later if needed. */}
     </div>
   )
 }

@@ -60,6 +60,31 @@ function parseEnv(): Env {
     logger.warn('[env] No LLM API key configured (GEMINI/GROQ/NVIDIA) — AI features will fail')
   }
 
+  // In production, enforce a stricter set of required keys and fail fast if missing.
+  if (result.data.NODE_ENV === 'production') {
+    const requiredInProd: Array<keyof Env> = [
+      'DATABASE_URL',
+      'REDIS_URL',
+      'CLERK_SECRET_KEY',
+      'STRIPE_SECRET_KEY',
+      'AWS_ACCESS_KEY_ID',
+      'AWS_SECRET_ACCESS_KEY',
+      'RESEND_API_KEY',
+    ]
+    const missing = requiredInProd.filter((key) => {
+      const value = result.data[key]
+      return typeof value !== 'string' || value.trim().length === 0
+    })
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required environment variables in production: ${missing.join(
+          ', ',
+        )}. Update your deployment environment before starting the server.`,
+      )
+    }
+  }
+
   return result.data
 }
 

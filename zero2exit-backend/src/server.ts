@@ -67,6 +67,8 @@ async function start() {
   })
 
   await server.register(helmet, {
+    // API only returns JSON; CSP is enforced at the frontend layer.
+    // Disabling here avoids duplicating policy while keeping other helmet headers.
     contentSecurityPolicy: false,
   })
 

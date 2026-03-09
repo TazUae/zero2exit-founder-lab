@@ -1,7 +1,12 @@
 'use client'
 
 import { trpc } from "@/lib/trpc"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryCache,
+  MutationCache,
+} from "@tanstack/react-query"
 import { httpBatchLink, TRPCClientError } from "@trpc/client"
 import { useAuth } from "@clerk/nextjs"
 import { useState, useCallback } from "react"
@@ -63,17 +68,25 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => {
+            handleGlobalError(error)
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error) => {
+            handleGlobalError(error)
+          },
+        }),
         defaultOptions: {
           queries: {
             retry: 3,
             retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
             staleTime: 30_000,
             refetchOnWindowFocus: false,
-            onError: handleGlobalError,
           },
           mutations: {
             retry: 1,
-            onError: handleGlobalError,
           },
         },
       }),
