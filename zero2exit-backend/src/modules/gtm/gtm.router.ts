@@ -12,11 +12,9 @@ import {
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { generateGtmSection } from './gtm.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { exportGtmDocx } from './gtm-docx.service.js'
-// @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { exportGtmPdf } from './gtm-pdf.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { critiqueGtmDocument } from './gtm-critique.service.js'
+import { exportGtmDocx } from './gtm-docx.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import type { GtmSectionKey } from './gtm.types.js'
 
@@ -161,21 +159,30 @@ export const gtmRouter = router({
         return result
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        const isConfig =
+        logger.error({ err, founderId, sectionKey: input.sectionKey }, 'gtm.generateSection failed')
+
+        if (/timed out/i.test(msg)) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message:
+              'Section generation timed out. The AI model took too long. Please try again.',
+          })
+        }
+
+        if (
           /API_KEY|api key|credentials|No LLM provider configured|NVIDIA_API_KEY|GROQ_API_KEY|GEMINI_API_KEY/i.test(
             msg,
           )
-        const isTimeout = /timed out/i.test(msg)
-
-        logger.error({ err, founderId, sectionKey: input.sectionKey }, 'gtm.generateSection failed')
+        ) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'AI service is not configured. Contact support.',
+          })
+        }
 
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: isConfig
-            ? 'AI service is not configured. Contact support.'
-            : isTimeout
-              ? 'Section generation timed out. Please try again.'
-              : 'Section generation failed. Please try again.',
+          message: 'Section generation failed. Please try again.',
         })
       }
     }),
@@ -197,21 +204,30 @@ export const gtmRouter = router({
         return result
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        const isConfig =
+        logger.error({ err, founderId, sectionKey: input.sectionKey }, 'gtm.regenerateSection failed')
+
+        if (/timed out/i.test(msg)) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message:
+              'Section generation timed out. The AI model took too long. Please try again.',
+          })
+        }
+
+        if (
           /API_KEY|api key|credentials|No LLM provider configured|NVIDIA_API_KEY|GROQ_API_KEY|GEMINI_API_KEY/i.test(
             msg,
           )
-        const isTimeout = /timed out/i.test(msg)
-
-        logger.error({ err, founderId, sectionKey: input.sectionKey }, 'gtm.regenerateSection failed')
+        ) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'AI service is not configured. Contact support.',
+          })
+        }
 
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: isConfig
-            ? 'AI service is not configured. Contact support.'
-            : isTimeout
-              ? 'Section regeneration timed out. Please try again.'
-              : 'Section regeneration failed. Please try again.',
+          message: 'Section regeneration failed. Please try again.',
         })
       }
     }),
@@ -381,6 +397,7 @@ export const gtmRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { founderId } = ctx
+
       try {
         const { url } = await exportGtmDocx({
           founderId,
@@ -388,45 +405,27 @@ export const gtmRouter = router({
         })
         return { url }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        logger.error({ err, founderId, message: msg }, 'gtm.exportDocx failed')
-        const isKnownUserMessage = /No completed GTM sections|GTM document not found|Storage bucket/.test(msg)
-        const useRealMessage = isKnownUserMessage || process.env.NODE_ENV === 'development'
+        const message = err instanceof Error ? err.message : String(err)
+
+        if (
+          message.includes('No completed GTM sections') ||
+          message.includes('GTM document not found') ||
+          message.includes('Storage bucket') ||
+          process.env.NODE_ENV === 'development'
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message,
+          })
+        }
+
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: useRealMessage ? msg : 'Failed to export GTM strategy as DOCX. Please try again.',
-          cause: err,
+          message: 'Failed to export GTM strategy as Word document. Please try again.',
         })
       }
     }),
 
-  critiqueDocument: protectedProcedure
-    .input(
-      z
-        .object({
-          documentId: z.string().optional(),
-        })
-        .optional(),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { founderId } = ctx
-
-      try {
-        const critique = await critiqueGtmDocument({
-          founderId,
-          documentId: input?.documentId,
-        })
-        return { critique }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        logger.error({ err, founderId }, 'gtm.critiqueDocument failed')
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: /GTM document not found|No completed GTM sections/.test(msg)
-            ? msg
-            : 'GTM critique failed. Please try again.',
-        })
-      }
-    }),
+  // DOCX automated critique is not wired in this dev build.
 })
 

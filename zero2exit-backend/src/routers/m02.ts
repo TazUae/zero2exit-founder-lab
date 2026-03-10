@@ -31,11 +31,46 @@ async function requireM01Completion(
   db: PrismaClient,
   founderId: string,
 ): Promise<void> {
-  const m01Progress = await db.moduleProgress.findFirst({
-    where: { founderId, moduleId: 'M01' },
-  })
+  const [m01Progress, ideaVal] = await Promise.all([
+    db.moduleProgress.findFirst({
+      where: { founderId, moduleId: 'M01' },
+    }),
+    db.ideaValidation.findFirst({
+      where: { founderId },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ])
 
-  if (!m01Progress || (m01Progress.score ?? 0) < 60) {
+  const scoreFromProgress = m01Progress?.score ?? null
+  const scoreFromScorecard =
+    (ideaVal?.scorecard as { total?: number } | null | undefined)?.total ?? null
+
+  const effectiveScore = (scoreFromProgress ?? scoreFromScorecard ?? 0) | 0
+
+  // If the scorecard exists but the module progress row is missing/outdated,
+  // normalize it so downstream gates behave consistently.
+  if ((scoreFromProgress == null || scoreFromProgress !== effectiveScore) && scoreFromScorecard != null) {
+    await db.moduleProgress.upsert({
+      where: { founderId_moduleId: { founderId, moduleId: 'M01' } },
+      update: {
+        score: effectiveScore,
+        status: effectiveScore >= 60 ? 'complete' : 'in_progress',
+        completedAt: effectiveScore >= 60 ? new Date() : null,
+        lastActivity: new Date(),
+      },
+      create: {
+        founderId,
+        moduleId: 'M01',
+        score: effectiveScore,
+        status: effectiveScore >= 60 ? 'complete' : 'in_progress',
+        startedAt: new Date(),
+        completedAt: effectiveScore >= 60 ? new Date() : null,
+        lastActivity: new Date(),
+      },
+    })
+  }
+
+  if (effectiveScore < 60) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:

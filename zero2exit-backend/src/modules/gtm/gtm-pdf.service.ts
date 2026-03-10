@@ -2,23 +2,11 @@ import PDFDocument from 'pdfkit'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { db } from '../../lib/db.js'
 import { logger } from '../../lib/logger.js'
-import {
-  s3,
-  provisionFounderBucket,
-  getSignedDownloadUrl,
-} from '../../lib/storage/s3.js'
+import { s3, provisionFounderBucket, getSignedDownloadUrl } from '../../lib/storage/s3.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { GTM_SECTION_KEYS } from './gtm.constants.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { normalizeGtmData } from './export/gtm-export-data.service.js'
-// @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { buildLayoutDocument } from './layout/layout-engine.js'
-// @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { renderLayoutToPdf } from './layout/layout-pdf-renderer.js'
-// @ts-ignore – resolved at runtime via NodeNext ESM loader
-import type { CoverPayload } from './layout/layout-types.js'
-// @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { MARGIN } from './pdf-primitives.js'
+import { normalizeGtmData } from './export/gtm-export-lite.service.js'
 
 /**
  * Derive a human-readable target market string from structured onboarding responses.
@@ -66,7 +54,7 @@ async function buildGtmPdfBuffer(params: {
 }> {
   const { founderId, documentId } = params
 
-  const [founder, gtmDoc, onboarding] = await Promise.all([
+  const [founder, gtmDoc] = await Promise.all([
     db.founder.findUnique({
       where: { id: founderId },
       select: { name: true },
@@ -79,11 +67,6 @@ async function buildGtmPdfBuffer(params: {
         },
       },
     }),
-    db.onboardingResponse.findFirst({
-      where: { founderId },
-      orderBy: { evaluatedAt: 'desc' },
-      select: { responses: true },
-    }),
   ])
 
   if (!gtmDoc) {
@@ -91,7 +74,13 @@ async function buildGtmPdfBuffer(params: {
   }
 
   const normalized = normalizeGtmData(
-    gtmDoc.sections as Array<{ sectionKey: string; title: string; plainText: string | null; content: unknown; status: string }>,
+    gtmDoc.sections as Array<{
+      sectionKey: string
+      title: string
+      plainText: string | null
+      content: unknown
+      status: string
+    }>,
     gtmDoc.title || '',
   )
 
@@ -109,33 +98,9 @@ async function buildGtmPdfBuffer(params: {
   const consistentPct = gtmDoc.status === 'completed' ? 100 : Math.min(rawPct, 99)
   const completionScore = `${consistentPct}%`
 
-  const lastUpdated = gtmDoc.updatedAt.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-
-  const targetMarket = deriveTargetMarket(onboarding?.responses)
-
-  const coverPayload: CoverPayload = {
-    documentTitle: gtmDoc.title || 'Go-To-Market Strategy',
-    secondaryTitle: founder?.name ? `Prepared for ${founder.name}` : 'Strategic Go-To-Market Plan',
-    subtitle: 'Confidential — Zero2Exit Founder Operating System',
-    founderName: founder?.name ?? null,
-    status: gtmDoc.status,
-    completionScore,
-    targetMarket,
-    lastUpdated,
-  }
-
-  const layoutDoc = buildLayoutDocument({ coverPayload, normalized })
-  logger.info(
-    `GTM PDF layout: sections=${normalized.orderedSections.length} pages=${layoutDoc.pages.length}`
-  )
-
   const doc = new PDFDocument({
     size: 'A4',
-    margin: MARGIN,
+    margin: 45,
     bufferPages: true,
     info: {
       Title: gtmDoc.title || 'Go-To-Market Strategy',
@@ -148,16 +113,6 @@ async function buildGtmPdfBuffer(params: {
     doc.on('data', (chunk: Buffer) => chunks.push(chunk))
     doc.on('error', (err: unknown) => reject(err))
     doc.on('end', () => {
-      const docWithBuffer = doc as typeof doc & { bufferedPageRange(): { start: number; count: number } }
-      const finalPageCount = docWithBuffer.bufferedPageRange().count
-      logger.info(
-        `GTM PDF final: layoutPages=${layoutDoc.pages.length} pdfkitPages=${finalPageCount} overflow=${finalPageCount - layoutDoc.pages.length}`
-      )
-      // Log section text lengths to diagnose overflow
-      for (const s of normalized.orderedSections) {
-        const len = (s.plainText ?? '').length
-        if (len > 1500) logger.warn(`GTM PDF overflow risk: section=${s.sectionKey} chars=${len}`)
-      }
       resolve({
         buffer: Buffer.concat(chunks),
         gtmDocument: {
@@ -170,7 +125,240 @@ async function buildGtmPdfBuffer(params: {
       })
     })
 
-    renderLayoutToPdf(doc, layoutDoc)
+    // Cover page
+    doc.moveDown(4)
+    doc.font('Helvetica-Bold').fontSize(26).text(
+      gtmDoc.title || 'Go-To-Market Strategy',
+      { align: 'center' },
+    )
+    doc.moveDown(1)
+    doc.font('Helvetica').fontSize(13).fillColor('#64748b').text(
+      'Confidential — Founder Operating System',
+      { align: 'center' },
+    )
+    if (founder?.name) {
+      doc.moveDown(0.6)
+      doc.font('Helvetica').fontSize(12).fillColor('#1e293b').text(
+        `Prepared for: ${founder.name}`,
+        { align: 'center' },
+      )
+    }
+    doc.moveDown(0.6)
+    doc.font('Helvetica').fontSize(11).fillColor('#64748b').text(
+      `Completion: ${completionScore}  ·  ${completedCount} of ${totalSections} sections`,
+      { align: 'center' },
+    )
+    doc.moveDown(0.6)
+    doc.font('Helvetica').fontSize(10).fillColor('#94a3b8').text(
+      `Generated ${new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })}`,
+      { align: 'center' },
+    )
+    // Reset fill color for body
+    doc.fillColor('#000000')
+
+    const leftMargin = doc.page.margins.left
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right
+
+    function drawHorizontalRule() {
+      const y = doc.y + 3
+      doc
+        .moveTo(leftMargin, y)
+        .lineTo(leftMargin + pageWidth, y)
+        .strokeColor('#e2e8f0')
+        .lineWidth(0.5)
+        .stroke()
+      doc.moveDown(0.4)
+    }
+
+    function renderMarketSizing(content: Record<string, unknown>) {
+      const ms = content.marketSizing as Record<string, unknown> | undefined
+      if (!ms || typeof ms !== 'object') return
+      const tam = ms.tam as number | undefined
+      const sam = ms.sam as number | undefined
+      const som = ms.som as number | undefined
+      if (tam == null && sam == null && som == null) return
+
+      const fmt = (n: number | undefined): string => {
+        if (n == null || !Number.isFinite(n)) return 'n/a'
+        if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`
+        if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
+        return `$${n.toLocaleString('en-US')}`
+      }
+
+      doc.moveDown(0.6)
+      doc.font('Helvetica-Bold').fontSize(10).text('Market Sizing (from M01)', { align: 'left' })
+      doc.moveDown(0.3)
+      doc.font('Helvetica').fontSize(10).text(
+        `TAM: ${fmt(tam)}    SAM: ${fmt(sam)}    SOM: ${fmt(som)}`,
+        { align: 'left' },
+      )
+    }
+
+    function renderCompetitorsTable(content: Record<string, unknown>) {
+      const competitors = content.competitors as unknown
+      if (!Array.isArray(competitors) || competitors.length === 0) return
+
+      doc.moveDown(0.6)
+      doc.font('Helvetica-Bold').fontSize(10).text('Competitive Landscape Snapshot', { align: 'left' })
+      doc.moveDown(0.3)
+
+      const headerY = doc.y
+      const colNameWidth = pageWidth * 0.4
+      const colScoreWidth = (pageWidth - colNameWidth) / 2
+
+      doc.font('Helvetica-Bold').fontSize(9)
+      doc.text('Competitor', leftMargin, headerY, { width: colNameWidth })
+      doc.text('Price Score', leftMargin + colNameWidth, headerY, { width: colScoreWidth, align: 'center' })
+      doc.text('Feature Score', leftMargin + colNameWidth + colScoreWidth, headerY, {
+        width: colScoreWidth,
+        align: 'center',
+      })
+      drawHorizontalRule()
+
+      doc.font('Helvetica').fontSize(9)
+      for (const raw of competitors) {
+        if (!raw || typeof raw !== 'object') continue
+        const c = raw as Record<string, unknown>
+        const name = String(c.name ?? '').trim()
+        const priceScore = c.priceScore as number | undefined
+        const featureScore = c.featureScore as number | undefined
+        if (!name) continue
+        const rowY = doc.y
+        doc.text(name, leftMargin, rowY, { width: colNameWidth })
+        doc.text(
+          priceScore != null && Number.isFinite(priceScore) ? String(Math.round(priceScore)) : '–',
+          leftMargin + colNameWidth,
+          rowY,
+          { width: colScoreWidth, align: 'center' },
+        )
+        doc.text(
+          featureScore != null && Number.isFinite(featureScore) ? String(Math.round(featureScore)) : '–',
+          leftMargin + colNameWidth + colScoreWidth,
+          rowY,
+          { width: colScoreWidth, align: 'center' },
+        )
+        doc.moveDown(0.6)
+      }
+    }
+
+    function renderTimeline(content: Record<string, unknown>) {
+      const timeline = content.timeline as unknown
+      if (!Array.isArray(timeline) || timeline.length === 0) return
+
+      doc.moveDown(0.6)
+      doc.font('Helvetica-Bold').fontSize(10).text('90-Day Launch Plan', { align: 'left' })
+      doc.moveDown(0.3)
+      doc.font('Helvetica').fontSize(10)
+
+      timeline.forEach((item, idx) => {
+        if (!item || typeof item !== 'object') return
+        const t = item as Record<string, unknown>
+        const phase = String(t.phase ?? '').trim() || `Phase ${idx + 1}`
+        const weeks = String(t.weeks ?? '').trim() || 'Timing TBD'
+        doc.text(`Phase ${idx + 1}: ${phase} — ${weeks}`, {
+          align: 'left',
+        })
+        doc.moveDown(0.25)
+      })
+    }
+
+    function renderKpisTable(content: Record<string, unknown>) {
+      const kpis = content.kpis as unknown
+      if (!Array.isArray(kpis) || kpis.length === 0) return
+
+      doc.moveDown(0.6)
+      doc.font('Helvetica-Bold').fontSize(10).text('Key Metrics & 90-Day Targets', { align: 'left' })
+      doc.moveDown(0.3)
+
+      const colLabelWidth = pageWidth * 0.45
+      const colValueWidth = pageWidth - colLabelWidth
+
+      doc.font('Helvetica-Bold').fontSize(9)
+      const headerY = doc.y
+      doc.text('Metric', leftMargin, headerY, { width: colLabelWidth })
+      doc.text('Target', leftMargin + colLabelWidth, headerY, {
+        width: colValueWidth,
+      })
+      drawHorizontalRule()
+
+      doc.font('Helvetica').fontSize(9)
+      for (const raw of kpis) {
+        if (!raw || typeof raw !== 'object') continue
+        const k = raw as Record<string, unknown>
+        const label = String(k.label ?? '').trim()
+        const value = String(k.value ?? '').trim()
+        if (!label || !value) continue
+        const rowY = doc.y
+        doc.text(label, leftMargin, rowY, { width: colLabelWidth })
+        doc.text(value, leftMargin + colLabelWidth, rowY, {
+          width: colValueWidth,
+        })
+        doc.moveDown(0.4)
+      }
+    }
+
+    normalized.orderedSections.forEach((s, idx) => {
+      doc.addPage()
+
+      // Section number label (small, muted)
+      doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(
+        `Section ${idx + 1} of ${completedCount}`,
+        { align: 'left' },
+      )
+      doc.moveDown(0.3)
+
+      // Section title
+      doc.font('Helvetica-Bold').fontSize(15).fillColor('#0f172a').text(s.title, { underline: false })
+      doc.moveDown(0.4)
+
+      // Horizontal rule under title
+      drawHorizontalRule()
+      doc.moveDown(0.3)
+
+      // Summary line (first sentence of plainText, bold)
+      const plainText = s.plainText || ''
+      const summaryEnd = plainText.indexOf('. ')
+      const summary =
+        summaryEnd > 0 ? plainText.slice(0, summaryEnd + 1) : ''
+      const body =
+        summaryEnd > 0 ? plainText.slice(summaryEnd + 2) : plainText
+
+      if (summary) {
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(10)
+          .fillColor('#1e293b')
+          .text(summary, { align: 'left', lineGap: 2 })
+        doc.moveDown(0.4)
+      }
+
+      // Body text
+      if (body.trim().length > 0) {
+        doc
+          .font('Helvetica')
+          .fontSize(10)
+          .fillColor('#1e293b')
+          .text(body, { align: 'left', lineGap: 3 })
+      }
+
+      // Reset fill color
+      doc.fillColor('#000000')
+
+      const content = s.content ?? {}
+      if (s.sectionKey === 'target_customer') {
+        renderMarketSizing(content)
+      } else if (s.sectionKey === 'competitive_landscape') {
+        renderCompetitorsTable(content)
+      } else if (s.sectionKey === 'launch_plan_90_day') {
+        renderTimeline(content)
+      } else if (s.sectionKey === 'kpis_metrics') {
+        renderKpisTable(content)
+      }
+    })
 
     doc.end()
   })

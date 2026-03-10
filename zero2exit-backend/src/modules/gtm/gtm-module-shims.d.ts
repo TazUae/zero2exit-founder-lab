@@ -26,8 +26,8 @@ declare module './gtm.prompts.js' {
   export * from './gtm.prompts';
 }
 
-declare module './export/gtm-export-data.service.js' {
-  export * from './export/gtm-export-data.service';
+declare module './export/gtm-export-lite.service.js' {
+  export * from './export/gtm-export-lite.service';
 }
 
 declare module './layout/layout-engine.js' {

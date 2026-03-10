@@ -61,7 +61,9 @@ function parseEnv(): Env {
   }
 
   // In production, enforce a stricter set of required keys and fail fast if missing.
-  if (result.data.NODE_ENV === 'production') {
+  // When running tests (Vitest sets process.env.VITEST === 'true'), we relax this
+  // so test suites can freely toggle NODE_ENV without having to provide real secrets.
+  if (result.data.NODE_ENV === 'production' && process.env.VITEST !== 'true') {
     const requiredInProd: Array<keyof Env> = [
       'DATABASE_URL',
       'REDIS_URL',

@@ -100,12 +100,11 @@ export function BrandIdentityClient() {
 
   // Autofill from existing founder data
   useEffect(() => {
+    // Loosen the types here to avoid deep type instantiation issues during build.
     const ideaValidationSource =
-      (m01Data as { ideaValidation?: Record<string, unknown> } | null)
-        ?.ideaValidation ?? {}
+      (m01Data as any)?.ideaValidation ?? {}
     const onboardingSource =
-      (gatewayData as { onboardingResponses?: Record<string, unknown> } | null)
-        ?.onboardingResponses ?? {}
+      (gatewayData as any)?.onboardingResponses ?? {}
 
     if (!ideaValidationSource && !onboardingSource) return
 

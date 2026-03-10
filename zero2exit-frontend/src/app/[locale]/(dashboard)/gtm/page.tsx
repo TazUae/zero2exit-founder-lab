@@ -17,13 +17,15 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { Loader2, RefreshCw, Sparkles, Save, FileDown } from "lucide-react"
+import { Loader2, RefreshCw, Sparkles, Save, FileDown, FileText } from "lucide-react"
 
 type GtmSectionKey =
   | "product_overview"
   | "target_customer"
   | "market_problem"
   | "value_proposition"
+  | "positioning"
+  | "buyer_persona"
   | "competitive_landscape"
   | "pricing_strategy"
   | "distribution_channels"
@@ -74,6 +76,8 @@ const SECTION_LABELS: { key: GtmSectionKey; title: string }[] = [
   { key: "target_customer", title: "Target Customer / ICP" },
   { key: "market_problem", title: "Market Problem" },
   { key: "value_proposition", title: "Value Proposition" },
+  { key: "positioning", title: "Market Positioning" },
+  { key: "buyer_persona", title: "Buyer Persona" },
   { key: "competitive_landscape", title: "Competitive Landscape" },
   { key: "pricing_strategy", title: "Pricing Strategy" },
   { key: "distribution_channels", title: "Distribution Channels" },
@@ -82,6 +86,11 @@ const SECTION_LABELS: { key: GtmSectionKey; title: string }[] = [
   { key: "launch_plan_90_day", title: "Launch Plan (90-Day)" },
   { key: "kpis_metrics", title: "KPIs & Metrics" },
 ]
+
+const GENERATE_ALL_DELAY_MS = 8000
+const GENERATE_ALL_RECOVERY_DELAY_MS = 15000
+const GENERATE_ALL_RECOVERY_INTERVAL = 4
+const SECTION_KEYS_IN_ORDER = SECTION_LABELS.map((s) => s.key)
 
 function statusVariant(status: SectionStatus) {
   if (status === "completed") return "default" as const
@@ -100,6 +109,39 @@ function statusLabel(status: SectionStatus) {
       return "Completed"
     case "failed":
       return "Failed"
+  }
+}
+
+function sectionDescription(key: GtmSectionKey): string {
+  switch (key) {
+    case "product_overview":
+      return "Draft a concise, investor-ready perspective on what you are building and why it matters."
+    case "target_customer":
+      return "Describe your ideal customer profiles and who this go-to-market is designed to serve."
+    case "market_problem":
+      return "Explain the core problem and pain points you are solving in the market."
+    case "value_proposition":
+      return "Summarize the outcomes and value your product delivers compared to current alternatives."
+    case "positioning":
+      return "Define how you want to be positioned in the market versus alternatives and in the buyer’s mind."
+    case "buyer_persona":
+      return "Outline 2–3 detailed buyer personas, their goals, objections, and how they make decisions."
+    case "competitive_landscape":
+      return "Capture the key competitors or alternatives and where you win or are vulnerable."
+    case "pricing_strategy":
+      return "Draft a clear pricing and packaging strategy that aligns with your value and target customers."
+    case "distribution_channels":
+      return "Describe the primary channels and routes-to-market you will use to reach your buyers."
+    case "marketing_strategy":
+      return "Outline the marketing strategy and campaigns that will drive awareness and demand."
+    case "sales_strategy":
+      return "Explain the sales motion, funnel, and 30/60/90-day execution focus."
+    case "launch_plan_90_day":
+      return "Lay out a pragmatic 90-day launch plan with milestones and experiments."
+    case "kpis_metrics":
+      return "Define the key metrics and 90-day targets you will use to track GTM progress."
+    default:
+      return "Draft a concise, investor-ready perspective on this part of your go-to-market."
   }
 }
 
@@ -125,6 +167,7 @@ export default function GtmPage() {
   })
 
   const exportPdfMutation = trpc.gtm.exportPdf.useMutation()
+  const exportDocxMutation = trpc.gtm.exportDocx.useMutation()
 
   const initMutation = trpc.gtm.initDocument.useMutation()
   const generateMutation = trpc.gtm.generateSection.useMutation()
@@ -208,6 +251,36 @@ export default function GtmPage() {
     return exportMutateRef.current()
   }, [])
 
+  const onExportDocx = useCallback(async (): Promise<void> => {
+    try {
+      const res = await exportDocxMutation.mutateAsync({})
+      if (!res?.url) {
+        toast.error("Export failed — no URL returned.")
+        return
+      }
+      if (res.url.startsWith("data:")) {
+        const base64 = res.url.replace(/^data:[^;]+;base64,/, "")
+        const bin = atob(base64)
+        const bytes = new Uint8Array(bin.length)
+        for (let i = 0; i < bin.length; i += 1) {
+          bytes[i] = bin.charCodeAt(i)
+        }
+        const blob = new Blob([bytes], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        })
+        const objectUrl = URL.createObjectURL(blob)
+        window.open(objectUrl, "_blank")
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+      } else {
+        window.open(res.url, "_blank")
+      }
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) || "Export failed."
+      toast.error(message)
+    }
+  }, [exportDocxMutation])
+
   useEffect(() => {
     if (!isLoadingDoc && !documentData?.document && !initialized && !isInitializing) {
       triggerInit()
@@ -252,6 +325,121 @@ export default function GtmPage() {
   const completionPct =
     totalSections === 0 ? 0 : Math.round((completedSections / totalSections) * 100)
 
+  // ─── Generate All state ───────────────────────────────────────────────────
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false)
+  const [generateAllMode, setGenerateAllMode] = useState<"remaining" | "all" | null>(null)
+  const [generateAllIndex, setGenerateAllIndex] = useState(0)
+  const [generateAllTotal, setGenerateAllTotal] = useState(0)
+  const [generateAllCurrentKey, setGenerateAllCurrentKey] = useState<GtmSectionKey | null>(null)
+  const [generateAllResults, setGenerateAllResults] = useState<{
+    succeeded: GtmSectionKey[]
+    failed: GtmSectionKey[]
+  }>({ succeeded: [], failed: [] })
+  const generateAllStoppedRef = useRef(false)
+  const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false)
+
+  const anyPendingOrFailed = sections.some(
+    (s) => s.status === "pending" || s.status === "failed",
+  )
+  const allCompleted = sections.length > 0 && sections.every((s) => s.status === "completed")
+
+  const showGenerateAllButton = !isGeneratingAll && anyPendingOrFailed
+  const showRegenerateAllButton = !isGeneratingAll && !anyPendingOrFailed && allCompleted
+
+  async function startGenerateAll(mode: "remaining" | "all") {
+    // 1. Determine which sections to generate
+    const sectionsToGenerate: GtmSectionKey[] =
+      mode === "all"
+        ? [...SECTION_KEYS_IN_ORDER]
+        : SECTION_KEYS_IN_ORDER.filter((key) => {
+            const section = sections.find((s) => s.sectionKey === key)
+            return !section || section.status !== "completed"
+          })
+
+    if (sectionsToGenerate.length === 0) {
+      toast.info("All sections are already completed.")
+      return
+    }
+
+    // 2. Initialize state
+    generateAllStoppedRef.current = false
+    setIsGeneratingAll(true)
+    setGenerateAllMode(mode)
+    setGenerateAllIndex(0)
+    setGenerateAllTotal(sectionsToGenerate.length)
+    setGenerateAllResults({ succeeded: [], failed: [] })
+
+    const succeeded: GtmSectionKey[] = []
+    const failed: GtmSectionKey[] = []
+
+    // 3. Sequential loop
+    for (let i = 0; i < sectionsToGenerate.length; i += 1) {
+      if (generateAllStoppedRef.current) break
+
+      const sectionKey = sectionsToGenerate[i]
+      setGenerateAllIndex(i + 1)
+      setGenerateAllCurrentKey(sectionKey)
+
+      try {
+        if (mode === "all") {
+          await regenerateMutateRef.current({ sectionKey })
+        } else {
+          await generateMutateRef.current({ sectionKey })
+        }
+        succeeded.push(sectionKey)
+
+        // Immediately refetch so this section populates in the UI
+        refetchRef.current()
+
+        const el = document.getElementById(`section-card-${sectionKey}`)
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" })
+        }
+      } catch (err) {
+        const errMessage =
+          err instanceof Error ? err.message : String(err)
+        // Surface real error during Generate All debugging
+        // eslint-disable-next-line no-console
+        console.error(
+          `[GTM GenerateAll] Section failed: ${sectionKey}`,
+          errMessage,
+        )
+        failed.push(sectionKey)
+      }
+
+      // Rate limit delay between sections (skip after last)
+      if (i < sectionsToGenerate.length - 1 && !generateAllStoppedRef.current) {
+        const isRecoveryPoint =
+          (i + 1) % GENERATE_ALL_RECOVERY_INTERVAL === 0
+        const delayMs = isRecoveryPoint
+          ? GENERATE_ALL_RECOVERY_DELAY_MS
+          : GENERATE_ALL_DELAY_MS
+
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+
+    // 4. Final state update
+    setIsGeneratingAll(false)
+    setGenerateAllCurrentKey(null)
+    setGenerateAllResults({ succeeded, failed })
+    refetchRef.current()
+
+    // 5. Toast summary
+    if (generateAllStoppedRef.current) {
+      toast.info(`Stopped. ${succeeded.length} sections generated.`)
+    } else if (failed.length === 0) {
+      toast.success(`All ${succeeded.length} sections generated successfully.`)
+    } else {
+      toast.warning(
+        `${succeeded.length} sections generated. ${failed.length} failed — you can retry failed sections individually.`,
+      )
+    }
+  }
+
+  const hasFailedAfterRun = !isGeneratingAll && generateAllResults.failed.length > 0
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -279,8 +467,84 @@ export default function GtmPage() {
               {completionPct}%
             </span>
           </div>
+          <div className="flex items-center gap-2">
+            {showGenerateAllButton && (
+              <Button
+                size="sm"
+                className="mt-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                disabled={isGeneratingAll}
+                onClick={() => {
+                  const completedCount = sections.filter(
+                    (s) => s.status === "completed",
+                  ).length
+                  if (completedCount > 0) {
+                    setShowGenerateAllConfirm(true)
+                  } else {
+                    void startGenerateAll("all")
+                  }
+                }}
+              >
+                {isGeneratingAll ? "Generating..." : "Generate All"}
+              </Button>
+            )}
+            {showRegenerateAllButton && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-1 border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"
+                disabled={isGeneratingAll}
+                onClick={() => {
+                  setShowGenerateAllConfirm(true)
+                }}
+              >
+                {isGeneratingAll ? "Generating..." : "Regenerate All"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Inline Generate All confirmation (desktop + mobile) */}
+      {showGenerateAllConfirm && !isGeneratingAll && (
+        <div className="mt-3 rounded-md border border-slate-700 bg-slate-900/95 px-4 py-3 text-xs text-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p>
+              {sections.filter((s) => s.status === "completed").length} sections already
+              completed. What would you like to do?
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="xs"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => {
+                  setShowGenerateAllConfirm(false)
+                  void startGenerateAll("remaining")
+                }}
+              >
+                Generate Remaining
+              </Button>
+              <Button
+                size="xs"
+                className="bg-slate-800 text-slate-100 border border-emerald-500 hover:bg-slate-700"
+                onClick={() => {
+                  setShowGenerateAllConfirm(false)
+                  void startGenerateAll("all")
+                }}
+              >
+                Regenerate All ({SECTION_KEYS_IN_ORDER.length})
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                className="text-slate-300 hover:bg-slate-800"
+                onClick={() => setShowGenerateAllConfirm(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Compact progress on mobile */}
       <div className="md:hidden space-y-2">
@@ -290,6 +554,138 @@ export default function GtmPage() {
         </div>
         <Progress value={completionPct} />
       </div>
+
+      {/* Generate All progress banner */}
+      {isGeneratingAll && generateAllTotal > 0 && (
+        <div className="sticky top-0 z-20 mt-2 space-y-2 rounded-md border border-slate-700 bg-slate-900/95 px-4 py-3 shadow-sm">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-slate-800">
+            <div
+              className="h-full bg-emerald-500 transition-all duration-500"
+              style={{
+                width: `${Math.min(
+                  100,
+                  (generateAllIndex / generateAllTotal) * 100,
+                ).toFixed(1)}%`,
+              }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-200">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+              <span className="font-medium">Generating GTM strategy…</span>
+            </div>
+            <div className="flex-1 text-center">
+              {generateAllCurrentKey ? (
+                <span>
+                  <span className="font-semibold">
+                    →{" "}
+                    {SECTION_LABELS.find((s) => s.key === generateAllCurrentKey)?.title ??
+                      generateAllCurrentKey}
+                  </span>{" "}
+                  ({generateAllIndex} of {generateAllTotal})
+                </span>
+              ) : (
+                <span>Preparing next section…</span>
+              )}
+            </div>
+            <div>
+              <Button
+                size="xs"
+                variant="outline"
+                className="border-slate-500 text-slate-100 hover:bg-slate-800"
+                disabled={generateAllStoppedRef.current}
+                onClick={() => {
+                  generateAllStoppedRef.current = true
+                }}
+              >
+                {generateAllStoppedRef.current ? "Stopping…" : "Stop"}
+              </Button>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            {generateAllIndex > 0 &&
+            generateAllIndex % GENERATE_ALL_RECOVERY_INTERVAL === 0
+              ? "Pausing briefly to respect AI API limits… generation will resume automatically in a few seconds."
+              : "Each section appears as it completes. You can read and edit above while generation continues."}
+          </p>
+        </div>
+      )}
+
+      {/* Failed sections retry banner */}
+      {hasFailedAfterRun && (
+        <div className="mt-2 rounded-md border border-red-400 bg-red-950/60 px-4 py-3 text-xs text-red-100">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-medium">
+                {generateAllResults.failed.length} sections failed to generate:
+              </p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5">
+                {generateAllResults.failed.map((key) => {
+                  const label = SECTION_LABELS.find((s) => s.key === key)?.title ?? key
+                  return <li key={key}>{label}</li>
+                })}
+              </ul>
+              <Button
+                size="xs"
+                className="mt-2 bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => {
+                  const failedKeys = [...generateAllResults.failed]
+                  if (failedKeys.length === 0) return
+
+                  generateAllStoppedRef.current = false
+                  setIsGeneratingAll(true)
+                  setGenerateAllMode("remaining")
+                  setGenerateAllIndex(0)
+                  setGenerateAllTotal(failedKeys.length)
+                  setGenerateAllResults({ succeeded: [], failed: [] })
+
+                  void (async () => {
+                    const succeeded: GtmSectionKey[] = []
+                    const failed: GtmSectionKey[] = []
+
+                    for (let i = 0; i < failedKeys.length; i += 1) {
+                      if (generateAllStoppedRef.current) break
+                      const sectionKey = failedKeys[i]
+                      setGenerateAllIndex(i + 1)
+                      setGenerateAllCurrentKey(sectionKey)
+                      try {
+                        await generateMutateRef.current({ sectionKey })
+                        succeeded.push(sectionKey)
+                        refetchRef.current()
+                      } catch {
+                        failed.push(sectionKey)
+                      }
+                      if (
+                        i < failedKeys.length - 1 &&
+                        !generateAllStoppedRef.current
+                      ) {
+                        // eslint-disable-next-line no-await-in-loop
+                        await new Promise<void>((resolve) =>
+                          setTimeout(resolve, GENERATE_ALL_DELAY_MS),
+                        )
+                      }
+                    }
+
+                    setIsGeneratingAll(false)
+                    setGenerateAllCurrentKey(null)
+                    setGenerateAllResults({ succeeded, failed })
+                    refetchRef.current()
+                  })()
+                }}
+              >
+                Retry Failed Sections
+              </Button>
+            </div>
+            <button
+              type="button"
+              className="ml-2 text-xs text-red-200 hover:text-red-50"
+              onClick={() => setGenerateAllResults({ succeeded: [], failed: [] })}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       <Tabs
         value={activeTab}
@@ -317,6 +713,14 @@ export default function GtmPage() {
                   (regenerateMutation.isPending &&
                     regenerateMutation.variables?.sectionKey === section.sectionKey) ||
                   section.status === "generating"
+                }
+                isQueued={
+                  isGeneratingAll &&
+                  section.sectionKey !== generateAllCurrentKey &&
+                  (section.status === "pending" || section.status === "failed")
+                }
+                isCurrentlyGenerating={
+                  isGeneratingAll && section.sectionKey === generateAllCurrentKey
                 }
                 isSaving={
                   updateMutation.isPending &&
@@ -366,6 +770,8 @@ export default function GtmPage() {
               }
             }}
             isExporting={exportPdfMutation.isPending}
+            onExportDocx={onExportDocx}
+            isExportingDocx={exportDocxMutation.isPending}
           />
         </TabsContent>
       </Tabs>
@@ -376,6 +782,8 @@ export default function GtmPage() {
 type SectionCardProps = {
   section: GtmSection
   isGenerating: boolean
+  isQueued: boolean
+  isCurrentlyGenerating: boolean
   isSaving: boolean
   onGenerate: () => void
   onRegenerate: () => void
@@ -385,6 +793,8 @@ type SectionCardProps = {
 function SectionCard({
   section,
   isGenerating,
+  isQueued,
+  isCurrentlyGenerating,
   isSaving,
   onGenerate,
   onRegenerate,
@@ -401,8 +811,16 @@ function SectionCard({
   const canRegenerate = section.status === "completed" || section.status === "failed"
   const dirty = draft !== (section.plainText ?? "")
 
+  const cardClasses = cn(
+    "border-slate-800 bg-slate-900/80 relative",
+    isCurrentlyGenerating && "border-emerald-400/70 shadow-[0_0_0_1px_rgba(16,185,129,0.7)]",
+    isQueued && !isCurrentlyGenerating && "opacity-60",
+  )
+
+  const badgeLabel = isQueued ? "Queued" : statusLabel(section.status)
+
   return (
-    <Card className="border-slate-800 bg-slate-900/80">
+    <Card id={`section-card-${section.sectionKey}`} className={cardClasses}>
       <CardHeader className="gap-1">
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-sm text-white">
@@ -416,14 +834,15 @@ function SectionCard({
                 section.status === "pending" && "border-slate-700 text-slate-300",
                 section.status === "generating" && "bg-emerald-500/10 text-emerald-300",
                 section.status === "failed" && "bg-red-600/20 text-red-200",
+                isQueued && "bg-amber-500/10 text-amber-200 border-amber-500/60",
               )}
             >
-              {statusLabel(section.status)}
+              {badgeLabel}
             </Badge>
           </div>
         </div>
         <CardDescription className="text-xs text-slate-400">
-          Draft a concise, investor-ready perspective on this part of your go-to-market.
+          {sectionDescription(section.sectionKey)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -487,6 +906,8 @@ type GtmPreviewProps = {
   updatedAt?: Date | string
   onExportPdf: () => void | Promise<void>
   isExporting: boolean
+   onExportDocx: () => void | Promise<void>
+   isExportingDocx: boolean
 }
 
 function GtmPreview({
@@ -498,6 +919,8 @@ function GtmPreview({
   updatedAt,
   onExportPdf,
   isExporting,
+  onExportDocx,
+  isExportingDocx,
 }: GtmPreviewProps) {
   const doc = compiled?.document
   const effectiveUpdatedAt =
@@ -585,6 +1008,25 @@ function GtmPreview({
               <FileDown className="mr-1.5 h-3.5 w-3.5" />
             )}
             Export PDF
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isExportingDocx || sections.length === 0}
+            onClick={() => void onExportDocx()}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          >
+            {isExportingDocx ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Export Word Doc
+              </>
+            )}
           </Button>
           <Button
             size="sm"

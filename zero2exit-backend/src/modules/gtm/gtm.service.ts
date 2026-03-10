@@ -4,6 +4,8 @@ import { llmCall } from '../../lib/llm/router.js'
 import { extractJSON } from '../../lib/llm/parse.js'
 import { logger } from '../../lib/logger.js'
 import { redis } from '../../lib/storage/redis.js'
+import { writeAuditLog } from '../../lib/audit.js'
+import { invalidateFounderContext } from '../../lib/context/founderContext.js'
 import { withFounderLock } from '../../lib/locks/founderLock.js'
 import { getLatestNodeByType } from '../../services/knowledge-graph.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
@@ -228,7 +230,10 @@ async function ensureGtmDocument(founderId: string): Promise<{ id: string }> {
  * Rules: all sections completed → 'completed'; any generating/failed → 'in_progress'.
  * This prevents contradictory states (e.g. status=completed with only 5/13 sections done).
  */
-async function syncDocumentStatus(gtmDocumentId: string): Promise<void> {
+async function syncDocumentStatus(
+  gtmDocumentId: string,
+  founderId: string,
+): Promise<void> {
   const sections = await db.gtmSection.findMany({
     where: { gtmDocumentId },
     select: { status: true },
@@ -239,6 +244,60 @@ async function syncDocumentStatus(gtmDocumentId: string): Promise<void> {
     where: { id: gtmDocumentId },
     data: { status: newStatus },
   })
+
+  if (newStatus === 'completed') {
+    await db.moduleProgress.upsert({
+      where: {
+        founderId_moduleId: {
+          founderId,
+          moduleId: 'M03',
+        },
+      },
+      update: {
+        status: 'complete',
+        completedAt: new Date(),
+        lastActivity: new Date(),
+        score: 100,
+      },
+      create: {
+        founderId,
+        moduleId: 'M03',
+        status: 'complete',
+        completedAt: new Date(),
+        lastActivity: new Date(),
+        score: 100,
+        startedAt: new Date(),
+      },
+    })
+
+    await writeAuditLog({
+      db,
+      founderId,
+      actorType: 'system',
+      action: 'module.completed',
+      resourceType: 'module',
+      resourceId: 'M03',
+      metadata: {
+        moduleId: 'M03',
+        trigger: 'gtm_document_completed',
+      },
+    })
+
+    await invalidateFounderContext(founderId)
+  } else if (newStatus === 'in_progress') {
+    await db.moduleProgress.updateMany({
+      where: {
+        founderId,
+        moduleId: 'M03',
+        status: 'complete',
+      },
+      data: {
+        status: 'active',
+        completedAt: null,
+        lastActivity: new Date(),
+      },
+    })
+  }
 }
 
 async function upsertSection(params: {
@@ -386,7 +445,7 @@ export async function generateGtmSection(
         plainText,
       })
 
-      await syncDocumentStatus(gtmDoc.id)
+      await syncDocumentStatus(gtmDoc.id, input.founderId)
 
       return {
         gtmDocumentId: gtmDoc.id,
