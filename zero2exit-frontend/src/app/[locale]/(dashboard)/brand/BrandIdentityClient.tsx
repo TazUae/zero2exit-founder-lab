@@ -126,12 +126,12 @@ export function BrandIdentityClient() {
         "",
       competitors:
         prev.competitors ||
-        onboarding.competitorAware ||
-        ideaValidation.competitorAware ||
+        (onboardingSource as { competitorAware?: string }).competitorAware ||
+        (ideaValidationSource as { competitorAware?: string }).competitorAware ||
         "",
       brandPersonality:
         prev.brandPersonality ||
-        onboarding.uniqueAdvantage ||
+        (onboardingSource as { uniqueAdvantage?: string }).uniqueAdvantage ||
         "",
       geographicFocus:
         prev.geographicFocus ||
