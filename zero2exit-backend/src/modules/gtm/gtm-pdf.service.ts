@@ -1,12 +1,55 @@
 import PDFDocument from 'pdfkit'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
+import puppeteer from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 import { db } from '../../lib/db.js'
 import { logger } from '../../lib/logger.js'
 import { s3, provisionFounderBucket, getSignedDownloadUrl } from '../../lib/storage/s3.js'
+import { env } from '../../config/env.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { GTM_SECTION_KEYS } from './gtm.constants.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { normalizeGtmData } from './export/gtm-export-lite.service.js'
+// @ts-ignore – resolved at runtime via NodeNext ESM loader
+import { generateGtmHtml } from './gtm-pdf-html.service.js'
+
+const USE_PUPPETEER = env.USE_PUPPETEER !== 'false'
+
+async function renderHtmlToPdf(html: string): Promise<Buffer> {
+  const isLocal = process.env.CHROMIUM_PATH !== undefined
+
+  const executablePath = process.env.CHROMIUM_PATH || (await chromium.executablePath())
+
+  // Basic runtime diagnostics to understand which binary/mode is used
+  // eslint-disable-next-line no-console
+  console.log('[Puppeteer] Using executablePath:', executablePath)
+  // eslint-disable-next-line no-console
+  console.log('[Puppeteer] isLocal mode:', isLocal)
+
+  const browser = await puppeteer.launch({
+    executablePath,
+    headless: true,
+    args: isLocal
+      ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      : chromium.args,
+    defaultViewport: isLocal
+      ? { width: 1280, height: 900 }
+      : chromium.defaultViewport,
+  })
+
+  try {
+    const page = await browser.newPage()
+    await page.setContent(html, { waitUntil: 'networkidle0' })
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    })
+    return Buffer.from(pdfBuffer)
+  } finally {
+    await browser.close()
+  }
+}
 
 /**
  * Derive a human-readable target market string from structured onboarding responses.
@@ -39,7 +82,7 @@ function deriveTargetMarket(responses: unknown): string {
   return parts.length > 0 ? parts.join(' · ') : '—'
 }
 
-async function buildGtmPdfBuffer(params: {
+export async function buildGtmPdfBuffer(params: {
   founderId: string
   documentId?: string
 }): Promise<{
@@ -97,6 +140,37 @@ async function buildGtmPdfBuffer(params: {
   const rawPct = Math.round((completedCount / totalSections) * 100)
   const consistentPct = gtmDoc.status === 'completed' ? 100 : Math.min(rawPct, 99)
   const completionScore = `${consistentPct}%`
+
+  if (USE_PUPPETEER) {
+    try {
+      const html = generateGtmHtml(
+        normalized.orderedSections,
+        founder?.name ?? null,
+        gtmDoc.title || 'Go-To-Market Strategy',
+        completionScore,
+        completedCount,
+        totalSections,
+      )
+      const buffer = await renderHtmlToPdf(html)
+      logger.info({ founderId }, 'GTM PDF rendered via Puppeteer')
+      return {
+        buffer,
+        gtmDocument: {
+          id: gtmDoc.id,
+          title: gtmDoc.title,
+          status: gtmDoc.status,
+          updatedAt: gtmDoc.updatedAt,
+        },
+        founderName: founder?.name ?? null,
+      }
+    } catch (puppeteerErr) {
+      logger.warn(
+        { err: puppeteerErr, founderId },
+        'Puppeteer render failed, falling back to pdfkit',
+      )
+      // fall through to existing pdfkit path below
+    }
+  }
 
   const doc = new PDFDocument({
     size: 'A4',

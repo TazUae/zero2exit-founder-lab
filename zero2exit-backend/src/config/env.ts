@@ -30,6 +30,7 @@ const envSchema = z.object({
   LANGFUSE_SECRET_KEY: z.string().optional(),
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_HOST: z.string().optional(),
+  USE_PUPPETEER: z.string().default('true'),
 })
 
 export type Env = z.infer<typeof envSchema>

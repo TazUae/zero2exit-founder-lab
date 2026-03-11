@@ -12,7 +12,7 @@ import {
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { generateGtmSection } from './gtm.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { exportGtmPdf } from './gtm-pdf.service.js'
+import { exportGtmPdf, buildGtmPdfBuffer } from './gtm-pdf.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { exportGtmDocx } from './gtm-docx.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
@@ -384,6 +384,21 @@ export const gtmRouter = router({
           message: useRealMessage ? msg : 'Failed to export GTM strategy as PDF. Please try again.',
           cause: err,
         })
+      }
+    }),
+
+  previewPdf: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (process.env.NODE_ENV !== 'development') {
+        throw new TRPCError({ code: 'FORBIDDEN' })
+      }
+
+      const { buffer } = await buildGtmPdfBuffer({
+        founderId: ctx.founderId,
+      })
+
+      return {
+        dataUrl: `data:application/pdf;base64,${buffer.toString('base64')}`,
       }
     }),
 
