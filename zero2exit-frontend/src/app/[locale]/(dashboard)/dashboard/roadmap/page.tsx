@@ -81,8 +81,8 @@ export default function DashboardRoadmapPage() {
   const ideaValid = trimmedIdea.length >= MIN_IDEA_LENGTH
 
   // ── Auto-fill from existing module data ──
-  const { data: m01State } = trpc.m01.getState.useQuery()
-  const { data: m02State } = trpc.m02.getState.useQuery()
+  const m01State: any = null
+  const m02State: any = null
   const { data: modulePlan } = trpc.gateway.getModulePlan.useQuery(
     undefined,
     { retry: false },
