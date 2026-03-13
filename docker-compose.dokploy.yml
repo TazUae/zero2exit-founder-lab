@@ -1,22 +1,4 @@
 services:
-  # ─── PostgreSQL ───
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-zero2exit}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-zero2exit}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - internal
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zero2exit}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ─── Redis ───
   redis:
     image: redis:7-alpine
@@ -39,17 +21,12 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
-      DIRECT_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
+      # DATABASE_URL and DIRECT_URL are provided by Dokploy (Supabase connection string)
       REDIS_URL: redis://redis:6379
       FRONTEND_URL: https://${DOMAIN}
     networks:
@@ -68,16 +45,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
-      DIRECT_URL: postgresql://${POSTGRES_USER:-zero2exit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zero2exit}
+      # DATABASE_URL and DIRECT_URL are provided by Dokploy (Supabase connection string)
       REDIS_URL: redis://redis:6379
     networks:
       - internal
@@ -90,18 +62,16 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-        # Point rewrites at the backend service inside the Docker network
+        # Point rewrites directly at the backend service inside the Docker network
         NEXT_PUBLIC_API_URL: http://backend:3000
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
       NODE_ENV: production
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
-      # Frontend makes API calls via /api/* which Next.js rewrites to the backend
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       NEXT_PUBLIC_API_URL: http://backend:3000
     networks:
       - internal
@@ -121,7 +91,6 @@ services:
       - "traefik.docker.network=dokploy-network"
 
 volumes:
-  pgdata:
   redisdata:
 
 networks:
@@ -129,3 +98,4 @@ networks:
     driver: bridge
   dokploy-network:
     external: true
+

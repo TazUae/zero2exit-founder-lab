@@ -69,10 +69,6 @@ function parseEnv(): Env {
       'DATABASE_URL',
       'REDIS_URL',
       'CLERK_SECRET_KEY',
-      'STRIPE_SECRET_KEY',
-      'AWS_ACCESS_KEY_ID',
-      'AWS_SECRET_ACCESS_KEY',
-      'RESEND_API_KEY',
     ]
     const missing = requiredInProd.filter((key) => {
       const value = result.data[key]

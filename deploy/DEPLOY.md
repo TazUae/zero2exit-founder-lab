@@ -5,14 +5,14 @@
 ```
 Internet
   → Traefik (Dokploy — handles SSL + routing)
-    → frontend  (Next.js :3001)
-      → backend (Fastify :3000, via Next.js rewrites)
-        ├── postgres (:5432, internal only)
+    → frontend  (Next.js :3001, on dokploy-network)
+      → backend (Fastify :3000, via Next.js rewrites inside Docker)
         ├── redis    (:6379, internal only)
         └── worker   (BullMQ background jobs)
+          └── Supabase Postgres (external managed DB)
 ```
 
-Traefik is managed by Dokploy. It handles HTTPS certificates (Let's Encrypt) and routes `https://yourdomain.com` to the frontend container. All other services are internal — no ports exposed to the internet.
+Traefik is managed by Dokploy. It handles HTTPS certificates (Let's Encrypt) and routes `https://z2e.zaidan-group.com` to the frontend container. All other services are internal — no ports exposed to the internet.
 
 ---
 
@@ -32,12 +32,11 @@ Traefik is managed by Dokploy. It handles HTTPS certificates (Let's Encrypt) and
 
 At your domain registrar, add:
 
-| Type | Name | Value |
-|---|---|---|
-| A | @ | YOUR_VPS_IP |
-| A | www | YOUR_VPS_IP |
+| Type | Name | Value       |
+|---|---|------------|
+| A | z2e | YOUR_VPS_IP |
 
-Verify: `ping yourdomain.com`
+Verify: `ping z2e.zaidan-group.com`
 
 ---
 
@@ -53,47 +52,79 @@ git push origin master
 
 ---
 
-## Step 3 — Clone on VPS
+## Step 3 — Configure Dokploy application
 
-```bash
-ssh root@YOUR_VPS_IP
-cd /var/www
-git clone https://github.com/YOUR_USER/Zero2Exit-Founder-Lab.git zero2exit
-cd zero2exit
-```
+In Dokploy:
+
+1. Create a new **Application** pointing at this repository.
+2. Under **Docker Compose**:
+   - Compose file path: `docker-compose.dokploy.yml`
+   - Working directory: repo root.
+3. Exposed service:
+   - Service: `frontend`
+   - Port: `3001`
+   - Host rule: `Host(\`z2e.zaidan-group.com\`)`
+
+Dokploy will attach Traefik to the external `dokploy-network` and route HTTPS traffic to the `frontend` container only.
 
 ---
 
 ## Step 4 — Configure Environment
 
-```bash
-cp deploy/.env.production.example .env
-nano .env
-```
+Use `deploy/.env.production.example` as a template and add the following **Dokploy environment variables** for the app:
 
-Fill in all values. Generate passwords with:
+**Core**
 
-```bash
-openssl rand -hex 24
-```
+- `DOMAIN=z2e.zaidan-group.com`
+- `FRONTEND_URL=https://z2e.zaidan-group.com`
+
+**Supabase Postgres**
+
+- `DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require`
+- `DIRECT_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require` (or Supabase pooler URL if provided)
+
+**Redis**
+
+- `REDIS_URL=redis://redis:6379`
+
+**Clerk**
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...`
+- `CLERK_SECRET_KEY=sk_live_...`
+- `CLERK_WEBHOOK_SECRET=whsec_...`
+
+**LLM providers (at least one)**
+
+- `GEMINI_API_KEY=...` (and optionally `GEMINI_MODEL`)
+  or
+- `GROQ_API_KEY=...` / `GROQ_MODEL=...`
+  or
+- `NVIDIA_API_KEY=...`, `NVIDIA_BASE_URL=...`, `NVIDIA_MODEL=...`
+
+Stripe, AWS S3, DocuSign, Resend, Langfuse and Perplexity keys are **optional**. If unset, the backend will log warnings and disable those features but still start.
+
+Note: `NEXT_PUBLIC_API_URL` is set inside `docker-compose.dokploy.yml` to `http://backend:3000`, so you do not need to override it in Dokploy.
 
 ---
 
-## Step 5 — Deploy
+## Step 5 — Deploy and run Prisma migrations
+
+After saving the Dokploy application:
+
+1. Click **Deploy** — Dokploy will build images and start:
+   - `redis` (internal)
+   - `backend` (internal)
+   - `worker` (internal)
+   - `frontend` (Traefik-exposed on port 3001)
+2. Once containers are healthy, open a shell into the `backend` container (from Dokploy or via SSH + `docker compose exec` in the Dokploy stack) and run:
 
 ```bash
-chmod +x deploy/deploy.sh
-bash deploy/deploy.sh
+npx prisma migrate deploy
 ```
 
-This will:
-1. Pull latest code
-2. Ensure `dokploy-network` exists
-3. Build all Docker images
-4. Start all services
-5. Run database migrations
+This applies all Prisma migrations against your **Supabase Postgres** database using `DATABASE_URL`.
 
-Your site is live at **https://yourdomain.com**
+Your site is live at **https://z2e.zaidan-group.com**
 
 ---
 
@@ -102,9 +133,9 @@ Your site is live at **https://yourdomain.com**
 ### Clerk
 
 1. [Clerk Dashboard](https://dashboard.clerk.com) → Production instance
-2. Domains → add `yourdomain.com`
+2. Domains → add `z2e.zaidan-group.com`
 3. Webhooks → create endpoint:
-   - URL: `https://yourdomain.com/webhooks/clerk`
+   - URL: `https://z2e.zaidan-group.com/webhooks/clerk`
    - Events: `user.created`, `user.updated`, `user.deleted`
 4. Copy signing secret → `CLERK_WEBHOOK_SECRET` in `.env`
 
@@ -112,7 +143,7 @@ Your site is live at **https://yourdomain.com**
 
 1. [Stripe Dashboard](https://dashboard.stripe.com) → Developers → Webhooks
 2. Add endpoint:
-   - URL: `https://yourdomain.com/webhooks/stripe`
+   - URL: `https://z2e.zaidan-group.com/webhooks/stripe`
    - Events: `checkout.session.completed`, `customer.subscription.*`
 3. Copy signing secret → `STRIPE_WEBHOOK_SECRET` in `.env`
 
@@ -147,7 +178,7 @@ git pull && docker compose up -d --build
 docker compose exec backend npx prisma migrate deploy
 
 # Database shell
-docker compose exec postgres psql -U zero2exit
+# (Database is managed by Supabase — use Supabase dashboard instead)
 
 # Full rebuild (no cache)
 docker compose build --no-cache && docker compose up -d
