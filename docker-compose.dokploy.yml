@@ -100,14 +100,6 @@ services:
       retries: 3
       start_period: 30s
 
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.zero2exit.rule=Host(`${DOMAIN}`)
-      - traefik.http.routers.zero2exit.entrypoints=websecure
-      - traefik.http.routers.zero2exit.tls.certresolver=letsencrypt
-      - traefik.http.services.zero2exit.loadbalancer.server.port=3000
-      - traefik.docker.network=dokploy-network
-
 volumes:
   redisdata:
 
