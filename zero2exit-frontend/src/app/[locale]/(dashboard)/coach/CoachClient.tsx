@@ -39,21 +39,14 @@ export function CoachClient({
   const [sessionId, setSessionId] = useState<string | undefined>()
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const sendMessage = trpc.coach.sendMessage.useMutation({
-    onSuccess: (data) => {
-      setSessionId(data.sessionId)
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.response },
-      ])
+  const sendMessage = {
+    mutate: async (_payload: unknown) => {
+      console.log("coach sendMessage placeholder", _payload)
     },
-    onError: () => {
-      toast.error("Failed to get a response. Please try again.")
-      setMessages((prev) => prev.slice(0, -1))
-    },
-  })
+    isPending: false,
+  }
 
-  const { data: suggestionsData } = trpc.coach.getProactiveSuggestions.useQuery()
+  const suggestionsData: { suggestions?: Array<{ title: string; description: string }> } = {}
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
