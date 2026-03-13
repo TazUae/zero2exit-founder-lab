@@ -151,16 +151,13 @@ export function BrandIdentityClient() {
     [form],
   )
 
-  const generate = trpc.brand.generate.useMutation({
-    onSuccess: () => {
-      toast.success("Brand identity generated")
-      refetch()
-      setShowForm(false)
+  const generate = {
+    mutate: async (_payload: unknown) => {
+      console.log("generate brand identity placeholder", _payload)
     },
-    onError: () => {
-      toast.error("Generation failed. Please try again.")
-    },
-  })
+    isLoading: false,
+    isPending: false,
+  }
 
   function handleSubmit() {
     const missing = QUESTIONS.filter((q) => !form[q.id]?.trim())
