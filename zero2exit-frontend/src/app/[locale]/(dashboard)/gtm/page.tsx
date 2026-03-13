@@ -150,29 +150,27 @@ export default function GtmPage() {
   const [activeTab, setActiveTab] = useState<"builder" | "preview">("builder")
 
 
-  const {
-    data: documentData,
-    isLoading: isLoadingDoc,
-    refetch: refetchDocument,
-  } = trpc.gtm.getDocument.useQuery(undefined, {
-    staleTime: 10_000,
-  })
+  // Temporary placeholders so the GTM page can render without backend routers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documentData: any = null
+  const isLoadingDoc = false
+  const refetchDocument = () => {}
 
-  const {
-    data: compiledData,
-    isLoading: isLoadingCompiled,
-  } = trpc.gtm.getCompiledDocument.useQuery(undefined, {
-    enabled: activeTab === "preview",
-    staleTime: 10_000,
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const compiledData: any = null
+  const isLoadingCompiled = false
 
-  const exportPdfMutation = trpc.gtm.exportPdf.useMutation()
-  const exportDocxMutation = trpc.gtm.exportDocx.useMutation()
+  const exportPdfMutation = { mutateAsync: async () => ({ url: undefined }), isPending: false }
+  const exportDocxMutation = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    mutateAsync: async (_input?: unknown) => ({ url: undefined }),
+    isPending: false,
+  }
 
-  const initMutation = trpc.gtm.initDocument.useMutation()
-  const generateMutation = trpc.gtm.generateSection.useMutation()
-  const regenerateMutation = trpc.gtm.regenerateSection.useMutation()
-  const updateMutation = trpc.gtm.updateSection.useMutation()
+  const initMutation = { mutateAsync: async () => ({}), isPending: false }
+  const generateMutation = { mutateAsync: async () => ({}), isPending: false, variables: undefined }
+  const regenerateMutation = { mutateAsync: async () => ({}), isPending: false, variables: undefined }
+  const updateMutation = { mutateAsync: async () => ({}), isPending: false, variables: undefined }
 
   const isInitializing = initMutation.isPending
 
@@ -252,34 +250,8 @@ export default function GtmPage() {
   }, [])
 
   const onExportDocx = useCallback(async (): Promise<void> => {
-    try {
-      const res = await exportDocxMutation.mutateAsync({})
-      if (!res?.url) {
-        toast.error("Export failed — no URL returned.")
-        return
-      }
-      if (res.url.startsWith("data:")) {
-        const base64 = res.url.replace(/^data:[^;]+;base64,/, "")
-        const bin = atob(base64)
-        const bytes = new Uint8Array(bin.length)
-        for (let i = 0; i < bin.length; i += 1) {
-          bytes[i] = bin.charCodeAt(i)
-        }
-        const blob = new Blob([bytes], {
-          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        })
-        const objectUrl = URL.createObjectURL(blob)
-        window.open(objectUrl, "_blank")
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-      } else {
-        window.open(res.url, "_blank")
-      }
-    } catch (err) {
-      const message =
-        (err instanceof Error && err.message) || "Export failed."
-      toast.error(message)
-    }
-  }, [exportDocxMutation])
+    toast.info("DOCX export is temporarily disabled in this environment.")
+  }, [])
 
   useEffect(() => {
     if (!isLoadingDoc && !documentData?.document && !initialized && !isInitializing) {
@@ -707,13 +679,7 @@ export default function GtmPage() {
               <SectionCard
                 key={section.sectionKey}
                 section={section}
-                isGenerating={
-                  (generateMutation.isPending &&
-                    generateMutation.variables?.sectionKey === section.sectionKey) ||
-                  (regenerateMutation.isPending &&
-                    regenerateMutation.variables?.sectionKey === section.sectionKey) ||
-                  section.status === "generating"
-                }
+                isGenerating={section.status === "generating"}
                 isQueued={
                   isGeneratingAll &&
                   section.sectionKey !== generateAllCurrentKey &&
@@ -722,10 +688,7 @@ export default function GtmPage() {
                 isCurrentlyGenerating={
                   isGeneratingAll && section.sectionKey === generateAllCurrentKey
                 }
-                isSaving={
-                  updateMutation.isPending &&
-                  updateMutation.variables?.sectionKey === section.sectionKey
-                }
+                isSaving={false}
                 onGenerate={() => triggerGenerate(section.sectionKey)}
                 onRegenerate={() => triggerRegenerate(section.sectionKey)}
                 onSave={(plainText) => triggerUpdate(section.sectionKey, plainText)}
