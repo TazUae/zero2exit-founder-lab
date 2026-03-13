@@ -93,11 +93,12 @@ export function BrandIdentityClient() {
   const [form, setForm] = useState<FormState>({} as FormState)
   const [showForm, setShowForm] = useState(false)
 
-  const data: { brand?: BrandData | null } | null = null
+  const data = null
   const isLoading = false
   const refetch = () => {}
-  const { data: m01Data } = trpc.m01.getState.useQuery()
-  const { data: gatewayData } = trpc.gateway.getModulePlan.useQuery()
+
+  const m01Data = null
+  const gatewayData = null
 
   const brand: BrandData | null = null
 
