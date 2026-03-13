@@ -256,13 +256,14 @@ model BrandIdentity {
 }
 
 model GtmDocument {
-  id        String   @id @default(cuid())
-  founderId String   @unique @map("founder_id")
+  id        String       @id @default(cuid())
+  founderId String       @unique @map("founder_id")
   title     String
-  status    String   @default("draft")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")  founder  Founder      @relation(fields: [founderId], references: [id])
-  sections GtmSection[]
+  status    String       @default("draft")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  founder   Founder      @relation(fields: [founderId], references: [id])
+  sections  GtmSection[]
 
   @@index([founderId])
   @@map("gtm_documents")
@@ -280,7 +281,9 @@ model GtmSection {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  gtmDocument GtmDocument @relation(fields: [gtmDocumentId], references: [id])  @@unique([gtmDocumentId, sectionKey])
+  gtmDocument GtmDocument @relation(fields: [gtmDocumentId], references: [id])
+
+  @@unique([gtmDocumentId, sectionKey])
   @@index([gtmDocumentId])
   @@map("gtm_sections")
 }
