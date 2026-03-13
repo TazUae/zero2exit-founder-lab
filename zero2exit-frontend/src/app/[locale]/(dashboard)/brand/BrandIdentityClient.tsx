@@ -93,11 +93,13 @@ export function BrandIdentityClient() {
   const [form, setForm] = useState<FormState>({} as FormState)
   const [showForm, setShowForm] = useState(false)
 
-  const { data, isLoading, refetch } = trpc.brand.getIdentity.useQuery()
+  const data: { brand?: BrandData | null } | null = null
+  const isLoading = false
+  const refetch = () => {}
   const { data: m01Data } = trpc.m01.getState.useQuery()
   const { data: gatewayData } = trpc.gateway.getModulePlan.useQuery()
 
-  const brand = (data?.brand as BrandData | null) ?? null
+  const brand: BrandData | null = null
 
   // Autofill from existing founder data
   useEffect(() => {
@@ -275,64 +277,7 @@ export function BrandIdentityClient() {
           </Button>
         </div>
 
-        {/* Simple preview column for when data already exists */}
-        {brand && (
-          <Card className="h-fit border-slate-800 bg-slate-950/60">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-300">
-                Current brand snapshot
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {brand.positioning && (
-                <div>
-                  <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                    Positioning
-                  </p>
-                  <p className="italic text-slate-100">
-                    &quot;{brand.positioning}&quot;
-                  </p>
-                </div>
-              )}
-
-              {(brand.brandNames?.length ?? 0) > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">
-                    Name ideas
-                  </p>
-                  <div className="space-y-1">
-                    {brand.brandNames!.slice(0, 3).map((n, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between rounded-md border border-slate-800/80 bg-slate-900/60 px-2 py-1.5"
-                      >
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-medium text-slate-100">
-                            {n.name}
-                          </p>
-                          <p className="text-[11px] text-slate-500">
-                            {n.domain}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {i === 0 && (
-                            <Badge className="mr-1 bg-emerald-500/15 text-[11px] text-emerald-300">
-                              <Star className="mr-1 h-3 w-3" />
-                              Top
-                            </Badge>
-                          )}
-                          <span className="text-xs font-semibold text-emerald-400">
-                            {n.score}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {/* Simple preview column for when data already exists (temporarily disabled while brand router is offline) */}
         </div>
 
         {/* Next Step CTA */}
@@ -378,11 +323,6 @@ export function BrandIdentityClient() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Brand Identity</h1>
-          {brand.positioning && (
-            <p className="mt-1 text-sm italic text-slate-400">
-              &quot;{brand.positioning}&quot;
-            </p>
-          )}
         </div>
         <Button
           variant="outline"
@@ -436,247 +376,27 @@ export function BrandIdentityClient() {
         </TabsList>
 
         <TabsContent value="names" className="mt-4 space-y-3">
-          {(brand.brandNames ?? []).map((n, i) => (
-            <Card key={i} className="border-slate-800 bg-slate-950/70">
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold text-white">
-                        {n.name}
-                      </h3>
-                      {i === 0 && (
-                        <Badge className="bg-emerald-500/15 text-[11px] text-emerald-300">
-                          <Star className="mr-1 h-3 w-3" />
-                          Top pick
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {n.rationale}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Domain: {n.domain}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-2xl font-bold text-emerald-400">
-                      {n.score}
-                    </div>
-                    <div className="text-xs text-slate-500">score</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {/* Brand name ideas temporarily disabled while brand router is offline */}
         </TabsContent>
 
         <TabsContent value="colors" className="mt-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            {(brand.colorPalette ?? []).map((c, i) => (
-              <Card key={i} className="border-slate-800 bg-slate-950/70">
-                <CardContent className="flex items-center gap-4 pt-4">
-                  <div
-                    className="h-14 w-14 rounded-xl shadow-lg"
-                    style={{ backgroundColor: c.hex }}
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white">
-                        {c.name}
-                      </span>
-                      <Badge className="text-xs text-slate-300">
-                        {c.role}
-                      </Badge>
-                    </div>
-                    <p className="mt-0.5 text-xs font-mono text-slate-500">
-                      {c.hex}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      {c.meaning}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Brand color palette temporarily disabled while brand router is offline */}
         </TabsContent>
 
         <TabsContent value="typography" className="mt-4 space-y-3">
-          {brand.typography && (
-            <>
-              {[
-                { label: "Heading font", data: brand.typography.heading },
-                { label: "Body font", data: brand.typography.body },
-                ...(brand.typography.accent
-                  ? [{ label: "Accent font", data: brand.typography.accent }]
-                  : []),
-              ].map((t, i) => (
-                <Card
-                  key={i}
-                  className="border-slate-800 bg-slate-950/70"
-                >
-                  <CardContent className="space-y-2 pt-4">
-                    <div className="flex items-center gap-2">
-                      <Type className="h-4 w-4 text-slate-400" />
-                      <span className="text-sm text-slate-400">
-                        {t.label}
-                      </span>
-                    </div>
-                    <p className="text-2xl font-bold text-white">
-                      {t.data.font}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Weight: {t.data.weight}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      {t.data.rationale}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </>
-          )}
+          {/* Brand typography preview temporarily disabled while brand router is offline */}
         </TabsContent>
 
         <TabsContent value="logo" className="mt-4">
-          {brand.logoDirection && (
-            <Card className="border-slate-800 bg-slate-950/70">
-              <CardContent className="space-y-4 pt-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                      Style
-                    </p>
-                    <Badge className="bg-slate-900 text-slate-200">
-                      {brand.logoDirection.style}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                      Mood
-                    </p>
-                    <Badge className="bg-slate-900 text-slate-200">
-                      {brand.logoDirection.mood}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                    Icon concept
-                  </p>
-                  <p className="text-sm text-slate-200">
-                    {brand.logoDirection.iconConcept}
-                  </p>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                    Color approach
-                  </p>
-                  <p className="text-sm text-slate-200">
-                    {brand.logoDirection.colorApproach}
-                  </p>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                    References
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {brand.logoDirection.references.map((r, i) => (
-                      <Badge
-                        key={i}
-                        variant="outline"
-                        className="border-slate-700 text-slate-200"
-                      >
-                        {r}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-                    Avoid
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {brand.logoDirection.avoidances.map((a, i) => (
-                      <Badge
-                        key={i}
-                        variant="outline"
-                        className="border-red-900 text-red-400"
-                      >
-                        {a}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Brand logo direction preview temporarily disabled while brand router is offline */}
         </TabsContent>
 
         <TabsContent value="taglines" className="mt-4 space-y-3">
-          {(brand.taglines ?? []).map((t, i) => (
-            <Card key={i} className="border-slate-800 bg-slate-950/70">
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-lg font-medium text-white">
-                    &quot;{t.text}&quot;
-                  </p>
-                  <div className="flex gap-2">
-                    <Badge
-                      variant="outline"
-                      className="border-slate-700 text-xs text-slate-300"
-                    >
-                      {t.tone}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="border-slate-700 text-xs text-slate-300"
-                    >
-                      {t.market}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {/* Brand taglines temporarily disabled while brand router is offline */}
         </TabsContent>
 
         <TabsContent value="voice" className="mt-4 space-y-4">
-          {brand.brandVoice && (
-            <>
-              <Card className="border-slate-800 bg-slate-950/70">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-slate-300">
-                    Personality
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {brand.brandVoice.personality.map((p, i) => (
-                    <Badge
-                      key={i}
-                      className="bg-emerald-500/10 text-emerald-300"
-                    >
-                      {p}
-                    </Badge>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="border-slate-800 bg-slate-950/70">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-slate-300">
-                    Tone
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-slate-200">
-                    {brand.brandVoice.tone}
-                  </p>
-                </CardContent>
-              </Card>
-            </>
-          )}
+          {/* Brand voice preview temporarily disabled while brand router is offline */}
         </TabsContent>
       </Tabs>
 
