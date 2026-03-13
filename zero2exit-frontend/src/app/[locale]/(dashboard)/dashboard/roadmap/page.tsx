@@ -386,21 +386,23 @@ export default function DashboardRoadmapPage() {
               <div className="space-y-1">
                 <p className="text-sm text-slate-400">Alignment Score</p>
                 <p className="text-2xl font-semibold text-emerald-400">
-                  {result.alignmentScore}
+                  {result?.alignmentScore ?? 0}
                   <span className="text-sm text-slate-500 ml-1">/100</span>
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-slate-400">Iteration Count</p>
                 <p className="text-2xl font-semibold text-white">
-                  {result.iterationCount}
+                  {result?.iterationCount ?? 0}
                 </p>
               </div>
             </div>
 
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Idea Summary</h2>
-              <p className="text-slate-300">{result.roadmap.ideaSummary}</p>
+              <p className="text-slate-300">
+                {result?.roadmap?.ideaSummary ?? ""}
+              </p>
             </section>
 
             <section className="space-y-2">
@@ -408,16 +410,16 @@ export default function DashboardRoadmapPage() {
               <p className="text-slate-300">
                 Validation score:{" "}
                 <span className="font-semibold">
-                  {result.roadmap.validationScore}
+                  {result?.roadmap?.validationScore ?? 0}
                 </span>
                 /100
               </p>
-              {Array.isArray(result.roadmap.objections) &&
-                result.roadmap.objections.length > 0 && (
+              {Array.isArray(result?.roadmap?.objections) &&
+                (result?.roadmap?.objections?.length ?? 0) > 0 && (
                   <div className="space-y-1">
                     <p className="text-sm text-slate-400">Key objections:</p>
                     <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
-                      {result.roadmap.objections.map((item, idx) => (
+                      {result?.roadmap?.objections?.map((item, idx) => (
                         <li key={typeof item === "object" && item !== null && "id" in item ? (item as { id: number }).id : idx}>
                           {typeof item === "string" ? item : (item as { title?: string; description?: string }).title ?? (item as { description?: string }).description ?? "Objection"}
                         </li>
@@ -432,14 +434,14 @@ export default function DashboardRoadmapPage() {
                 Market Opportunity
               </h2>
               <p className="text-slate-300">
-                {result.roadmap.marketOpportunity}
+                {result?.roadmap?.marketOpportunity ?? ""}
               </p>
-              {Array.isArray(result.roadmap.competitors) &&
-                result.roadmap.competitors.length > 0 && (
+              {Array.isArray(result?.roadmap?.competitors) &&
+                (result?.roadmap?.competitors?.length ?? 0) > 0 && (
                   <div className="space-y-1">
                     <p className="text-sm text-slate-400">Competitors:</p>
                     <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
-                      {result.roadmap.competitors.map(
+                      {result?.roadmap?.competitors?.map(
                         (competitor: string, idx: number) => (
                           <li key={idx}>{competitor}</li>
                         ),
@@ -455,19 +457,19 @@ export default function DashboardRoadmapPage() {
                 <div>
                   <p className="text-slate-400 mb-1">TAM</p>
                   <pre className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-300 overflow-x-auto">
-                    {JSON.stringify(result.roadmap.TAM, null, 2)}
+                    {JSON.stringify(result?.roadmap?.TAM ?? null, null, 2)}
                   </pre>
                 </div>
                 <div>
                   <p className="text-slate-400 mb-1">SAM</p>
                   <pre className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-300 overflow-x-auto">
-                    {JSON.stringify(result.roadmap.SAM, null, 2)}
+                    {JSON.stringify(result?.roadmap?.SAM ?? null, null, 2)}
                   </pre>
                 </div>
                 <div>
                   <p className="text-slate-400 mb-1">SOM</p>
                   <pre className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-300 overflow-x-auto">
-                    {JSON.stringify(result.roadmap.SOM, null, 2)}
+                    {JSON.stringify(result?.roadmap?.SOM ?? null, null, 2)}
                   </pre>
                 </div>
               </div>
@@ -475,10 +477,10 @@ export default function DashboardRoadmapPage() {
 
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-white">ICP Profiles</h2>
-                {Array.isArray(result.roadmap.icpProfiles) &&
-              result.roadmap.icpProfiles.length > 0 ? (
+                {Array.isArray(result?.roadmap?.icpProfiles) &&
+              (result?.roadmap?.icpProfiles?.length ?? 0) > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.roadmap.icpProfiles.map(
+                  {result?.roadmap?.icpProfiles?.map(
                     (
                       icp: {
                         name: string
@@ -535,21 +537,21 @@ export default function DashboardRoadmapPage() {
               )}
             </section>
 
-            {result.roadmap.legalSetup && (
+            {result?.roadmap?.legalSetup && (
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Legal Setup</h2>
-              {result.roadmap.legalSetup.recommendedStructure && (
+              {result?.roadmap?.legalSetup?.recommendedStructure && (
               <p className="text-sm text-slate-300">
                 <span className="text-slate-400">Recommended structure:</span>{" "}
-                {result.roadmap.legalSetup.recommendedStructure}
+                {result?.roadmap?.legalSetup?.recommendedStructure}
               </p>
               )}
-              {Array.isArray(result.roadmap.legalSetup.steps) &&
-                result.roadmap.legalSetup.steps.length > 0 && (
+              {Array.isArray(result?.roadmap?.legalSetup?.steps) &&
+                (result?.roadmap?.legalSetup?.steps?.length ?? 0) > 0 && (
                   <div className="space-y-1 text-sm">
                     <p className="text-slate-400">Steps</p>
                     <ol className="list-decimal list-inside text-slate-300 space-y-1">
-                      {result.roadmap.legalSetup.steps.map(
+                      {result?.roadmap?.legalSetup?.steps?.map(
                         (step: string, idx: number) => (
                           <li key={idx}>{step}</li>
                         ),
@@ -558,31 +560,31 @@ export default function DashboardRoadmapPage() {
                   </div>
                 )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                {result.roadmap.legalSetup.estimatedCost && (
+                {result?.roadmap?.legalSetup?.estimatedCost && (
                 <p className="text-slate-300">
                   <span className="text-slate-400">Estimated cost:</span>{" "}
-                  {result.roadmap.legalSetup.estimatedCost}
+                  {result?.roadmap?.legalSetup?.estimatedCost}
                 </p>
                 )}
-                {result.roadmap.legalSetup.timeline && (
+                {result?.roadmap?.legalSetup?.timeline && (
                 <p className="text-slate-300">
                   <span className="text-slate-400">Timeline:</span>{" "}
-                  {result.roadmap.legalSetup.timeline}
+                  {result?.roadmap?.legalSetup?.timeline}
                 </p>
                 )}
               </div>
             </section>
             )}
 
-            {result.roadmap.gtmPlan && (
+            {result?.roadmap?.gtmPlan && (
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-white">GTM Plan</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="space-y-1">
                   <p className="text-slate-400 mb-1">Months 1–3</p>
                   <ul className="list-disc list-inside text-slate-300 space-y-1">
-                    {Array.isArray(result.roadmap.gtmPlan.month1to3) &&
-                      result.roadmap.gtmPlan.month1to3.map(
+                    {Array.isArray(result?.roadmap?.gtmPlan?.month1to3) &&
+                      result?.roadmap?.gtmPlan?.month1to3?.map(
                         (item: string, idx: number) => (
                           <li key={idx}>{item}</li>
                         ),
@@ -592,8 +594,8 @@ export default function DashboardRoadmapPage() {
                 <div className="space-y-1">
                   <p className="text-slate-400 mb-1">Months 3–6</p>
                   <ul className="list-disc list-inside text-slate-300 space-y-1">
-                    {Array.isArray(result.roadmap.gtmPlan.month3to6) &&
-                      result.roadmap.gtmPlan.month3to6.map(
+                    {Array.isArray(result?.roadmap?.gtmPlan?.month3to6) &&
+                      result?.roadmap?.gtmPlan?.month3to6?.map(
                         (item: string, idx: number) => (
                           <li key={idx}>{item}</li>
                         ),
@@ -603,8 +605,8 @@ export default function DashboardRoadmapPage() {
                 <div className="space-y-1">
                   <p className="text-slate-400 mb-1">Months 6–12</p>
                   <ul className="list-disc list-inside text-slate-300 space-y-1">
-                    {Array.isArray(result.roadmap.gtmPlan.month6to12) &&
-                      result.roadmap.gtmPlan.month6to12.map(
+                    {Array.isArray(result?.roadmap?.gtmPlan?.month6to12) &&
+                      result?.roadmap?.gtmPlan?.month6to12?.map(
                         (item: string, idx: number) => (
                           <li key={idx}>{item}</li>
                         ),
@@ -613,12 +615,12 @@ export default function DashboardRoadmapPage() {
                 </div>
               </div>
 
-              {Array.isArray(result.roadmap.gtmPlan.keyExperiments) &&
-                result.roadmap.gtmPlan.keyExperiments.length > 0 && (
+              {Array.isArray(result?.roadmap?.gtmPlan?.keyExperiments) &&
+                (result?.roadmap?.gtmPlan?.keyExperiments?.length ?? 0) > 0 && (
                   <div className="space-y-1 text-sm">
                     <p className="text-slate-400">Key experiments</p>
                     <ul className="list-disc list-inside text-slate-300 space-y-1">
-                      {result.roadmap.gtmPlan.keyExperiments.map(
+                      {result?.roadmap?.gtmPlan?.keyExperiments?.map(
                         (exp: string, idx: number) => (
                           <li key={idx}>{exp}</li>
                         ),
