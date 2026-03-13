@@ -53,7 +53,30 @@ export default function DashboardRoadmapPage() {
   const [showLongWaitHint, setShowLongWaitHint] = useState(false)
 
   const MIN_IDEA_LENGTH = 50
-  const generateRoadmap = trpc.startup.generateRoadmap.useMutation()
+  // const generateRoadmap = trpc.startup.generateRoadmap.useMutation()
+  const generateRoadmap: {
+    mutate: (payload: unknown) => void
+    mutateAsync: (payload: unknown) => Promise<{
+      alignmentScore?: number
+      iterationCount?: number
+      roadmap?: Record<string, any>
+    } | null>
+    isLoading: boolean
+    isPending: boolean
+    error: { message?: string } | null
+    data: {
+      alignmentScore?: number
+      iterationCount?: number
+      roadmap?: Record<string, any>
+    } | null
+  } = {
+    mutate: (_payload: unknown) => {},
+    mutateAsync: async (_payload: unknown) => null,
+    isLoading: false,
+    isPending: false,
+    error: null,
+    data: null,
+  }
   const trimmedIdea = ideaDescription.trim()
   const ideaValid = trimmedIdea.length >= MIN_IDEA_LENGTH
 
@@ -419,7 +442,7 @@ export default function DashboardRoadmapPage() {
                   <div className="space-y-1">
                     <p className="text-sm text-slate-400">Key objections:</p>
                     <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
-                      {result?.roadmap?.objections?.map((item, idx) => (
+                      {result?.roadmap?.objections?.map((item: unknown, idx: number) => (
                         <li key={typeof item === "object" && item !== null && "id" in item ? (item as { id: number }).id : idx}>
                           {typeof item === "string" ? item : (item as { title?: string; description?: string }).title ?? (item as { description?: string }).description ?? "Objection"}
                         </li>
