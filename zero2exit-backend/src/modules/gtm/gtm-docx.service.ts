@@ -128,7 +128,6 @@ export async function exportGtmDocx(params: {
                     size: 22,
                     color: '94a3b8',
                     allCaps: true,
-                    spacing: { character: 100 },
                   }),
                 ],
                 spacing: { after: 200 },
@@ -177,7 +176,7 @@ export async function exportGtmDocx(params: {
     ],
   })
 
-  const tocParagraphs: Paragraph[] = [
+  const tocParagraphs: (Paragraph | Table)[] = [
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
       children: [
@@ -199,7 +198,7 @@ export async function exportGtmDocx(params: {
       new Paragraph({
         tabStops: [
           {
-            type: TabStopType.DOT,
+            type: TabStopType.RIGHT,
             position: TabStopPosition.MAX,
           },
         ],
@@ -227,7 +226,7 @@ export async function exportGtmDocx(params: {
   )
 
   const contentSections = normalized.orderedSections.map((section, index) => {
-    const sectionChildren: Paragraph[] = []
+    const sectionChildren: (Paragraph | Table)[] = []
     const sectionNumber = (index + 1).toString().padStart(2, '0')
     const totalFormatted = totalSections.toString().padStart(2, '0')
 
