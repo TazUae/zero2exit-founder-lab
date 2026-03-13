@@ -37,7 +37,10 @@ const nodeColors: Record<string, string> = {
 }
 
 export default function KnowledgeGraphPage() {
-  const { data, isLoading, error } = trpc.knowledge.getGraph.useQuery()
+  // const { data, isLoading, error } = trpc.knowledge.getGraph.useQuery()
+  const data = { nodes: [] as KnowledgeNode[], edges: [] as KnowledgeEdge[] }
+  const isLoading = false
+  const error = null
 
   const nodes = (data?.nodes ?? [] as KnowledgeNode[]).map((n) => ({
     id: n.id,
