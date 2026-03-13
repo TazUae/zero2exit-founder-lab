@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { trpc } from "@/lib/trpc"
 import {
   Card,
   CardHeader,
@@ -53,7 +52,6 @@ export default function DashboardRoadmapPage() {
   const [showLongWaitHint, setShowLongWaitHint] = useState(false)
 
   const MIN_IDEA_LENGTH = 50
-  // const generateRoadmap = trpc.startup.generateRoadmap.useMutation()
   const generateRoadmap: {
     mutate: (payload: unknown) => void
     mutateAsync: (payload: unknown) => Promise<{

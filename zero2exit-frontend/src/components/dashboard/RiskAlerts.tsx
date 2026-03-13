@@ -8,7 +8,6 @@ import {
   DollarSign,
   Scale,
 } from 'lucide-react'
-import { trpc } from '@/lib/trpc'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -23,7 +22,11 @@ const riskConfig: Record<RiskType, { icon: React.ElementType; label: string; col
 }
 
 export function RiskAlerts() {
-  const { data, isLoading, error } = trpc.dashboard.getRiskAlerts.useQuery()
+  // Temporary placeholders so the app can build without backend routers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = null
+  const isLoading = false
+  const error = null
 
   if (isLoading) {
     return (
@@ -55,7 +58,7 @@ export function RiskAlerts() {
     )
   }
 
-  const alerts = data?.riskAlerts ?? []
+  const alerts = (data?.riskAlerts ?? []) as Array<{ type: RiskType; message: string }>
 
   return (
     <Card className="bg-slate-900 border-slate-800 rounded-xl py-3 gap-1">
