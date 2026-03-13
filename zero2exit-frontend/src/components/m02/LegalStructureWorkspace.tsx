@@ -164,16 +164,18 @@ export function LegalStructureWorkspace() {
   const [hasSignificantIP, setHasSignificantIP] = useState(false)
   const [planningFundraising, setPlanningFundraising] = useState(false)
 
-  const utils = trpc.useUtils()
+  // Temporary stubs so frontend can build without backend routers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const utils: any = { m02: { getState: { invalidate: async () => {} } } }
 
-  // ── Queries ──
-  const {
-    data: m02State,
-    isLoading: isStateLoading,
-    error: stateError,
-  } = trpc.m02.getState.useQuery()
+  // ── Queries (disabled for now) ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m02State: any = null
+  const isStateLoading = false
+  const stateError = null
 
-  const { data: m01State } = trpc.m01.getState.useQuery()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01State: any = null
   // Narrow to break excessively deep tRPC generic inference in deps array (TS2589)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const m01StateDep = m01State as any
@@ -193,38 +195,15 @@ export function LegalStructureWorkspace() {
     if (stateError) toast.error('Failed to load legal structure state.')
   }, [stateError])
 
-  // ── Mutations ──
-  const jurisdictionMutation = trpc.m02.getJurisdictionComparison.useMutation({
-    async onSuccess() {
-      await utils.m02.getState.invalidate()
-      toast.success('Jurisdiction comparison complete.')
-    },
-    onError(err) { handleMutationError(err, 'Jurisdiction analysis failed.') },
-  })
-
-  const entityMutation = trpc.m02.getEntityRecommendation.useMutation({
-    async onSuccess() {
-      await utils.m02.getState.invalidate()
-      toast.success('Entity recommendation ready.')
-    },
-    onError(err) { handleMutationError(err, 'Entity recommendation failed.') },
-  })
-
-  const holdcoMutation = trpc.m02.runHoldcoWizard.useMutation({
-    async onSuccess() {
-      await utils.m02.getState.invalidate()
-      toast.success('Holdco analysis complete.')
-    },
-    onError(err) { handleMutationError(err, 'Holdco wizard failed.') },
-  })
-
-  const roadmapMutation = trpc.m02.getLegalRoadmap.useMutation({
-    async onSuccess() {
-      await utils.m02.getState.invalidate()
-      toast.success('Legal roadmap generated!')
-    },
-    onError(err) { handleMutationError(err, 'Roadmap generation failed.') },
-  })
+  // ── Mutations (disabled for now) ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jurisdictionMutation: any = { data: null, isPending: false, mutate: () => {} }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entityMutation: any = { data: null, isPending: false, mutate: () => {} }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const holdcoMutation: any = { data: null, isPending: false, mutate: () => {} }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const roadmapMutation: any = { data: null, isPending: false, mutate: () => {} }
 
   // ── Derived state ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC inference depth workaround

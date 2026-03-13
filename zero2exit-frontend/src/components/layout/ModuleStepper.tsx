@@ -47,15 +47,11 @@ export function ModuleStepper() {
   const prefix = `/${locale}`
   const activeStageRef = useRef<HTMLDivElement | null>(null)
 
-  const { data: m01Data } = trpc.m01.getState.useQuery(undefined, {
-    retry: false,
-    staleTime: 30_000,
-  })
-
-  const { data: modulePlanData } = trpc.gateway.getModulePlan.useQuery(undefined, {
-    retry: false,
-    staleTime: 30_000,
-  })
+  // Temporary placeholders so the app can build without backend routers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01Data: any = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const modulePlanData: any = null
 
   // tRPC inferred return type is excessively deep — narrow to unknown before useMemo
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

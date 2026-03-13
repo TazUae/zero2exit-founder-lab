@@ -26,10 +26,11 @@ function formatValue(value: string | string[] | boolean | undefined): string {
 }
 
 export function FounderOnboardingSummary() {
-  const { data, isLoading, error } = trpc.gateway.getModulePlan.useQuery(
-    undefined,
-    { retry: false },
-  )
+  // Temporary placeholders so the app can build without backend routers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = null
+  const isLoading = false
+  const error = null
   const locale = useLocale()
 
   if (isLoading) {
