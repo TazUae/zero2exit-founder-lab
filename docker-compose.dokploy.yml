@@ -19,6 +19,8 @@ services:
     build:
       context: ./zero2exit-backend
       dockerfile: Dockerfile
+    env_file:
+      - .env
     restart: unless-stopped
     depends_on:
       redis:
@@ -43,6 +45,8 @@ services:
     build:
       context: ./zero2exit-backend
       dockerfile: Dockerfile
+    env_file:
+      - .env
     restart: unless-stopped
     depends_on:
       redis:
@@ -60,6 +64,8 @@ services:
     build:
       context: ./zero2exit-frontend
       dockerfile: Dockerfile
+    env_file:
+      - .env
       args:
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
         # Point rewrites directly at the backend service inside the Docker network
