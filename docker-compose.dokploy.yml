@@ -87,13 +87,16 @@ services:
       - internal
       - dokploy-network
 
+    expose:
+      - "3000"
+
     healthcheck:
       test:
         [
           "CMD",
           "node",
           "-e",
-          "require('net').connect(3001,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+          "require('net').connect(3000,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
         ]
       interval: 30s
       timeout: 10s
