@@ -64,37 +64,49 @@ services:
     build:
       context: ./zero2exit-frontend
       dockerfile: Dockerfile
-    env_file:
-      - .env
       args:
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-        # Point rewrites directly at the backend service inside the Docker network
         NEXT_PUBLIC_API_URL: http://backend:3000
+
+    env_file:
+      - .env
+
     restart: unless-stopped
+
     depends_on:
       backend:
         condition: service_healthy
+
     environment:
       NODE_ENV: production
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       NEXT_PUBLIC_API_URL: http://backend:3000
+
     networks:
       - internal
       - dokploy-network
+
     healthcheck:
-      test: ["CMD", "node", "-e", "require('net').connect(3001,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('net').connect(3001,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.zero2exit.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.zero2exit.entrypoints=websecure"
-      - "traefik.http.routers.zero2exit.tls.certresolver=letsencrypt"
-      - "traefik.http.services.zero2exit.loadbalancer.server.port=3001"
-      - "traefik.docker.network=dokploy-network"
+      - traefik.enable=true
+      - traefik.http.routers.zero2exit.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.zero2exit.entrypoints=websecure
+      - traefik.http.routers.zero2exit.tls.certresolver=letsencrypt
+      - traefik.http.services.zero2exit.loadbalancer.server.port=3001
+      - traefik.docker.network=dokploy-network
 
 volumes:
   redisdata:
