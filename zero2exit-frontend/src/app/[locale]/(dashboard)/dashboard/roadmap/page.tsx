@@ -83,10 +83,7 @@ export default function DashboardRoadmapPage() {
   // ── Auto-fill from existing module data ──
   const m01State: any = null
   const m02State: any = null
-  const { data: modulePlan } = trpc.gateway.getModulePlan.useQuery(
-    undefined,
-    { retry: false },
-  )
+  const modulePlan: any = null
 
   const autoFilled = useRef(false)
   useEffect(() => {
