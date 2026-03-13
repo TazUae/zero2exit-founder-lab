@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { RevealOnScroll } from "./RevealOnScroll"
+import { FadeUp, StaggerContainer, StaggerItem } from "../motion/primitives"
 
 interface Feature {
   icon: string
@@ -26,7 +27,7 @@ interface ModuleData {
 
 function ScreenShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-z-card border border-z-border rounded-[14px] overflow-hidden">
+    <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg overflow-hidden">
       <div className="bg-z-deep border-b border-z-border px-4 py-3 flex items-center gap-2">
         <div className="w-2.5 h-2.5 rounded-full bg-z-red" />
         <div className="w-2.5 h-2.5 rounded-full bg-[#f9c84c]" />
@@ -353,20 +354,22 @@ export function Modules() {
   const [activeTab, setActiveTab] = useState(0)
 
   return (
-    <section id="modules" className="py-16 md:py-[100px] px-6 md:px-15 max-w-[1300px] mx-auto">
-      <RevealOnScroll>
-        <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
-          Platform Modules
-        </div>
-        <h2 className="font-display text-[clamp(32px,4vw,52px)] font-bold text-z-white leading-[1.1] tracking-[-1px]">
-          Six Modules.<br />Every Founder Need.
-        </h2>
-        <p className="text-[17px] text-z-muted leading-[1.7] max-w-[520px] mt-4 font-light">
-          From validating your idea to structuring your exit — every module is AI-first and stage-aware.
-        </p>
+    <section id="modules" className="py-28">
+      <RevealOnScroll className="max-w-7xl mx-auto px-6">
+        <FadeUp>
+          <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
+            Platform Modules
+          </div>
+          <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white leading-tight">
+            Six Modules.<br />Every Founder Need.
+          </h2>
+          <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-[520px] mt-4 font-light">
+            From validating your idea to structuring your exit — every module is AI-first and stage-aware.
+          </p>
+        </FadeUp>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-12 border-b border-z-border overflow-x-auto scrollbar-hide">
+        <FadeUp className="flex gap-1 mt-12 border-b border-z-border overflow-x-auto scrollbar-hide">
           {modules.map((mod, i) => (
             <button
               key={mod.id}
@@ -387,7 +390,7 @@ export function Modules() {
               <span className="hidden sm:inline">{mod.name}</span>
             </button>
           ))}
-        </div>
+        </FadeUp>
 
         {/* Panels */}
         {modules.map((mod, i) => (
@@ -399,43 +402,52 @@ export function Modules() {
           >
             {/* Info */}
             <div>
-              <div className="flex gap-2 mb-5 flex-wrap">
-                {mod.pills.map((pill) => (
-                  <span
-                    key={pill.label}
-                    className={`text-[11px] font-semibold px-3 py-1 rounded-full border tracking-[0.3px] ${pill.style}`}
-                  >
-                    {pill.label}
-                  </span>
-                ))}
-              </div>
-              <h3 className="font-display text-[30px] font-bold text-z-white leading-[1.2] mb-4">{mod.title}</h3>
-              <p className="text-[15px] text-z-muted leading-[1.75] mb-7">{mod.description}</p>
-              <div className="flex flex-col gap-2.5">
+              <FadeUp>
+                <div className="flex gap-2 mb-5 flex-wrap">
+                  {mod.pills.map((pill) => (
+                    <span
+                      key={pill.label}
+                      className={`text-[11px] font-semibold px-3 py-1 rounded-full border tracking-[0.3px] ${pill.style}`}
+                    >
+                      {pill.label}
+                    </span>
+                  ))}
+                </div>
+                <h3 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white leading-tight">
+                  {mod.title}
+                </h3>
+                <p className="mt-4 text-base md:text-lg text-slate-300 leading-relaxed mb-7">
+                  {mod.description}
+                </p>
+              </FadeUp>
+
+              <StaggerContainer className="flex flex-col gap-3">
                 {mod.features.map((feat) => (
-                  <div
+                  <StaggerItem
                     key={feat.title}
-                    className="flex items-start gap-3 p-3.5 bg-z-card border border-z-border rounded-lg hover:border-z-gold transition-colors duration-200"
+                    className="flex items-start gap-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg px-4 py-3"
                   >
                     <div className="w-8 h-8 rounded-md bg-z-gold-dim flex items-center justify-center text-base shrink-0">
                       {feat.icon}
                     </div>
                     <div>
-                      <h5 className="text-[13px] font-semibold text-z-text mb-0.5">{feat.title}</h5>
-                      <p className="text-xs text-z-muted leading-[1.5]">{feat.desc}</p>
+                      <h5 className="text-xl font-semibold text-z-text">{feat.title}</h5>
+                      <p className="mt-2 text-base md:text-lg text-slate-300 leading-relaxed">{feat.desc}</p>
                       {feat.ai && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[rgba(201,168,76,0.12)] text-z-gold border border-[rgba(201,168,76,0.3)] px-1.5 py-0.5 rounded-full mt-1 tracking-[0.5px]">
                           ⚡ {feat.aiLabel || "AI-POWERED"}
                         </span>
                       )}
                     </div>
-                  </div>
+                  </StaggerItem>
                 ))}
-              </div>
+              </StaggerContainer>
             </div>
 
             {/* Screen */}
-            <ScreenShell title={mod.screen.title}>{mod.screen.content}</ScreenShell>
+            <FadeUp>
+              <ScreenShell title={mod.screen.title}>{mod.screen.content}</ScreenShell>
+            </FadeUp>
           </div>
         ))}
       </RevealOnScroll>

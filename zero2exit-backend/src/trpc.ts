@@ -70,7 +70,28 @@ export async function createContext(opts: {
   }
 
   // Step 2: resolve founder from DB — surface DB errors correctly
-  let founder = await db.founder.findUnique({ where: { clerkUserId } })
+  // #region agent log
+  {
+    let dbHost: string | null = null
+    let dbPort: string | null = null
+    try {
+      const u = new URL(process.env.DATABASE_URL ?? '')
+      dbHost = u.hostname || null
+      dbPort = u.port || null
+    } catch {}
+    fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'DB1',location:'src/trpc.ts:78',message:'createContext: before db.founder.findUnique',data:{dbHost,dbPort,hasAuthHeader:Boolean(authHeader),hasClerkUserId:Boolean(clerkUserId)},timestamp:Date.now()})}).catch(()=>{});
+  }
+  // #endregion
+
+  let founder: Awaited<ReturnType<typeof db.founder.findUnique>>
+  try {
+    founder = await db.founder.findUnique({ where: { clerkUserId } })
+  } catch (err: unknown) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'DB2',location:'src/trpc.ts:90',message:'createContext: db.founder.findUnique threw',data:{errName:(err as any)?.name ?? null,errCode:(err as any)?.code ?? null,errMessage:String((err as any)?.message ?? '')?.slice(0,200)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    throw err
+  }
 
   if (!founder) {
     const p = payload as unknown as {

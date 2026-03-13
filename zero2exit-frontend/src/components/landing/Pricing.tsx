@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { RevealOnScroll } from "./RevealOnScroll"
+import { FadeUp, StaggerContainer, StaggerItem } from "../motion/primitives"
 
 const plans = [
   {
@@ -51,73 +52,74 @@ const plans = [
 
 export function Pricing() {
   return (
-    <div id="pricing" className="bg-z-deep border-t border-b border-z-border py-16 md:py-[100px]">
-      <RevealOnScroll className="max-w-[1300px] mx-auto px-6 md:px-15">
-        <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
-          Pricing
-        </div>
-        <h2 className="font-display text-[clamp(32px,4vw,52px)] font-bold text-z-white leading-[1.1] tracking-[-1px]">
-          Invest Once.<br />Build Forever.
-        </h2>
-        <p className="text-[17px] text-z-muted leading-[1.7] max-w-[520px] mt-4 font-light">
-          One platform replaces your consultants, lawyers, and agencies. The ROI begins on day one.
-        </p>
+    <div id="pricing" className="bg-z-deep border-t border-b border-z-border py-28">
+      <RevealOnScroll className="max-w-7xl mx-auto px-6">
+        <FadeUp>
+          <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
+            Pricing
+          </div>
+          <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white leading-tight">
+            Invest Once.<br />Build Forever.
+          </h2>
+          <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-[520px] mt-4 font-light">
+            One platform replaces your consultants, lawyers, and agencies. The ROI begins on day one.
+          </p>
+        </FadeUp>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14">
           {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-2xl p-8 relative transition-all duration-300 hover:-translate-y-1 ${
-                plan.featured
-                  ? "bg-gradient-to-br from-z-card to-[rgba(201,168,76,0.05)] border border-z-gold"
-                  : "bg-z-card border border-z-border"
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2 bg-z-gold text-z-black text-[10px] font-extrabold tracking-[1.5px] px-4 py-1 rounded-b-lg">
-                  MOST POPULAR
-                </div>
-              )}
-
-              <div className="font-code text-[11px] font-semibold tracking-[2px] text-z-muted mb-3 uppercase">
-                {plan.name}
-              </div>
-              <div className="font-display text-5xl font-bold text-z-white leading-none">
-                <sup className="text-xl align-top mt-2 inline-block">$</sup>
-                {plan.price}
-                <span className="text-base text-z-muted font-body font-normal">/mo</span>
-              </div>
-              <p className="text-sm text-z-muted mt-2 mb-7 leading-[1.6]">{plan.desc}</p>
-
-              <div className="flex flex-col gap-2.5 mb-7">
-                {plan.features.map((feat) => (
-                  <div
-                    key={feat.text}
-                    className={`flex items-center gap-2.5 text-[13px] ${
-                      feat.included ? "text-z-text" : "text-z-muted"
-                    }`}
-                  >
-                    <span className={`font-bold shrink-0 ${feat.included ? "text-z-green" : "text-z-muted"}`}>
-                      {feat.included ? "✓" : "✕"}
-                    </span>
-                    {feat.text}
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                href="/en/sign-up"
-                className={`block w-full text-center py-3.5 rounded-lg font-body font-bold text-[15px] transition-all duration-250 ${
-                  plan.featured
-                    ? "bg-z-gold text-z-black border border-z-gold hover:bg-z-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(201,168,76,0.3)]"
-                    : "bg-transparent text-z-text border border-z-border hover:border-z-gold hover:text-z-gold"
+            <StaggerItem key={plan.name}>
+              <div
+                className={`rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg p-8 relative transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+                  plan.featured ? "border-z-gold bg-gradient-to-br from-white/10 to-z-gold/10" : ""
                 }`}
               >
-                {plan.cta}
-              </Link>
-            </div>
+                {plan.featured && (
+                  <div className="absolute -top-px left-1/2 -translate-x-1/2 bg-z-gold text-z-black text-[10px] font-extrabold tracking-[1.5px] px-4 py-1 rounded-b-lg">
+                    MOST POPULAR
+                  </div>
+                )}
+
+                <div className="font-code text-[11px] font-semibold tracking-[2px] text-z-muted mb-3 uppercase">
+                  {plan.name}
+                </div>
+                <div className="font-display text-5xl font-bold text-z-white leading-tight">
+                  <sup className="text-xl align-top mt-2 inline-block">$</sup>
+                  {plan.price}
+                  <span className="text-base text-z-muted font-body font-normal">/mo</span>
+                </div>
+                <p className="mt-2 mb-7 text-base md:text-lg text-slate-300 leading-relaxed">{plan.desc}</p>
+
+                <div className="flex flex-col gap-2.5 mb-7">
+                  {plan.features.map((feat) => (
+                    <div
+                      key={feat.text}
+                      className={`flex items-center gap-2.5 text-[13px] ${
+                        feat.included ? "text-z-text" : "text-z-muted"
+                      }`}
+                    >
+                      <span className={`font-bold shrink-0 ${feat.included ? "text-z-green" : "text-z-muted"}`}>
+                        {feat.included ? "✓" : "✕"}
+                      </span>
+                      {feat.text}
+                    </div>
+                  ))}
+                </div>
+
+                <Link
+                  href="/en/sign-up"
+                  className={`block w-full text-center py-3.5 rounded-lg font-body font-bold text-[15px] transition-all duration-250 ${
+                    plan.featured
+                      ? "bg-z-gold text-z-black border border-z-gold hover:bg-z-gold-light hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(201,168,76,0.3)]"
+                      : "bg-transparent text-z-text border border-z-border hover:border-z-gold hover:text-z-gold"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </RevealOnScroll>
     </div>
   )

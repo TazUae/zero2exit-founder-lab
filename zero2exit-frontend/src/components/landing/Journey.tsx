@@ -17,15 +17,15 @@ export function Journey() {
   const [activeStep, setActiveStep] = useState(1)
 
   return (
-    <section id="journey" className="py-16 md:py-[100px] px-6 md:px-15 max-w-[1300px] mx-auto">
-      <RevealOnScroll>
+    <section id="journey" className="py-24">
+      <RevealOnScroll className="max-w-7xl mx-auto px-6">
         <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
           The Founder Journey
         </div>
-        <h2 className="font-display text-[clamp(32px,4vw,52px)] font-bold text-z-white leading-[1.1] tracking-[-1px]">
+        <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white leading-tight">
           Every Stage.<br />Every Decision. Covered.
         </h2>
-        <p className="text-[17px] text-z-muted leading-[1.7] max-w-[520px] mt-4 font-light">
+        <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-[520px] mt-4 font-light">
           The platform enforces the correct module sequence — so you never waste time on irrelevant stages.
         </p>
 

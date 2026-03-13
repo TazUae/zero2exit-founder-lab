@@ -1,5 +1,6 @@
 'use client'
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/lib/trpc"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Loader2, RefreshCw, Sparkles, Star, Type } from "lucide-react"
+import { Loader2, RefreshCw, Sparkles, Star, Type, ArrowRight } from "lucide-react"
 
 const QUESTIONS = [
   {
@@ -197,8 +198,9 @@ export function BrandIdentityClient() {
   // Form-first view when nothing generated yet or user wants to regenerate
   if (!brand || showForm) {
     return (
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)]">
-        <div className="space-y-6">
+      <div className="space-y-6">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)]">
+          <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">
@@ -331,6 +333,41 @@ export function BrandIdentityClient() {
             </CardContent>
           </Card>
         )}
+        </div>
+
+        {/* Next Step CTA */}
+        <Card className="border-slate-800 bg-slate-950/70">
+          <CardContent className="px-4 py-3">
+            <div className="flex flex-col md:flex-row md:items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs font-semibold text-white mb-1.5">
+                  Next Step
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Turn your validated brand and GTM into a unified execution roadmap.
+                </p>
+              </div>
+              <div className="md:w-52 flex-shrink-0 rounded-xl bg-slate-900/70 p-3 space-y-1.5">
+                <p className="text-[11px] font-semibold text-white">
+                  AI Roadmap
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  Generate a cross-module startup roadmap powered by the Zero2Exit agents.
+                </p>
+                <Button
+                  asChild
+                  size="sm"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
+                >
+                  <Link href="/dashboard/roadmap">
+                    Go to Roadmap
+                    <ArrowRight className="ml-1.5 h-3 w-3" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -642,6 +679,40 @@ export function BrandIdentityClient() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Next Step CTA */}
+      <Card className="border-slate-800 bg-slate-950/70">
+        <CardContent className="px-4 py-3">
+          <div className="flex flex-col md:flex-row md:items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xs font-semibold text-white mb-1.5">
+                Next Step
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Use your validated idea, legal structure, GTM, and brand to generate a full startup roadmap.
+              </p>
+            </div>
+            <div className="md:w-52 flex-shrink-0 rounded-xl bg-slate-900/70 p-3 space-y-1.5">
+              <p className="text-[11px] font-semibold text-white">
+                AI Roadmap
+              </p>
+              <p className="text-[10px] text-slate-400">
+                Run the Zero2Exit agent swarm to create your execution plan.
+              </p>
+              <Button
+                asChild
+                size="sm"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
+              >
+                <Link href="/dashboard/roadmap">
+                  Go to Roadmap
+                  <ArrowRight className="ml-1.5 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

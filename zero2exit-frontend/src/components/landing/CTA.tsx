@@ -3,13 +3,13 @@ import { RevealOnScroll } from "./RevealOnScroll"
 
 export function CTA() {
   return (
-    <section className="text-center py-20 md:py-[120px] px-6 md:px-15 relative overflow-hidden">
+    <section className="text-center py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(201,168,76,0.08)_0%,transparent_70%)]" />
-      <RevealOnScroll className="relative">
-        <h2 className="font-display text-[clamp(36px,5vw,64px)] font-black text-z-white max-w-[800px] mx-auto mb-6 leading-[1.1] tracking-[-1.5px]">
+      <RevealOnScroll className="relative max-w-7xl mx-auto px-6">
+        <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white max-w-[800px] mx-auto mb-6 leading-tight">
           Your Exit Starts<br />Today.
         </h2>
-        <p className="text-lg text-z-muted max-w-[480px] mx-auto mb-10 leading-[1.7]">
+        <p className="text-base md:text-lg text-slate-300 max-w-[480px] mx-auto mb-10 leading-relaxed mt-4">
           Answer 14 questions. Get your personalised founder roadmap in under 5 minutes. No credit card required.
         </p>
         <div className="flex justify-center">

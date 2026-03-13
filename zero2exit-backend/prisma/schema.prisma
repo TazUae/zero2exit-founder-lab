@@ -261,9 +261,7 @@ model GtmDocument {
   title     String
   status    String   @default("draft")
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  founder  Founder      @relation(fields: [founderId], references: [id])
+  updatedAt DateTime @updatedAt @map("updated_at")  founder  Founder      @relation(fields: [founderId], references: [id])
   sections GtmSection[]
 
   @@index([founderId])
@@ -282,9 +280,7 @@ model GtmSection {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  gtmDocument GtmDocument @relation(fields: [gtmDocumentId], references: [id])
-
-  @@unique([gtmDocumentId, sectionKey])
+  gtmDocument GtmDocument @relation(fields: [gtmDocumentId], references: [id])  @@unique([gtmDocumentId, sectionKey])
   @@index([gtmDocumentId])
   @@map("gtm_sections")
 }

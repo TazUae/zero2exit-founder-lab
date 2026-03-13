@@ -29,17 +29,17 @@ export function AIEngine() {
   const [highlighted, setHighlighted] = useState(1)
 
   return (
-    <div id="engine" className="bg-z-deep border-t border-b border-z-border py-16 md:py-[100px]">
-      <RevealOnScroll className="max-w-[1300px] mx-auto px-6 md:px-15 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
+    <div id="engine" className="bg-z-deep border-t border-b border-z-border py-28">
+      <RevealOnScroll className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
         {/* Left column */}
         <div>
           <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
             AI Routing Engine
           </div>
-          <h2 className="font-display text-[clamp(32px,4vw,52px)] font-bold text-z-white leading-[1.1] tracking-[-1px]">
+          <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white leading-tight">
             Intelligence that adapts to <em className="italic text-z-gold">your</em> stage.
           </h2>
-          <p className="text-[17px] text-z-muted leading-[1.7] max-w-[520px] mt-4 font-light">
+          <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-[520px] mt-4 font-light">
             The AI Routing Engine processes your onboarding questionnaire and creates a personalised module activation plan — re-evaluating every 30 days as your business evolves.
           </p>
           <div className="flex flex-col mt-10">
@@ -49,10 +49,10 @@ export function AIEngine() {
                   {step.num}
                 </div>
                 <div>
-                  <h4 className="text-[15px] font-semibold text-z-text mb-1 transition-colors duration-200 group-hover:text-z-gold">
+                  <h4 className="text-xl font-semibold text-z-text transition-colors duration-200 group-hover:text-z-gold">
                     {step.title}
                   </h4>
-                  <p className="text-[13px] text-z-muted leading-[1.6]">{step.desc}</p>
+                  <p className="mt-2 text-base md:text-lg text-slate-300 leading-relaxed">{step.desc}</p>
                 </div>
               </div>
             ))}
@@ -60,7 +60,7 @@ export function AIEngine() {
         </div>
 
         {/* Right column - visual */}
-        <div className="bg-z-card border border-z-border rounded-2xl p-8 relative overflow-hidden">
+        <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg p-8 relative overflow-hidden">
           <div className="absolute -top-1/2 -right-[30%] w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.08),transparent_70%)]" />
 
           <div className="flex items-center gap-3 mb-7 relative">
@@ -70,22 +70,22 @@ export function AIEngine() {
             <span className="font-code text-xs text-z-muted">AI Stage Routing — Live Preview</span>
           </div>
 
-          <div className="flex flex-col gap-2.5 relative">
+          <div className="flex flex-col gap-3 relative">
             {stageCards.map((card, i) => (
               <button
                 key={card.name}
                 onClick={() => setHighlighted(i)}
-                className={`bg-z-deep border rounded-[10px] px-4 py-3.5 flex items-center justify-between transition-all duration-300 cursor-pointer w-full text-left ${
+                className={`flex items-center justify-between w-full text-left rounded-2xl px-4 py-3 bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg transition-all duration-300 cursor-pointer ${
                   highlighted === i
-                    ? "border-z-gold bg-z-gold-dim"
-                    : "border-z-border hover:border-z-gold"
+                    ? "border-z-gold bg-z-gold/10"
+                    : "hover:-translate-y-1 hover:shadow-xl"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                   <span className="text-xl">{card.icon}</span>
                   <div>
-                    <div className="text-sm font-semibold text-z-text">{card.name}</div>
-                    <div className="text-[11px] text-z-muted mt-0.5">{card.desc}</div>
+                        <div className="text-xl font-semibold text-z-text">{card.name}</div>
+                        <div className="mt-2 text-base md:text-lg text-slate-300">{card.desc}</div>
                   </div>
                 </div>
                 <div className="flex gap-1">

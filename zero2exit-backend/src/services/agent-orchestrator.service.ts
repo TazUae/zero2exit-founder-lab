@@ -20,6 +20,7 @@ import {
 } from './knowledge-graph.service.js'
 import { db } from '../lib/db.js'
 import { logger } from '../lib/logger.js'
+import { appendFileSync } from 'node:fs'
 
 export type FounderRoadmapInput = {
   founderId: string
@@ -47,6 +48,31 @@ export async function generateFounderRoadmap(
 ): Promise<FounderRoadmapResult> {
   const startMs = Date.now()
   logger.info({ agent: 'roadmap', founderId: input.founderId }, 'agent_start')
+
+  // #region agent log
+  try {
+    appendFileSync(
+      'c:\\Users\\Lenovo\\Dev\\Zero2Exit-Founder-Lab-main\\.cursor\\debug.log',
+      JSON.stringify({
+        id: `log_${Date.now()}_agent_orchestrator_start`,
+        timestamp: Date.now(),
+        location: 'agent-orchestrator.service.ts:generateFounderRoadmap',
+        message: 'generateFounderRoadmap started',
+        runId: 'pre-fix',
+        hypothesisId: 'H3',
+        data: {
+          founderId: input.founderId,
+          hasIdea: !!input.ideaDescription,
+          industry: input.industry,
+          hasGeography: !!input.geography,
+          hasJurisdiction: !!input.jurisdiction,
+        },
+      }) + '\n',
+    )
+  } catch {
+    // ignore debug log errors
+  }
+  // #endregion agent log
 
   const graph = await getStartupGraph(input.founderId)
   const startupNode = await getOrCreateStartupNode({

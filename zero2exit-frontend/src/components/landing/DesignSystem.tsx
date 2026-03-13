@@ -11,15 +11,15 @@ const cards = [
 
 export function DesignSystem() {
   return (
-    <section className="py-16 md:py-[100px] px-6 md:px-15 max-w-[1300px] mx-auto">
-      <RevealOnScroll>
+    <section className="py-24">
+      <RevealOnScroll className="max-w-7xl mx-auto px-6">
         <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
           Platform Experience
         </div>
-        <h2 className="font-display text-[clamp(32px,4vw,52px)] font-bold text-z-white leading-[1.1] tracking-[-1px]">
+        <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white leading-tight">
           Designed for Founders,<br />Not Accountants.
         </h2>
-        <p className="text-[17px] text-z-muted leading-[1.7] max-w-[520px] mt-4 font-light">
+        <p className="text-base md:text-lg text-slate-300 leading-relaxed max-w-[520px] mt-4 font-light">
           Every interaction principle is built around reducing cognitive load and celebrating progress.
         </p>
 
@@ -27,11 +27,11 @@ export function DesignSystem() {
           {cards.map((card) => (
             <div
               key={card.title}
-              className="bg-z-card border border-z-border rounded-xl p-7 transition-all duration-300 hover:border-z-gold hover:-translate-y-[3px]"
+              className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="text-[28px] mb-4">{card.icon}</div>
-              <h4 className="text-base font-bold text-z-text mb-2">{card.title}</h4>
-              <p className="text-[13px] text-z-muted leading-[1.6]">{card.desc}</p>
+                <div className="text-[28px] mb-4">{card.icon}</div>
+                <h4 className="text-xl font-semibold text-z-text">{card.title}</h4>
+                <p className="mt-2 text-base md:text-lg text-slate-300 leading-relaxed">{card.desc}</p>
             </div>
           ))}
         </div>

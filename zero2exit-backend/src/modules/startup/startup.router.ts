@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { router, protectedProcedure } from '../../trpc.js'
 import { generateFounderRoadmap } from '../../services/agent-orchestrator.service.js'
+import { appendFileSync } from 'node:fs'
 
 export const startupRouter = router({
   generateRoadmap: protectedProcedure
@@ -19,6 +20,32 @@ export const startupRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { founderId, db } = ctx
 
+      // #region agent log
+      try {
+        appendFileSync(
+          'c:\\Users\\Lenovo\\Dev\\Zero2Exit-Founder-Lab-main\\.cursor\\debug.log',
+          JSON.stringify({
+            id: `log_${Date.now()}_startup_generateRoadmap_start`,
+            timestamp: Date.now(),
+            location: 'startup.router.ts:generateRoadmap',
+            message: 'startup.generateRoadmap called',
+            runId: 'pre-fix',
+            hypothesisId: 'H2',
+            data: {
+              founderId,
+              hasIdea: !!input.ideaDescription,
+              ideaLength: input.ideaDescription.length,
+              industry: input.industry,
+              hasGeography: !!input.geography,
+              hasJurisdiction: !!input.jurisdiction,
+            },
+          }) + '\n',
+        )
+      } catch {
+        // ignore debug log errors
+      }
+      // #endregion agent log
+
       let result
       try {
         result = await generateFounderRoadmap({
@@ -26,6 +53,28 @@ export const startupRouter = router({
           founderId,
         })
       } catch (err) {
+        // #region agent log
+        try {
+          appendFileSync(
+            'c:\\Users\\Lenovo\\Dev\\Zero2Exit-Founder-Lab-main\\.cursor\\debug.log',
+            JSON.stringify({
+              id: `log_${Date.now()}_startup_generateRoadmap_error`,
+              timestamp: Date.now(),
+              location: 'startup.router.ts:generateRoadmap',
+              message: 'generateFounderRoadmap threw',
+              runId: 'pre-fix',
+              hypothesisId: 'H2',
+              data: {
+                errorMessage: err instanceof Error ? err.message : String(err),
+                errorName: err instanceof Error ? err.name : 'non-error',
+              },
+            }) + '\n',
+          )
+        } catch {
+          // ignore debug log errors
+        }
+        // #endregion agent log
+
         const message =
           err instanceof Error ? err.message : 'Roadmap generation failed'
         const isConfig =

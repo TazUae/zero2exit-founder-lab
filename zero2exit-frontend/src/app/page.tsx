@@ -31,9 +31,26 @@ const dmMono = DM_Mono({
 export default function LandingPage() {
   return (
     <div
-      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} landing-noise bg-z-black text-z-text font-body overflow-x-hidden`}
+      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} landing-noise bg-gradient-to-b from-[#0B1437] via-[#0B1437] to-[#070f2e] text-z-text font-body relative overflow-hidden`}
       style={{ scrollBehavior: "smooth" }}
     >
+      {/* Global background lighting behind hero and sections */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute inset-0 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle at 70% 30%, rgba(59,130,246,0.18), transparent 40%)",
+          }}
+        />
+        <div
+          className="absolute inset-0 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle at 20% 60%, rgba(37,99,235,0.12), transparent 45%)",
+          }}
+        />
+      </div>
       <Navbar />
       <Hero />
       <Journey />

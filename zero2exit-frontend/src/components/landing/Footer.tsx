@@ -11,7 +11,7 @@ const links = [
 export function Footer() {
   return (
     <footer className="border-t border-z-border py-12 px-6 md:px-15 flex flex-col md:flex-row items-center justify-between gap-6 max-w-[1300px] mx-auto text-center md:text-left">
-      <Link href="/" className="font-display font-bold text-xl text-z-white">
+      <Link href="/" className="font-display text-xl font-semibold tracking-tight text-z-white">
         Zero<span className="text-z-gold">2</span>Exit
       </Link>
 

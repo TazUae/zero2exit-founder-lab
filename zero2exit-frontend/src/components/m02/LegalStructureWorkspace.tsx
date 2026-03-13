@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useMemo } from 'react'
 import {
   Loader2,
@@ -15,6 +16,7 @@ import {
   DollarSign,
   Clock,
   Info,
+  ArrowRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { trpc } from '@/lib/trpc'
@@ -806,6 +808,40 @@ export function LegalStructureWorkspace() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* ── Next Step CTA ── */}
+      <Card className={DASH_CARD}>
+        <CardContent className="px-4 py-3">
+          <div className="flex flex-col md:flex-row md:items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xs font-semibold text-white mb-1.5">
+                Next Step
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Turn your legal foundation into a concrete go-to-market plan.
+              </p>
+            </div>
+            <div className="md:w-52 flex-shrink-0 rounded-xl bg-slate-800/60 p-3 space-y-1.5">
+              <p className="text-[11px] font-semibold text-white">
+                Go-To-Market Strategy
+              </p>
+              <p className="text-[10px] text-slate-400">
+                Generate an investor-ready GTM narrative and 90-day launch plan.
+              </p>
+              <Button
+                asChild
+                size="sm"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
+              >
+                <Link href="/dashboard/gtm">
+                  Go to GTM Builder
+                  <ArrowRight className="ml-1.5 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
