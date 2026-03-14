@@ -79,7 +79,12 @@ export async function getFounderContext(
           routingRationale: onboarding.routingRationale,
         }
       : null,
-    moduleProgress: progress.map((p) => ({
+    moduleProgress: progress.map((p: any): {
+      moduleId: string
+      status: string
+      score: number | null
+      lastActivity: Date | null
+    } => ({
       moduleId: p.moduleId,
       status: p.status,
       score: p.score,

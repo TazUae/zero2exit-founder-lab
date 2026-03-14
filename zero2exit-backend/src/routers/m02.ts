@@ -138,7 +138,7 @@ export const m02Router = router({
           JurisdictionComparisonSchema,
         )
 
-        await db.$transaction(async (tx) => {
+        await db.$transaction(async (tx: any) => {
           await tx.legalStructure.upsert({
             where: { founderId },
             update: { jurisdictionComparison: jurisdictionComparison as any },
@@ -191,7 +191,7 @@ export const m02Router = router({
           EntityRecommendationSchema,
         )
 
-        await db.$transaction(async (tx) => {
+        await db.$transaction(async (tx: any) => {
           await tx.legalStructure.upsert({
             where: { founderId },
             update: {
@@ -281,7 +281,7 @@ export const m02Router = router({
               structure: 'Single entity',
             }
 
-        await db.$transaction(async (tx) => {
+        await db.$transaction(async (tx: any) => {
           await tx.legalStructure.upsert({
             where: { founderId },
             update: { holdcoNeeded: needsHoldco, orgChart },
@@ -353,7 +353,7 @@ export const m02Router = router({
         LegalRoadmapSchema,
       )
 
-      await db.$transaction(async (tx) => {
+      await db.$transaction(async (tx: any) => {
         await tx.legalStructure.update({
           where: { founderId },
           data: { legalRoadmap: legalRoadmap as any },

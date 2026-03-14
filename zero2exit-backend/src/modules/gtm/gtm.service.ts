@@ -238,7 +238,7 @@ async function syncDocumentStatus(
     where: { gtmDocumentId },
     select: { status: true },
   })
-  const completedCount = sections.filter((s) => s.status === 'completed').length
+  const completedCount = sections.filter((s: any) => s.status === 'completed').length
   const newStatus = completedCount === GTM_SECTION_KEYS.length ? 'completed' : 'in_progress'
   await db.gtmDocument.update({
     where: { id: gtmDocumentId },
@@ -300,13 +300,15 @@ async function syncDocumentStatus(
   }
 }
 
+type Json = unknown
+
 async function upsertSection(params: {
   gtmDocumentId: string
   sectionKey: string
   status: string
   title: string
   sortOrder: number
-  content: Prisma.InputJsonValue
+  content: Json
   plainText: string | null
 }): Promise<{ id: string }> {
   const section = await db.gtmSection.upsert({
@@ -359,13 +361,13 @@ export async function generateGtmSection(
     const gtmDoc = await ensureGtmDocument(input.founderId)
 
     // Mark generating ASAP (so later routers can show progress).
-    await upsertSection({
+      await upsertSection({
       gtmDocumentId: gtmDoc.id,
       sectionKey: input.sectionKey,
       title: fallbackTitle,
       status: 'generating',
       sortOrder,
-      content: {} as Prisma.InputJsonValue,
+      content: {} as Json,
       plainText: null,
     })
 
@@ -441,7 +443,7 @@ export async function generateGtmSection(
         title,
         status: parsed.ok ? 'completed' : 'failed',
         sortOrder,
-        content: contentObj as Prisma.InputJsonValue,
+        content: contentObj as Json,
         plainText,
       })
 
@@ -476,7 +478,7 @@ export async function generateGtmSection(
         title,
         status: 'failed',
         sortOrder,
-        content: contentObj as Prisma.InputJsonValue,
+        content: contentObj as Json,
         plainText,
       })
 

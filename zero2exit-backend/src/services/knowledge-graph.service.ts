@@ -1,4 +1,3 @@
-import type { Prisma } from '@prisma/client'
 import { db } from '../lib/db.js'
 import { logger } from '../lib/logger.js'
 
@@ -21,6 +20,8 @@ export type KnowledgeEdge = {
   createdAt: Date
 }
 
+type Json = unknown
+
 export type StartupGraph = {
   nodes: KnowledgeNode[]
   edges: KnowledgeEdge[]
@@ -37,7 +38,7 @@ export async function createNode(params: {
       founderId: params.founderId,
       type: params.type,
       title: params.title ?? null,
-      data: params.data as Prisma.InputJsonValue,
+      data: params.data as Json,
     },
   })
 

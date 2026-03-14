@@ -106,6 +106,7 @@ const BrandIdentitySchema = z
   })
   .passthrough()
 
+type Json = unknown
 type BrandIdentityOutput = z.infer<typeof BrandIdentitySchema>
 
 export const brandRouter = router({
@@ -138,8 +139,8 @@ export const brandRouter = router({
         BrandIdentitySchema,
       ) as BrandIdentityOutput
 
-      const toJson = (value: unknown): Prisma.InputJsonValue =>
-        value as Prisma.InputJsonValue
+      const toJson = (value: unknown): Json =>
+        value as Json
 
       const brand = await db.brandIdentity.upsert({
         where: { founderId },

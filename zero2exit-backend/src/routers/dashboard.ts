@@ -38,7 +38,7 @@ export const dashboardRouter = router({
         db.founder.findUnique({ where: { id: founderId } }),
       ])
 
-      const m01Progress = progress.find(p => p.moduleId === 'M01')
+      const m01Progress = progress.find((p: any) => p.moduleId === 'M01')
       const validationScore = m01Progress?.score ?? 0
       const ideaValidationPct = Math.min(validationScore, 100)
 

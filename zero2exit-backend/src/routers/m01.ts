@@ -462,7 +462,7 @@ export const m01Router = router({
 
       if (Object.keys(scorecard).length > 0) {
         try {
-          await db.$transaction(async (tx) => {
+          await db.$transaction(async (tx: any) => {
             await tx.ideaValidation.update({
               where: { founderId } as any,
               data: { scorecard: scorecard as any, updatedAt: new Date() },

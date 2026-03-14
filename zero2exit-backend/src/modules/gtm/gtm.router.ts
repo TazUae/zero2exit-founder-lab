@@ -45,7 +45,7 @@ export const gtmRouter = router({
       const title = input?.title?.trim() || 'Go-To-Market Strategy'
 
       try {
-        const result = await db.$transaction(async tx => {
+        const result = await db.$transaction(async (tx: any) => {
           const doc = await tx.gtmDocument.upsert({
             where: { founderId },
             create: {
@@ -62,7 +62,7 @@ export const gtmRouter = router({
             where: { gtmDocumentId: doc.id },
           })
           const existingByKey = new Map<string, (typeof existing)[number]>()
-          for (const s of existing) existingByKey.set(s.sectionKey, s)
+          for (const s of existing) existingByKey.set((s as any).sectionKey, s)
 
           // Seed any missing sections in pending state; keep existing content untouched
           for (const def of DEFAULT_GTM_SECTIONS) {
@@ -330,12 +330,12 @@ export const gtmRouter = router({
         return { document: null }
       }
 
-      return {
+          return {
         document: {
           id: doc.id,
           title: doc.title,
           status: doc.status,
-          sections: doc.sections.map(s => ({
+          sections: doc.sections.map((s: any) => ({
             id: s.id,
             sectionKey: s.sectionKey as GtmSectionKey,
             title: s.title,

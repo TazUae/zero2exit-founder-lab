@@ -1,4 +1,6 @@
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
+
+type Json = unknown
 
 // Compatible with both PrismaClient and Prisma interactive-transaction client
 export type TxClient = Omit<
@@ -13,7 +15,7 @@ export async function writeAuditLog(params: {
   action: string
   resourceType?: string
   resourceId?: string
-  metadata?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput
+  metadata?: Json | null
   ipAddress?: string
 }): Promise<void> {
   await params.db.auditLog.create({

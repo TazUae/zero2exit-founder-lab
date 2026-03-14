@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import type { Prisma } from '@prisma/client'
 import { router, protectedProcedure } from '../trpc.js'
 import { llmCall } from '../lib/llm/router.js'
 import { extractJSON } from '../lib/llm/parse.js'
@@ -20,6 +19,7 @@ const STAGE_MODULES: Record<string, string[]> = {
 
 const VALID_STAGES = ['idea', 'pre_seed', 'seed', 'growth', 'scale'] as const
 type Stage = typeof VALID_STAGES[number]
+type Json = unknown
 
 function buildModulePlan(stage: Stage) {
   const modules = STAGE_MODULES[stage]
@@ -86,7 +86,7 @@ export const gatewayRouter = router({
       const nextEvalAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
       // Save everything in a transaction
-      await db.$transaction(async (tx) => {
+      await db.$transaction(async (tx: any) => {
         // Update founder stage and language
         await tx.founder.update({
           where: { id: founderId },
@@ -97,7 +97,7 @@ export const gatewayRouter = router({
         await tx.onboardingResponse.upsert({
           where: { founderId } as any,
           update: {
-            responses: input.responses as Prisma.InputJsonValue,
+            responses: input.responses as Json,
             stageAssigned: stage,
             modulePlan: modulePlan,
             routingRationale: rationale,
@@ -106,7 +106,7 @@ export const gatewayRouter = router({
           },
           create: {
             founderId,
-            responses: input.responses as Prisma.InputJsonValue,
+            responses: input.responses as Json,
             stageAssigned: stage,
             modulePlan: modulePlan,
             routingRationale: rationale,
@@ -163,8 +163,8 @@ export const gatewayRouter = router({
       })
 
       // Apply M02 unlock check in memory (no DB write)
-      const m01 = moduleProgress.find(m => m.moduleId === 'M01')
-      const progressWithUnlock = moduleProgress.map(m => {
+      const m01 = moduleProgress.find((m: any) => m.moduleId === 'M01')
+      const progressWithUnlock = moduleProgress.map((m: any) => {
         if (m.moduleId === 'M02' && m01 && (m01.score ?? 0) >= 60) {
           return { ...m, status: 'active' }
         }
@@ -221,7 +221,7 @@ export const gatewayRouter = router({
       const changed = newStage !== previousStage
       const modulePlan = buildModulePlan(newStage)
 
-      await db.$transaction(async (tx) => {
+      await db.$transaction(async (tx: any) => {
         await tx.onboardingResponse.update({
           where: { id: onboarding.id },
           data: {

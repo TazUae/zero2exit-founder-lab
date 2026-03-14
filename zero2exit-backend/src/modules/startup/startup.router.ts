@@ -1,9 +1,10 @@
 import { z } from 'zod'
-import type { Prisma } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { router, protectedProcedure } from '../../trpc.js'
 import { generateFounderRoadmap } from '../../services/agent-orchestrator.service.js'
 import { appendFileSync } from 'node:fs'
+
+type Json = unknown
 
 export const startupRouter = router({
   generateRoadmap: protectedProcedure
@@ -90,7 +91,7 @@ export const startupRouter = router({
       const created = await db.founderRoadmap.create({
         data: {
           founderId,
-          roadmap: result.roadmap as Prisma.InputJsonValue,
+          roadmap: result.roadmap as Json,
         },
       })
 
@@ -101,7 +102,7 @@ export const startupRouter = router({
             data: {
               roadmapId: created.id,
               version: rev.version,
-              data: rev.data as Prisma.InputJsonValue,
+              data: rev.data as Json,
             },
           }),
         ),
