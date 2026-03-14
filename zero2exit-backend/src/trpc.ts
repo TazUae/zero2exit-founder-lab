@@ -1,5 +1,4 @@
 import { initTRPC, TRPCError } from '@trpc/server'
-import { verifyToken } from '@clerk/backend'
 import type { FastifyRequest } from 'fastify'
 import { db } from './lib/db.js'
 import { redis } from './lib/storage/redis.js'
@@ -26,84 +25,28 @@ export async function createContext(opts: {
     return { founderId, db, redis }
   }
 
-  // Normal Clerk auth
+  // Temporary auth stub: require a Bearer token, treat the token value as
+  // the external founder identity, and look up/create a Founder record using
+  // the existing `clerkUserId` column as a generic external ID.
   const authHeader = opts.req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Missing token' })
   }
-  const token = authHeader.slice(7)
-
-  // Build allowed origins for Clerk's azp check (token issued from this frontend origin)
-  const frontendOrigins = (process.env.FRONTEND_URL ?? '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean)
-  const origin = opts.req.headers.origin
-  const referer = opts.req.headers.referer
-  // Extract origin from referer header as fallback (browser may send referer but not origin for same-site)
-  const refererOrigin = referer ? new URL(referer).origin : undefined
-  const authorizedParties = [...new Set([
-    ...frontendOrigins,
-    ...(origin ? [origin] : []),
-    ...(refererOrigin ? [refererOrigin] : []),
-    'http://localhost:3001',
-    'https://localhost:3001',
-  ])].filter(Boolean)
-
-  // In development, skip azp check entirely — tunnel URLs change constantly
-  const isDev = process.env.NODE_ENV === 'development'
-
-  // Step 1: verify the JWT — only catch token errors here
-  let payload: Awaited<ReturnType<typeof verifyToken>>
-  try {
-    payload = await verifyToken(token, {
-      secretKey: process.env.CLERK_SECRET_KEY!,
-      authorizedParties: isDev ? undefined : (authorizedParties.length > 0 ? authorizedParties : undefined),
-    })
-  } catch {
-    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid token' })
+  const externalId = authHeader.slice(7).trim()
+  if (!externalId) {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Missing external user id' })
   }
 
-  const clerkUserId = payload.sub
-  if (!clerkUserId) {
-    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Missing Clerk user id in token' })
-  }
-
-  // Step 2: resolve founder from DB — surface DB errors correctly
-  // #region agent log
-  {
-    let dbHost: string | null = null
-    let dbPort: string | null = null
-    try {
-      const u = new URL(process.env.DATABASE_URL ?? '')
-      dbHost = u.hostname || null
-      dbPort = u.port || null
-    } catch {}
-    fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'DB1',location:'src/trpc.ts:78',message:'createContext: before db.founder.findUnique',data:{dbHost,dbPort,hasAuthHeader:Boolean(authHeader),hasClerkUserId:Boolean(clerkUserId)},timestamp:Date.now()})}).catch(()=>{});
-  }
-  // #endregion
-
-  let founder: Awaited<ReturnType<typeof db.founder.findUnique>>
-  try {
-    founder = await db.founder.findUnique({ where: { clerkUserId } })
-  } catch (err: unknown) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'DB2',location:'src/trpc.ts:90',message:'createContext: db.founder.findUnique threw',data:{errName:(err as any)?.name ?? null,errCode:(err as any)?.code ?? null,errMessage:String((err as any)?.message ?? '')?.slice(0,200)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    throw err
-  }
-
+  let founder = await db.founder.findUnique({ where: { clerkUserId: externalId } })
   if (!founder) {
-    const p = payload as unknown as {
-      email?: string
-      first_name?: string | null
-      last_name?: string | null
-    }
-    const email = p.email ?? ''
-    const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || null
-
     founder = await db.founder.create({
-      data: { clerkUserId, email, name, plan: 'launch', language: 'en' },
+      data: {
+        clerkUserId: externalId,
+        email: '',
+        name: null,
+        plan: 'launch',
+        language: 'en',
+      },
     })
   }
 

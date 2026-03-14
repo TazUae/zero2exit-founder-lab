@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { CoachClient } from "@/app/[locale]/(dashboard)/coach/CoachClient"
 
@@ -11,7 +9,5 @@ export default async function DashboardCoachPage() {
     return <CoachClient />
   }
 
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
   return <CoachClient />
 }

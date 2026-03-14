@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { DashboardClient } from "./DashboardClient"
 
@@ -18,11 +16,6 @@ export default async function DashboardPage() {
     return <DashboardClient />
   }
 
-  const { userId } = await auth()
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H4',location:'src/app/[locale]/(dashboard)/dashboard/page.tsx:24',message:'DashboardPage: auth result',data:{hasUserId:Boolean(userId)},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-  if (!userId) redirect("/sign-in")
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
       <DashboardClient />

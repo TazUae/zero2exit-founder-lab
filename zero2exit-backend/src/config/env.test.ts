@@ -3,12 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // Prevent dotenv from loading a local .env file and interfering with test env vars.
 vi.mock('dotenv/config', () => ({}))
 
-// Minimum env vars that satisfy the Zod schema (only 3 are truly required by the schema).
+// Minimum env vars that satisfy the Zod schema (only 2 are truly required by the schema).
 // Everything else has a .default() or is .optional().
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/testdb',
   REDIS_URL: 'redis://localhost:6379',
-  CLERK_SECRET_KEY: 'sk_test_abc123',
 }
 
 describe('env config', () => {
@@ -30,7 +29,6 @@ describe('env config', () => {
     const { env } = await import('./env.js')
     expect(env.DATABASE_URL).toBe(VALID_ENV.DATABASE_URL)
     expect(env.REDIS_URL).toBe(VALID_ENV.REDIS_URL)
-    expect(env.CLERK_SECRET_KEY).toBe(VALID_ENV.CLERK_SECRET_KEY)
   })
 
   it('PORT is kept as a string (schema uses z.string(), not z.coerce.number())', async () => {
@@ -79,9 +77,5 @@ describe('env config', () => {
     await expect(import('./env.js')).rejects.toThrow('Environment validation failed')
   })
 
-  it('throws when CLERK_SECRET_KEY is missing', async () => {
-    delete process.env.CLERK_SECRET_KEY
-    await expect(import('./env.js')).rejects.toThrow('Environment validation failed')
-  })
 })
 

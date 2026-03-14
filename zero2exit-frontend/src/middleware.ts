@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import createMiddleware from "next-intl/middleware"
-import { auth } from "@/auth"
 
 const locales = ["en", "ar"] as const
 const defaultLocale = "en"
@@ -12,36 +11,16 @@ const intlMiddleware = createMiddleware({
   localePrefix: "always",
 })
 
-function isProtectedPath(pathname: string): boolean {
-  const withoutLocale = pathname.replace(/^\/(en|ar)(?=\/|$)/, "") || "/"
-
-  const protectedPrefixes = [
-    "/dashboard",
-    "/onboarding",
-    "/brand",
-    "/coach",
-    "/m01",
-    "/m02",
-    "/gtm",
-    "/documents",
-    "/settings",
-    "/roadmap",
-    "/knowledge",
-  ]
-
-  if (withoutLocale === "/") return false
-
-  return protectedPrefixes.some((prefix) => withoutLocale.startsWith(prefix))
-}
-
-export default auth((req: NextRequest & { auth?: any }) => {
+export default function middleware(req: NextRequest) {
   const { nextUrl } = req
   const pathname = nextUrl.pathname
 
+  // Landing page at "/" — serve directly, skip intl redirect
   if (pathname === "/") {
     return NextResponse.next()
   }
 
+  // Playwright E2E bypass — allow tests to skip auth without real credentials.
   const bypassSecret = process.env.PLAYWRIGHT_BYPASS_SECRET
   if (
     process.env.NODE_ENV !== "production" &&
@@ -51,11 +30,14 @@ export default auth((req: NextRequest & { auth?: any }) => {
     return intlMiddleware(req)
   }
 
+  // Resolve locale from path for redirects (next-intl uses localePrefix "always")
   const firstSeg = pathname.split("/")[1]
   const locale = locales.includes(firstSeg as (typeof locales)[number])
     ? (firstSeg as (typeof locales)[number])
     : defaultLocale
 
+  // With localePrefix "always", paths without /en/ or /ar/ need to be redirected once.
+  // Redirect /dashboard/* to /{locale}/dashboard/* so [locale] is not "dashboard" (which 404s).
   if (
     pathname.startsWith("/dashboard") &&
     !pathname.startsWith("/en/") &&
@@ -66,14 +48,8 @@ export default auth((req: NextRequest & { auth?: any }) => {
     return NextResponse.redirect(url)
   }
 
-  if (isProtectedPath(pathname) && !req.auth) {
-    const signInUrl = new URL(`/${locale}/sign-in`, nextUrl.origin)
-    signInUrl.searchParams.set("callbackUrl", pathname)
-    return NextResponse.redirect(signInUrl)
-  }
-
   return intlMiddleware(req)
-})
+}
 
 export const config = {
   matcher: ["/((?!_next|_vercel|api|.*\\..*).*)"],

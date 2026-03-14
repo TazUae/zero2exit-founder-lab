@@ -2,7 +2,7 @@
 
 **Date:** March 5, 2026  
 **Auditor:** Staff Engineer — Full End-to-End Audit  
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · tRPC 11 · PostgreSQL (Prisma 6) · Fastify · Redis · Clerk · Stripe · Perplexity · Gemini/Groq/NVIDIA LLMs
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · tRPC 11 · PostgreSQL (Prisma 6) · Fastify · Redis · OIDC-ready auth (Authentik planned) · Stripe · Perplexity · Gemini/Groq/NVIDIA LLMs
 
 ---
 
@@ -10,7 +10,7 @@
 
 ```
 Frontend (Next.js 16 App Router)
-  → tRPC React Query client (httpBatchLink + Clerk JWT)
+  → tRPC React Query client (httpBatchLink)
   → Fastify API (/api/trpc)
     → tRPC routers (gateway, m01, m02, dashboard, founder, coach, documents, payments, startup, knowledge)
       → Services (research, competitor-intelligence, knowledge-graph, agent-orchestrator)
@@ -18,7 +18,7 @@ Frontend (Next.js 16 App Router)
       → Redis (caching, rate-limiting, distributed locks)
       → LLM Router (Gemini → Groq → NVIDIA, task-aware fallback)
       → Perplexity API (competitive research)
-      → External: Clerk (auth), Stripe (payments), S3 (storage), DocuSign (documents)
+      → External: Stripe (payments), S3 (storage), DocuSign (documents)
 ```
 
 ### Router Map

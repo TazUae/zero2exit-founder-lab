@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { CoachClient } from "./CoachClient"
 
@@ -15,8 +13,6 @@ export default async function CoachPage() {
     )
   }
 
-  const { userId } = await auth()
-  if (!userId) redirect("/sign-in")
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
       <CoachClient />

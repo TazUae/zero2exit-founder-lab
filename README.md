@@ -17,10 +17,10 @@ Zero2Exit-Founder-Lab-main/
 ```
 
 **Backend stack:** Fastify 4, tRPC, Prisma (PostgreSQL), Redis, BullMQ,
-Clerk auth, Stripe, NVIDIA NIM (Kimi K2.5 + FLUX.1)
+OIDC-ready auth (Authentik planned), Stripe, NVIDIA NIM (Kimi K2.5 + FLUX.1)
 
 **Frontend stack:** Next.js 16 App Router, Tailwind CSS, shadcn/ui,
-Clerk, tRPC client, Zustand, next-intl (Arabic/English/RTL)
+tRPC client, Zustand, next-intl (Arabic/English/RTL)
 
 ---
 
@@ -29,7 +29,7 @@ Clerk, tRPC client, Zustand, next-intl (Arabic/English/RTL)
 - Node.js 20+
 - PostgreSQL (or self-hosted Supabase)
 - Redis
-- Clerk account (publishable + secret key)
+- OIDC identity provider (Authentik recommended)
 - NVIDIA NIM API key (for Kimi K2.5 AI + FLUX.1 logo generation)
 - Stripe account (optional for payments)
 - AWS S3 bucket (optional for document storage)
@@ -47,15 +47,12 @@ Required variables:
 ```
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
 REDIS_URL=redis://localhost:6379
-CLERK_SECRET_KEY=sk_...
-CLERK_WEBHOOK_SECRET=whsec_...
 NVIDIA_API_KEY=nvapi-...
 FRONTEND_URL=http://localhost:3001
 ```
 
 **Frontend** — create zero2exit-frontend/.env.local:
 ```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 NEXT_PUBLIC_API_URL=http://localhost:3000
 PLAYWRIGHT_BYPASS_SECRET=playwright-bypass-secret-zero2exit-dev-only
 PLAYWRIGHT_TEST_FOUNDER_ID=<your test founder id from DB>

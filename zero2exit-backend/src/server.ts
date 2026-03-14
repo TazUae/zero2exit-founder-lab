@@ -7,7 +7,6 @@ import rateLimit from '@fastify/rate-limit'
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
 import { appRouter } from './routers/index.js'
 import { createContext } from './trpc.js'
-import { clerkWebhook } from './webhooks/clerk.js'
 import { stripeWebhook } from './webhooks/stripe.js'
 import { db } from './lib/db.js'
 import { redis } from './lib/storage/redis.js'
@@ -82,7 +81,6 @@ async function start() {
   })
 
   // Webhooks — raw routes outside tRPC
-  server.post('/webhooks/clerk', clerkWebhook)
   server.post('/webhooks/stripe', stripeWebhook)
 
   // Health check — GET /health (parallel checks so total latency = max(timeout) not sum)

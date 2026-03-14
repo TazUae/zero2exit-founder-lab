@@ -8,7 +8,6 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DIRECT_URL: z.string().optional(),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
-  CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
   GEMINI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   NVIDIA_API_KEY: z.string().optional(),
@@ -68,7 +67,6 @@ function parseEnv(): Env {
     const requiredInProd: Array<keyof Env> = [
       'DATABASE_URL',
       'REDIS_URL',
-      'CLERK_SECRET_KEY',
     ]
     const missing = requiredInProd.filter((key) => {
       const value = result.data[key]

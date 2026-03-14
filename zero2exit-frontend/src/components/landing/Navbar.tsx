@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
 
 const navLinks = [
   { label: "Platform", href: "#journey" },
@@ -13,8 +12,7 @@ const navLinks = [
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
-  const { data: session, status } = useSession()
-  const isSignedIn = status === "authenticated"
+  const isSignedIn = false
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
