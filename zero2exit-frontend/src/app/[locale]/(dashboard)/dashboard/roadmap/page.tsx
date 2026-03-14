@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 export default function DashboardRoadmapPage() {
   // Temporary coming-soon view for Roadmap
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
       <p className="text-slate-400 text-sm">
         Your AI-powered execution roadmap is not live yet.
       </p>
@@ -240,7 +240,7 @@ export default function DashboardRoadmapPage() {
   const result = generateRoadmap.data
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
       <p className="text-slate-400 text-sm">
         Generate a full startup roadmap powered by the Zero2Exit agent swarm.
       </p>

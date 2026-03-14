@@ -1,9 +1,10 @@
-'use client'
-
+ 'use client'
+ 
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
+import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import {
@@ -23,7 +24,6 @@ import {
   Wallet,
   Flag,
 } from "lucide-react"
-import { UserButton } from "@clerk/nextjs"
 import {
   Tooltip,
   TooltipContent,
@@ -55,12 +55,13 @@ export function Sidebar() {
   const { sidebarOpen, setSidebarOpen } = useAppStore()
   const prefix = `/${locale}`
   const [mounted, setMounted] = useState(false)
+  const { data: session } = useSession()
   useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-full bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 z-40",
+        "fixed left-0 top-0 h-full bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0 transition-all duration-300 z-40",
         sidebarOpen ? "w-64" : "w-16"
       )}
     >
@@ -158,7 +159,22 @@ export function Sidebar() {
           )}
         >
           {mounted ? (
-            <UserButton />
+            session ? (
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-800 text-slate-100 text-xs font-medium hover:bg-slate-700 transition-colors"
+              >
+                <span className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-bold">
+                  {session.user?.name?.[0]?.toUpperCase() ??
+                    session.user?.email?.[0]?.toUpperCase() ??
+                    "U"}
+                </span>
+                {sidebarOpen && <span>Sign out</span>}
+              </button>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0" aria-hidden />
+            )
           ) : (
             <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0" aria-hidden />
           )}

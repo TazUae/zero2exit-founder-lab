@@ -4,7 +4,7 @@ import { IdeaValidationWorkspace } from "@/components/m01/IdeaValidationWorkspac
 
 export default function DashboardM01Page() {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
       <IdeaValidationWorkspace />
     </div>
   )

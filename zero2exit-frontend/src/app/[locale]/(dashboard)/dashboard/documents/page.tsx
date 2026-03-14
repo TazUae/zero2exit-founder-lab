@@ -2,7 +2,7 @@
 
 export default function DashboardDocumentsPage() {
   return (
-    <div className="p-6 space-y-4">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
       <h1 className="text-2xl font-semibold text-white">Documents – Coming Soon</h1>
       <p className="text-slate-400">
         We&apos;re working on a centralized workspace for your startup documents, templates, and investor-ready materials.

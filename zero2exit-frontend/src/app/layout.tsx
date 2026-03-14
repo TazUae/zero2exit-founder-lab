@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ClerkProvider } from "@clerk/nextjs"
 import React from "react"
+import { SessionProvider } from "next-auth/react"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -17,12 +17,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className={inter.className} suppressHydrationWarning>
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
+    </html>
   )
 }

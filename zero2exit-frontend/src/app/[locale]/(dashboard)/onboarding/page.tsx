@@ -263,7 +263,7 @@ export default function OnboardingPage() {
     errors[currentFieldId]?.message as string | undefined
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">{t('title')}</h1>

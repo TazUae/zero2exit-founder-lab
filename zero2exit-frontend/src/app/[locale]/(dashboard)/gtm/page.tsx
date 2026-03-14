@@ -413,7 +413,7 @@ export default function GtmPage() {
   const hasFailedAfterRun = !isGeneratingAll && generateAllResults.failed.length > 0
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
