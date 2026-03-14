@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
+import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import {
@@ -52,6 +53,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const locale = useLocale()
   const { sidebarOpen, setSidebarOpen } = useAppStore()
+  const { data: session } = useSession()
   const prefix = `/${locale}`
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])
@@ -153,16 +155,34 @@ export function Sidebar() {
         <div
           className={cn(
             "flex items-center",
-            sidebarOpen ? "gap-3" : "justify-center"
+            sidebarOpen ? "gap-2" : "justify-center"
           )}
         >
-          {mounted ? (
-            <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0" aria-hidden />
+          {mounted && session?.user?.image ? (
+            <img
+              src={session.user.image}
+              className="w-8 h-8 rounded-full flex-shrink-0"
+              alt="avatar"
+            />
           ) : (
             <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0" aria-hidden />
           )}
           {sidebarOpen && (
-            <span className="text-sm text-slate-400 truncate">Account</span>
+            <span className="text-xs text-slate-400 truncate flex-1">
+              {session?.user?.name ?? session?.user?.email ?? 'Account'}
+            </span>
+          )}
+          {sidebarOpen && (
+            <button
+              onClick={() => signOut({ callbackUrl: '/en/sign-in' })}
+              className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+              title="Sign out"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
           )}
         </div>
         <button

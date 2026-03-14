@@ -5,9 +5,11 @@ import { redis } from './lib/storage/redis.js'
 import type { PrismaClient } from '@prisma/client'
 import type { Redis } from 'ioredis'
 import { logger } from './lib/logger.js'
+import { verifyAuthentikToken } from './lib/auth/verifyToken.js'
+import { getOrCreateFounder } from './lib/auth/getOrCreateFounder.js'
 
 export type Context = {
-  founderId: string
+  founderId: string | null
   db: PrismaClient
   redis: Redis
 }
@@ -15,8 +17,7 @@ export type Context = {
 export async function createContext(opts: {
   req: FastifyRequest
 }): Promise<Context> {
-  // TEST MODE: bypass auth with a test founder ID
-  // Only works when NODE_ENV=development AND header x-test-founder-id is present
+  // Dev bypass: x-test-founder-id header (development only)
   if (
     process.env.NODE_ENV === 'development' &&
     opts.req.headers['x-test-founder-id']
@@ -25,32 +26,24 @@ export async function createContext(opts: {
     return { founderId, db, redis }
   }
 
-  // Temporary auth stub: require a Bearer token, treat the token value as
-  // the external founder identity, and look up/create a Founder record using
-  // the existing `clerkUserId` column as a generic external ID.
   const authHeader = opts.req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
-    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Missing token' })
-  }
-  const externalId = authHeader.slice(7).trim()
-  if (!externalId) {
-    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Missing external user id' })
+    return { founderId: null, db, redis }
   }
 
-  let founder = await db.founder.findUnique({ where: { clerkUserId: externalId } })
-  if (!founder) {
-    founder = await db.founder.create({
-      data: {
-        clerkUserId: externalId,
-        email: '',
-        name: null,
-        plan: 'launch',
-        language: 'en',
-      },
-    })
+  const token = authHeader.slice(7).trim()
+  if (!token) {
+    return { founderId: null, db, redis }
   }
 
-  return { founderId: founder.id, db, redis }
+  try {
+    const authentikUserId = await verifyAuthentikToken(token)
+    const founder = await getOrCreateFounder(authentikUserId, db)
+    return { founderId: founder.id, db, redis }
+  } catch (err) {
+    logger.warn({ err }, 'JWT verification failed')
+    return { founderId: null, db, redis }
+  }
 }
 
 const t = initTRPC.context<Context>().create()
@@ -98,7 +91,8 @@ export const router = t.router
 export const publicProcedure = t.procedure
 export const protectedProcedure = t.procedure.use(async ({ ctx, path, next }) => {
   if (!ctx.founderId) throw new TRPCError({ code: 'UNAUTHORIZED' })
-  await checkExpensiveRateLimit(ctx.redis, ctx.founderId, path)
-  return next({ ctx })
+  // Re-spread after null-check so downstream procedures see founderId: string
+  const founderId = ctx.founderId
+  await checkExpensiveRateLimit(ctx.redis, founderId, path)
+  return next({ ctx: { ...ctx, founderId } })
 })
-
