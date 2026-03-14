@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
+import type { InputJsonValue } from '@prisma/client/runtime/library'
 
-type Json = unknown
+type Json = InputJsonValue
 
 // Compatible with both PrismaClient and Prisma interactive-transaction client
 export type TxClient = Omit<

@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import type { InputJsonValue } from '@prisma/client/runtime/library'
 import { router, protectedProcedure } from '../../trpc.js'
 import { generateFounderRoadmap } from '../../services/agent-orchestrator.service.js'
 import { appendFileSync } from 'node:fs'
 
-type Json = unknown
+type Json = InputJsonValue
 
 export const startupRouter = router({
   generateRoadmap: protectedProcedure

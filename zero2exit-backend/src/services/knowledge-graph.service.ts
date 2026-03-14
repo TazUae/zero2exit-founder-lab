@@ -1,3 +1,4 @@
+import type { InputJsonValue } from '@prisma/client/runtime/library'
 import { db } from '../lib/db.js'
 import { logger } from '../lib/logger.js'
 
@@ -20,7 +21,7 @@ export type KnowledgeEdge = {
   createdAt: Date
 }
 
-type Json = unknown
+type Json = InputJsonValue
 
 export type StartupGraph = {
   nodes: KnowledgeNode[]

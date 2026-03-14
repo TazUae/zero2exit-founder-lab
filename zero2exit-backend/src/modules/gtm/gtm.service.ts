@@ -300,7 +300,7 @@ async function syncDocumentStatus(
   }
 }
 
-type Json = unknown
+type Json = import('@prisma/client/runtime/library').InputJsonValue
 
 async function upsertSection(params: {
   gtmDocumentId: string

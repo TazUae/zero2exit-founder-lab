@@ -106,7 +106,7 @@ const BrandIdentitySchema = z
   })
   .passthrough()
 
-type Json = unknown
+type Json = import('@prisma/client/runtime/library').InputJsonValue
 type BrandIdentityOutput = z.infer<typeof BrandIdentitySchema>
 
 export const brandRouter = router({
