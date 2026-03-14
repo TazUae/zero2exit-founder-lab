@@ -26,7 +26,7 @@ export async function writeAuditLog(params: {
       action: params.action,
       resourceType: params.resourceType,
       resourceId: params.resourceId,
-      metadata: params.metadata,
+      metadata: params.metadata ?? undefined,
       ipAddress: params.ipAddress,
     },
   })
