@@ -1,6 +1,4 @@
-// Temporary TRPC stub to allow frontend build without backend types
+import { createTRPCReact } from '@trpc/react-query'
+import type { AppRouter } from '@zero2exit/backend/routers/index'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const trpc: any = {
-  useUtils: () => ({}),
-}
+export const trpc = createTRPCReact<AppRouter>()

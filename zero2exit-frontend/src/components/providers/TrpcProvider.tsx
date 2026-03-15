@@ -1,26 +1,44 @@
 'use client'
 
-import { getSession } from 'next-auth/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { httpBatchLink } from '@trpc/client'
+import { getSession } from 'next-auth/react'
+import { trpc } from '@/lib/trpc'
 
-// tRPC is stubbed while the backend integration is being wired up.
-// SessionProvider and auth headers are in place for when it is re-enabled.
 export function TrpcProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient())
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        retry: 1,
+      },
+    },
+  }))
 
-  // Auth header factory — used by tRPC httpBatchLink when re-enabled:
-  //   async headers() {
-  //     const session = await getSession()
-  //     return {
-  //       Authorization: session?.accessToken ? `Bearer ${session.accessToken}` : '',
-  //     }
-  //   }
-  void getSession // referenced so the import is not tree-shaken
+  const [trpcClient] = useState(() =>
+    trpc.createClient({
+      links: [
+        httpBatchLink({
+          url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+          async headers() {
+            const session = await getSession()
+            return {
+              Authorization: session?.accessToken
+                ? `Bearer ${session.accessToken}`
+                : '',
+            }
+          },
+        }),
+      ],
+    }),
+  )
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </trpc.Provider>
   )
 }
