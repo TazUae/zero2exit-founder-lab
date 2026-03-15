@@ -211,14 +211,15 @@ export default function OnboardingPage() {
   const isLast = step === QUESTIONS.length - 1
   const progress = ((step + 1) / QUESTIONS.length) * 100
 
-  // Temporary placeholder so the app can build without backend routers.
-  const submitQuestionnaire = {
-    mutate: (_input: unknown) => {
-      toast.success('Onboarding responses saved (stub).')
+  const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
+    onSuccess: () => {
+      toast.success('Onboarding complete! Analysing your responses…')
       router.push('/dashboard')
     },
-    isPending: false,
-  }
+    onError: (err) => {
+      toast.error(err.message ?? 'Submission failed. Please try again.')
+    },
+  })
 
   /** watch() subscribes to value changes and triggers re-renders, unlike getValues(). */
   const currentFieldId = question.id as keyof OnboardingFormValues

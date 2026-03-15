@@ -25,9 +25,7 @@ const stageColors: Record<string, string> = {
 export function DashboardClient() {
   const t = useTranslations("dashboard")
   const tNav = useTranslations("nav")
-  const data: any = null
-  const isLoading = false
-  const error: any = null
+  const { data, isLoading, error } = trpc.founder.getDashboard.useQuery()
 
   if (isLoading) {
     return (

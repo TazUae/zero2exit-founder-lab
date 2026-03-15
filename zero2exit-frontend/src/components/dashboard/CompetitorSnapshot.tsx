@@ -80,13 +80,7 @@ const COMPETITOR_AI_PROMPT = 'Explain my competitive positioning.'
 export function CompetitorSnapshot() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const openCoach = useOpenCoach().openCoach
-  // Temporary placeholders so the app can build without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any = null
-  const isLoading = false
-  const error: { message?: string } | null = null
-  const isFetching = false
-  const refetch = () => {}
+  const { data, isLoading, error, isFetching, refetch } = trpc.dashboard.getCompetitorSnapshot.useQuery()
 
   const competitors = (data?.competitors ?? []) as Competitor[]
   const selectedCompetitor = selectedIndex !== null ? competitors[selectedIndex] ?? null : null

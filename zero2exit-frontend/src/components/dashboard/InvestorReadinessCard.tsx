@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useLocale } from 'next-intl'
 import { ShieldCheck, ChevronRight, MessageCircle } from 'lucide-react'
+import { trpc } from '@/lib/trpc'
 import { useOpenCoach } from '@/lib/open-coach-context'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,11 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export function InvestorReadinessCard() {
   const locale = useLocale()
   const openCoach = useOpenCoach().openCoach
-  // Temporary placeholders so the app can build without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any = null
-  const isLoading = false
-  const error = null
+  const { data, isLoading, error } = trpc.dashboard.getInvestorReadiness.useQuery()
 
   if (isLoading) {
     return (
