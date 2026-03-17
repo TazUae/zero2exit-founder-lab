@@ -66,6 +66,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://backend:3000
+        NEXT_PUBLIC_SUPABASE_URL: https://api.zaidan-group.com
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogImFub24iLCAiaXNzIjogInN1cGFiYXNlIiwgImlhdCI6IDE3NzI1NTY4NzQsICJleHAiOiAyMDg4MTc2MDc0fQ.Yy6b50LOrW-6oOdRze8_Dq6vTJZii3zuODo2JDobgJA
 
     env_file:
       - .env
