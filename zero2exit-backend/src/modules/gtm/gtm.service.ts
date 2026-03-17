@@ -387,11 +387,38 @@ export async function generateGtmSection(
         knowledgeSummary: ctx.knowledgeSummary,
       })
 
-      const raw = await llmCall(
+      let raw = await llmCall(
         'gtm.section',
         [{ role: 'user', content: prompt.user }],
         prompt.system,
       )
+
+      const visualSectionKeys: Record<string, string> = {
+        target_customer: 'marketSizing',
+        competitive_landscape: 'competitors',
+        launch_plan_90_day: 'timeline',
+        kpis_metrics: 'kpis',
+      }
+      const requiredKey = visualSectionKeys[input.sectionKey]
+
+      // If this section requires a visual payload, check early and retry once if missing.
+      if (requiredKey) {
+        const firstParsed = safeParseSectionJSON(raw)
+        if (firstParsed.ok && firstParsed.normalized[requiredKey] == null) {
+          logger.warn(
+            { sectionKey: input.sectionKey, requiredKey },
+            'gtm.section: visual payload missing after first attempt, retrying',
+          )
+          raw = await llmCall(
+            'gtm.section',
+            [{
+              role: 'user',
+              content: `${prompt.user}\n\nCRITICAL REMINDER: Your previous response was missing the required "${requiredKey}" JSON key. You MUST include it in this response or the section will be marked as failed. Do not omit it.`,
+            }],
+            prompt.system,
+          )
+        }
+      }
 
       const parsed = safeParseSectionJSON(raw)
       const title =
@@ -416,13 +443,6 @@ export async function generateGtmSection(
         ? { ...parsed.normalized }
         : { content: contentText, _parse: 'fallback' }
 
-      const visualSectionKeys: Record<string, string> = {
-        target_customer: 'marketSizing',
-        competitive_landscape: 'competitors',
-        launch_plan_90_day: 'timeline',
-        kpis_metrics: 'kpis',
-      }
-      const requiredKey = visualSectionKeys[input.sectionKey]
       if (requiredKey) {
         const hasVisual = contentObj[requiredKey] != null
         logger.info(

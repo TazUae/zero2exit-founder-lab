@@ -5,13 +5,29 @@ import { redis } from './lib/storage/redis.js'
 import type { PrismaClient } from '@prisma/client'
 import type { Redis } from 'ioredis'
 import { logger } from './lib/logger.js'
-import { verifyAuthentikToken } from './lib/auth/verifyToken.js'
+import jwt from 'jsonwebtoken'
 import { getOrCreateFounder } from './lib/auth/getOrCreateFounder.js'
+import { env } from './config/env.js'
 
 export type Context = {
   founderId: string | null
   db: PrismaClient
   redis: Redis
+}
+
+function verifySupabaseToken(token: string): { sub: string; email: string } {
+  const payload = jwt.verify(token, env.SUPABASE_JWT_SECRET, {
+    algorithms: ['HS256'],
+  }) as jwt.JwtPayload
+
+  if (!payload.sub) {
+    throw new Error('Token missing sub claim')
+  }
+
+  return {
+    sub: payload.sub,
+    email: typeof payload.email === 'string' ? payload.email : '',
+  }
 }
 
 export async function createContext(opts: {
@@ -28,6 +44,9 @@ export async function createContext(opts: {
 
   const authHeader = opts.req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug({ hasHeader: !!authHeader, headerVal: authHeader?.slice(0, 20) }, 'auth: no Bearer header')
+    }
     return { founderId: null, db, redis }
   }
 
@@ -37,11 +56,12 @@ export async function createContext(opts: {
   }
 
   try {
-    const authentikUserId = await verifyAuthentikToken(token)
-    const founder = await getOrCreateFounder(authentikUserId, db)
+    const { sub: supabaseUserId, email } = verifySupabaseToken(token)
+    const founder = await getOrCreateFounder(supabaseUserId, email, db)
     return { founderId: founder.id, db, redis }
   } catch (err) {
-    logger.warn({ err }, 'JWT verification failed')
+    const errMsg = err instanceof Error ? err.message : String(err)
+    logger.warn({ errMsg, tokenPrefix: token.slice(0, 20) }, 'JWT verification failed')
     return { founderId: null, db, redis }
   }
 }

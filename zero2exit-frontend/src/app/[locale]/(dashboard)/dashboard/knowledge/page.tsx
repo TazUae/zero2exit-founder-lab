@@ -8,6 +8,7 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card"
+import { trpc } from "@/lib/trpc"
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
@@ -36,9 +37,7 @@ const nodeColors: Record<string, string> = {
 }
 
 export default function KnowledgeGraphPage() {
-  const data = { nodes: [] as KnowledgeNode[], edges: [] as KnowledgeEdge[] }
-  const isLoading = false
-  const error = null
+  const { data, isLoading, error } = trpc.knowledge.getGraph.useQuery()
 
   const nodes = (data?.nodes ?? [] as KnowledgeNode[]).map((n) => ({
     id: n.id,

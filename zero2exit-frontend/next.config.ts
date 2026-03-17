@@ -3,10 +3,14 @@ import createNextIntlPlugin from "next-intl/plugin"
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003"
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Type checking is handled by CI (tsc --noEmit) — skip during Docker builds
+  // so the image can be built without the full backend source tree being available.
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   env: {
     // Expose to Edge Runtime middleware (non-NEXT_PUBLIC_ vars are invisible there by default)
     // Guard: only bake the secret into the bundle in non-production environments.

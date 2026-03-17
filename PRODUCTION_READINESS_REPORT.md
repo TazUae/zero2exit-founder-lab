@@ -2,7 +2,7 @@
 
 **Date:** March 5, 2026  
 **Auditor:** Staff Engineer — Full End-to-End Audit  
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · tRPC 11 · PostgreSQL (Prisma 6) · Fastify · Redis · OIDC-ready auth (Authentik planned) · Stripe · Perplexity · Gemini/Groq/NVIDIA LLMs
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind v4 · tRPC 11 · PostgreSQL (Prisma 6) · Fastify · Redis · Supabase Auth (email/password, self-hosted) · Stripe · Perplexity · Gemini/Groq/NVIDIA LLMs
 
 ---
 
@@ -168,17 +168,17 @@ Frontend (Next.js 16 App Router)
 - **Recommendation:** Add input sanitization to strip control-like patterns. Consider output validation (all LLM outputs go through `extractJSON` or `parseJSONOrThrow` which provides some structural safety).
 
 ### SEC-002: Dev Auth Bypass Header
-- `x-test-founder-id` bypasses Clerk auth. Gated behind `NODE_ENV === 'development'`.
+- `x-test-founder-id` bypasses Supabase auth. Gated behind `NODE_ENV === 'development'`.
 - **Risk:** Low if `NODE_ENV` is always `production` in deployment. Verify CI/CD sets this correctly.
 
 ### SEC-003: Missing Env Validation for External Service Keys
-- `env.ts` validates core keys (DATABASE_URL, REDIS_URL, CLERK_SECRET_KEY) but not Stripe, AWS, DocuSign keys.
+- `env.ts` validates core keys (DATABASE_URL, REDIS_URL, SUPABASE_JWT_SECRET) but not Stripe, AWS, DocuSign keys.
 - Runtime failures will occur when those features are used without proper keys.
 - **Recommendation:** Add optional validation with runtime warnings for Stripe/AWS/DocuSign keys.
 
-### SEC-004: Non-null Assertion on `CLERK_SECRET_KEY`
-- `trpc.ts:37`: `process.env.CLERK_SECRET_KEY!` — safe because `env.ts` validates it at boot.
-- **Risk:** None if `env.ts` is always imported before `trpc.ts`. Current boot order (via `server.ts`) ensures this.
+### SEC-004: `SUPABASE_JWT_SECRET` Validated at Boot
+- `env.ts` requires `SUPABASE_JWT_SECRET` at startup. `trpc.ts` uses it for local HS256 JWT verification.
+- **Risk:** None. `env.ts` is always imported before `trpc.ts` via `server.ts` boot order.
 
 ### SEC-005: Internal Error Messages Properly Hidden
 - `server.ts` error handler returns generic "Internal Server Error" for 500s.

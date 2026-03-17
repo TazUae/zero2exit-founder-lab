@@ -264,16 +264,8 @@ export function IdeaValidationWorkspace() {
   const [pipelineSteps, setPipelineSteps] = useState<Record<PipelineStepKey, PipelineStepStatus>>(INITIAL_PIPELINE)
   const [moduleErrors, setModuleErrors] = useState<Record<string, string>>({})
 
-  // Temporary stubs so the frontend can build without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const utils: any = { m01: { getState: { invalidate: async () => {} } } }
-
-  // ── State query (disabled) ──
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const state: any = null
-  const isStateLoading = false
-  const isStateFetching = false
-  const stateError = null
+  const utils = trpc.useUtils()
+  const { data: state, isLoading: isStateLoading, isFetching: isStateFetching, error: stateError } = trpc.m01.getState.useQuery()
 
   useEffect(() => {
     const ideaValidation = state?.ideaValidation as
@@ -307,38 +299,10 @@ export function IdeaValidationWorkspace() {
     return () => window.removeEventListener("keydown", handler)
   }, [])
 
-  // ── Mutations (disabled) ──
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const submitIdea: any = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutateAsync: async (_input: any) => ({}),
-    data: {},
-    isPending: false,
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const marketSizing: any = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutateAsync: async (_input: any) => ({}),
-    data: {},
-    isPending: false,
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const icpProfiles: any = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutateAsync: async (_input: any) => ({}),
-    data: {},
-    isPending: false,
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scorecard: any = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutateAsync: async (_input: any) => ({}),
-    data: {},
-    isPending: false,
-  }
+  const submitIdea = trpc.m01.submitBusinessDescription.useMutation()
+  const marketSizing = trpc.m01.getMarketSizing.useMutation()
+  const icpProfiles = trpc.m01.getIcpProfiles.useMutation()
+  const scorecard = trpc.m01.getScorecard.useMutation()
 
   type IdeaValidationState = {
     objections?: unknown[]

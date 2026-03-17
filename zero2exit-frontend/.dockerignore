@@ -2,4 +2,34 @@ node_modules
 .next
 .env
 .env.local
+.env.*.local
 *.log
+
+# Git
+.git
+.gitignore
+
+# Tests & coverage
+coverage
+e2e
+playwright-report
+test-results
+*.test.ts
+*.spec.ts
+playwright.config.*
+
+# Dev tooling
+eslint.config.mjs
+.eslintrc*
+
+# Docs
+*.md
+docs
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# Storybook
+.storybook
+storybook-static

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { trpc } from '@/lib/trpc'
 
 type RiskType = 'market' | 'competition' | 'execution' | 'financial' | 'regulatory'
 
@@ -22,11 +23,7 @@ const riskConfig: Record<RiskType, { icon: React.ElementType; label: string; col
 }
 
 export function RiskAlerts() {
-  // Temporary placeholders so the app can build without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any = null
-  const isLoading = false
-  const error = null
+  const { data, isLoading, error } = trpc.dashboard.getRiskAlerts.useQuery()
 
   if (isLoading) {
     return (

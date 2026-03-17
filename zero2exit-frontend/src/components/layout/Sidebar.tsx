@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
-import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/AuthContext"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import {
@@ -53,8 +55,15 @@ export function Sidebar() {
   const pathname = usePathname()
   const locale = useLocale()
   const { sidebarOpen, setSidebarOpen } = useAppStore()
-  const { data: session } = useSession()
+  const { user } = useAuth()
+  const router = useRouter()
   const prefix = `/${locale}`
+
+  async function handleSignOut() {
+    const supabase = getSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    router.push('/en/sign-in')
+  }
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])
 
@@ -158,9 +167,9 @@ export function Sidebar() {
             sidebarOpen ? "gap-2" : "justify-center"
           )}
         >
-          {mounted && session?.user?.image ? (
+          {mounted && user?.user_metadata?.avatar_url ? (
             <img
-              src={session.user.image}
+              src={user.user_metadata.avatar_url as string}
               className="w-8 h-8 rounded-full flex-shrink-0"
               alt="avatar"
             />
@@ -169,12 +178,12 @@ export function Sidebar() {
           )}
           {sidebarOpen && (
             <span className="text-xs text-slate-400 truncate flex-1">
-              {session?.user?.name ?? session?.user?.email ?? 'Account'}
+              {(user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? 'Account'}
             </span>
           )}
           {sidebarOpen && (
             <button
-              onClick={() => signOut({ callbackUrl: '/en/sign-in' })}
+              onClick={handleSignOut}
               className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
               title="Sign out"
             >

@@ -114,7 +114,7 @@ const TASK_CONFIG: Record<LLMTask, { maxTokens: number; jsonMode: boolean }> = {
   'coach.proactiveSuggestion': { maxTokens: 500,  jsonMode: true  },
   'dashboard.competitorSnapshot': { maxTokens: 2000, jsonMode: true },
   'gtm.roadmap':               { maxTokens: 2000, jsonMode: true  },
-  'gtm.section':               { maxTokens: 3000, jsonMode: true  },
+  'gtm.section':               { maxTokens: 5000, jsonMode: true  },
   'gtm.critique':              { maxTokens: 2500, jsonMode: true  },
   'brand.generate':            { maxTokens: 4000, jsonMode: true  },
 }

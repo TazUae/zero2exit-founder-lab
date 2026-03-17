@@ -93,14 +93,14 @@ export function BrandIdentityClient() {
   const [form, setForm] = useState<FormState>({} as FormState)
   const [showForm, setShowForm] = useState(false)
 
-  const data = null
-  const isLoading = false
-  const refetch = () => {}
+  const { data, isLoading, refetch } = trpc.brand.getIdentity.useQuery()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01Data = (trpc.m01.getState.useQuery().data as any) ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gatewayData = (trpc.gateway.getModulePlan.useQuery(undefined, { retry: false }).data as any) ?? null
 
-  const m01Data = null
-  const gatewayData = null
-
-  const brand: BrandData | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const brand: BrandData | null = (data as any)?.brand ?? null
 
   // Autofill from existing founder data
   useEffect(() => {
@@ -151,13 +151,10 @@ export function BrandIdentityClient() {
     [form],
   )
 
-  const generate = {
-    mutate: async (_payload: unknown) => {
-      console.log("generate brand identity placeholder", _payload)
-    },
-    isLoading: false,
-    isPending: false,
-  }
+  const generate = trpc.brand.generate.useMutation({
+    onSuccess: () => { void refetch() },
+    onError: (err) => { toast.error(err.message ?? 'Brand generation failed. Please try again.') },
+  })
 
   function handleSubmit() {
     const missing = QUESTIONS.filter((q) => !form[q.id]?.trim())
@@ -374,27 +371,175 @@ export function BrandIdentityClient() {
         </TabsList>
 
         <TabsContent value="names" className="mt-4 space-y-3">
-          {/* Brand name ideas temporarily disabled while brand router is offline */}
+          {(brand?.brandNames ?? []).length === 0 ? (
+            <p className="text-sm text-slate-500">No brand names generated yet.</p>
+          ) : (
+            brand?.brandNames?.map((n, i) => (
+              <div key={i} className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-base font-semibold text-white">{n.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs text-amber-300 font-medium">{n.score}/10</span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">{n.rationale}</p>
+                <p className="text-xs text-slate-500">Domain: {n.domain}</p>
+              </div>
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="colors" className="mt-4">
-          {/* Brand color palette temporarily disabled while brand router is offline */}
+          {(brand?.colorPalette ?? []).length === 0 ? (
+            <p className="text-sm text-slate-500">No color palette generated yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {brand?.colorPalette?.map((c, i) => (
+                <div key={i} className="rounded-xl border border-slate-800 bg-slate-900 p-3 space-y-2">
+                  <div
+                    className="h-12 rounded-lg"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <p className="text-sm font-medium text-white">{c.name}</p>
+                  <p className="text-xs font-mono text-slate-400">{c.hex}</p>
+                  <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-400">{c.role}</Badge>
+                  <p className="text-xs text-slate-500">{c.meaning}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="typography" className="mt-4 space-y-3">
-          {/* Brand typography preview temporarily disabled while brand router is offline */}
+          {!brand?.typography ? (
+            <p className="text-sm text-slate-500">No typography generated yet.</p>
+          ) : (
+            [
+              { label: "Heading", data: brand.typography.heading },
+              { label: "Body", data: brand.typography.body },
+              ...(brand.typography.accent ? [{ label: "Accent", data: brand.typography.accent }] : []),
+            ].map(({ label, data: t }) => (
+              <div key={label} className="rounded-xl border border-slate-800 bg-slate-900 p-4 flex items-start gap-4">
+                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
+                  <Type className="w-4 h-4 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+                  <p className="text-sm font-semibold text-white">{t.font} · {t.weight}</p>
+                  <p className="text-xs text-slate-400 mt-1">{t.rationale}</p>
+                </div>
+              </div>
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="logo" className="mt-4">
-          {/* Brand logo direction preview temporarily disabled while brand router is offline */}
+          {!brand?.logoDirection ? (
+            <p className="text-sm text-slate-500">No logo direction generated yet.</p>
+          ) : (
+            <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">Style</p>
+                  <p className="text-white">{brand.logoDirection.style}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">Mood</p>
+                  <p className="text-white">{brand.logoDirection.mood}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">Color Approach</p>
+                  <p className="text-white">{brand.logoDirection.colorApproach}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">Icon Concept</p>
+                  <p className="text-white">{brand.logoDirection.iconConcept}</p>
+                </div>
+              </div>
+              {brand.logoDirection.references.length > 0 && (
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">References</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {brand.logoDirection.references.map((r, i) => (
+                      <Badge key={i} variant="outline" className="text-xs border-slate-700 text-slate-300">{r}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {brand.logoDirection.avoidances.length > 0 && (
+                <div>
+                  <p className="text-slate-400 text-xs mb-1">Avoid</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {brand.logoDirection.avoidances.map((a, i) => (
+                      <Badge key={i} variant="outline" className="text-xs border-red-900/50 text-red-400">{a}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="taglines" className="mt-4 space-y-3">
-          {/* Brand taglines temporarily disabled while brand router is offline */}
+          {(brand?.taglines ?? []).length === 0 ? (
+            <p className="text-sm text-slate-500">No taglines generated yet.</p>
+          ) : (
+            brand?.taglines?.map((t, i) => (
+              <div key={i} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+                <p className="text-base font-medium text-white">&ldquo;{t.text}&rdquo;</p>
+                <div className="flex gap-3 mt-2">
+                  <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-400">{t.tone}</Badge>
+                  <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-400">{t.market}</Badge>
+                </div>
+              </div>
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="voice" className="mt-4 space-y-4">
-          {/* Brand voice preview temporarily disabled while brand router is offline */}
+          {!brand?.brandVoice ? (
+            <p className="text-sm text-slate-500">No brand voice generated yet.</p>
+          ) : (
+            <>
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-3">
+                <div>
+                  <p className="text-xs text-slate-400 mb-1.5">Personality traits</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {brand.brandVoice.personality.map((p, i) => (
+                      <Badge key={i} variant="outline" className="text-xs border-emerald-800/50 text-emerald-400">{p}</Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Tone</p>
+                  <p className="text-sm text-white">{brand.brandVoice.tone}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-emerald-900/40 bg-slate-900 p-4 space-y-2">
+                  <p className="text-xs font-semibold text-emerald-400">Do</p>
+                  <ul className="space-y-1">
+                    {brand.brandVoice.dos.map((d, i) => (
+                      <li key={i} className="text-xs text-slate-300">· {d}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-red-900/40 bg-slate-900 p-4 space-y-2">
+                  <p className="text-xs font-semibold text-red-400">Don&apos;t</p>
+                  <ul className="space-y-1">
+                    {brand.brandVoice.donts.map((d, i) => (
+                      <li key={i} className="text-xs text-slate-300">· {d}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+                <p className="text-xs text-slate-400 mb-2">Example copy</p>
+                <p className="text-sm text-slate-200 italic">&ldquo;{brand.brandVoice.exampleCopy}&rdquo;</p>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
 

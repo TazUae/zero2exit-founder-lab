@@ -10,38 +10,9 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { trpc } from "@/lib/trpc"
 
 export default function DashboardRoadmapPage() {
-  // Temporary coming-soon view for Roadmap
-  return (
-    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-      <p className="text-slate-400 text-sm">
-        Your AI-powered execution roadmap is not live yet.
-      </p>
-
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <CardTitle className="text-white text-xl">
-            Roadmap Generator – Coming Soon
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-slate-300">
-          <p>
-            We&apos;re building an AI agent swarm that will stitch together your
-            validation, legal structure, GTM and brand work into a single,
-            prioritized execution plan.
-          </p>
-          <p>
-            In this beta, you can already use the Idea Validation, Legal
-            Structure, Go-To-Market, and Brand Identity modules on the left. The
-            Roadmap view will launch soon to connect all of these into one
-            founder journey.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  )
-
   const [ideaDescription, setIdeaDescription] = useState("")
   const [industry, setIndustry] = useState("")
   const [geography, setGeography] = useState("")
@@ -52,36 +23,17 @@ export default function DashboardRoadmapPage() {
   const [showLongWaitHint, setShowLongWaitHint] = useState(false)
 
   const MIN_IDEA_LENGTH = 50
-  const generateRoadmap: {
-    mutate: (payload: unknown) => void
-    mutateAsync: (payload: unknown) => Promise<{
-      alignmentScore?: number
-      iterationCount?: number
-      roadmap?: Record<string, any>
-    } | null>
-    isLoading: boolean
-    isPending: boolean
-    error: { message?: string } | null
-    data: {
-      alignmentScore?: number
-      iterationCount?: number
-      roadmap?: Record<string, any>
-    } | null
-  } = {
-    mutate: (_payload: unknown) => {},
-    mutateAsync: async (_payload: unknown) => null,
-    isLoading: false,
-    isPending: false,
-    error: null,
-    data: null,
-  }
+  const generateRoadmap = trpc.startup.generateRoadmap.useMutation()
   const trimmedIdea = ideaDescription.trim()
   const ideaValid = trimmedIdea.length >= MIN_IDEA_LENGTH
 
   // ── Auto-fill from existing module data ──
-  const m01State: any = null
-  const m02State: any = null
-  const modulePlan: any = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01State: any = trpc.m01.getState.useQuery().data ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m02State: any = trpc.m02.getState.useQuery().data ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const modulePlan: any = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false }).data ?? null
 
   const autoFilled = useRef(false)
   useEffect(() => {
@@ -142,29 +94,6 @@ export default function DashboardRoadmapPage() {
     }
 
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `log_${Date.now()}_roadmap_submit`,
-          timestamp: Date.now(),
-          location: 'dashboard/roadmap/page.tsx:handleSubmit',
-          message: 'Submitting generateRoadmap',
-          runId: 'pre-fix',
-          hypothesisId: 'H1',
-          data: {
-            hasIdea: !!trimmedIdea,
-            industryLength: industry.length,
-            geographyProvided: !!geography,
-            targetSegmentProvided: !!targetSegment,
-            jurisdictionProvided: !!jurisdiction,
-            startupTypeProvided: !!startupType,
-          },
-        }),
-      }).catch(() => {})
-      // #endregion agent log
-
       await generateRoadmap.mutateAsync({
         ideaDescription: trimmedIdea,
         industry: industry.trim() || industry,
@@ -173,26 +102,7 @@ export default function DashboardRoadmapPage() {
         jurisdiction: jurisdiction || undefined,
         startupType: startupType || undefined,
       })
-    } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `log_${Date.now()}_roadmap_submit_error`,
-          timestamp: Date.now(),
-          location: 'dashboard/roadmap/page.tsx:handleSubmit',
-          message: 'generateRoadmap.mutateAsync threw',
-          runId: 'pre-fix',
-          hypothesisId: 'H1',
-          data: {
-            errorMessage: (err as Error)?.message,
-            errorName: (err as Error)?.name,
-          },
-        }),
-      }).catch(() => {})
-      // #endregion agent log
-
+    } catch {
       // Error is shown via generateRoadmap.error
     }
   }
@@ -201,24 +111,6 @@ export default function DashboardRoadmapPage() {
     const err = generateRoadmap.error
     if (!err) return ""
     const msg = err.message ?? ""
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6dbe86e5-6bd5-4abf-8661-57fc49fd3515', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: `log_${Date.now()}_roadmap_getErrorMessage`,
-        timestamp: Date.now(),
-        location: 'dashboard/roadmap/page.tsx:getErrorMessage',
-        message: 'generateRoadmap.error encountered',
-        runId: 'pre-fix',
-        hypothesisId: 'H1',
-        data: {
-          errorMessage: msg,
-          name: (err as unknown as Error).name,
-        },
-      }),
-    }).catch(() => {})
-    // #endregion agent log
     if (msg.includes("abort") || (err as unknown as Error).name === "AbortError") {
       return "Request took too long and was cancelled. Roadmap generation can take 2–5 minutes. Try again and wait, or check your backend is running and has valid API keys."
     }

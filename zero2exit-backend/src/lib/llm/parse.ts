@@ -19,6 +19,79 @@ export function stripCodeFences(text: string): string {
 }
 
 /**
+ * Convert single-quoted JSON (Python/JS-style) to double-quoted JSON while
+ * preserving apostrophes inside string values.
+ *
+ * Heuristic: when inside a single-quoted string and we encounter a `'`,
+ * peek ahead past whitespace. If the next non-space char is a JSON structural
+ * character (`,`, `}`, `]`, `:`) or end-of-string, treat it as the closing
+ * delimiter. Otherwise treat it as an apostrophe and keep it as-is.
+ */
+export function fixSingleQuotedJSON(text: string): string {
+  let result = ''
+  let i = 0
+  let inString = false
+  let usingSingleQuotes = false
+
+  while (i < text.length) {
+    const ch = text[i]
+
+    // Pass escape sequences through unchanged
+    if (inString && ch === '\\') {
+      result += text[i] + (text[i + 1] ?? '')
+      i += 2
+      continue
+    }
+
+    if (!inString) {
+      if (ch === "'") {
+        inString = true
+        usingSingleQuotes = true
+        result += '"'
+      } else if (ch === '"') {
+        inString = true
+        usingSingleQuotes = false
+        result += '"'
+      } else {
+        result += ch
+      }
+    } else if (!usingSingleQuotes) {
+      // Inside double-quoted string: standard handling
+      if (ch === '"') {
+        inString = false
+        result += '"'
+      } else {
+        result += ch
+      }
+    } else {
+      // Inside single-quoted string
+      if (ch === "'") {
+        // Peek ahead past whitespace to decide: closing delimiter or apostrophe?
+        let j = i + 1
+        while (j < text.length && text[j] === ' ') j++
+        const nextNonSpace = text[j] ?? ''
+        if (',}]:'.includes(nextNonSpace) || j >= text.length) {
+          // Looks like end of the string value
+          inString = false
+          result += '"'
+        } else {
+          // Apostrophe inside a string (e.g. "it's", "the 'idea' stage")
+          result += "'"
+        }
+      } else if (ch === '"') {
+        // Unescaped double-quote inside single-quoted string — escape it
+        result += '\\"'
+      } else {
+        result += ch
+      }
+    }
+    i++
+  }
+
+  return result
+}
+
+/**
  * Attempt to repair truncated JSON from LLM output by closing open
  * brackets/braces and removing incomplete trailing entries.
  */
@@ -79,9 +152,9 @@ export function extractJSON(raw: string): unknown {
   try {
     return JSON.parse(text)
   } catch {
-    let cleaned = text
-      .replace(/,\s*([}\]])/g, '$1')
-      .replace(/'/g, '"')
+    // Remove trailing commas, then fix single-quoted JSON using the heuristic
+    // converter (preserves apostrophes inside string values).
+    let cleaned = fixSingleQuotedJSON(text.replace(/,\s*([}\]])/g, '$1'))
     try {
       return JSON.parse(cleaned)
     } catch {

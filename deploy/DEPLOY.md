@@ -5,7 +5,7 @@
 ```
 Internet
   → Traefik (Dokploy — handles SSL + routing)
-    → frontend  (Next.js :3001, on dokploy-network)
+    → frontend  (Next.js :3000, on dokploy-network)
       → backend (Fastify :3000, via Next.js rewrites inside Docker)
         ├── redis    (:6379, internal only)
         └── worker   (BullMQ background jobs)
@@ -62,7 +62,7 @@ In Dokploy:
    - Working directory: repo root.
 3. Exposed service:
    - Service: `frontend`
-   - Port: `3001`
+   - Port: `3000`
    - Host rule: `Host(\`z2e.zaidan-group.com\`)`
 
 Dokploy will attach Traefik to the external `dokploy-network` and route HTTPS traffic to the `frontend` container only.
@@ -87,11 +87,11 @@ Use `deploy/.env.production.example` as a template and add the following **Dokpl
 
 - `REDIS_URL=redis://redis:6379`
 
-**Clerk**
+**Supabase Auth**
 
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...`
-- `CLERK_SECRET_KEY=sk_live_...`
-- `CLERK_WEBHOOK_SECRET=whsec_...`
+- `NEXT_PUBLIC_SUPABASE_URL=https://api.zaidan-group.com`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY=...` (Supabase Dashboard → Settings → API → anon/public key)
+- `SUPABASE_JWT_SECRET=...` (Supabase Dashboard → Settings → API → JWT Secret)
 
 **LLM providers (at least one)**
 
@@ -115,7 +115,7 @@ After saving the Dokploy application:
    - `redis` (internal)
    - `backend` (internal)
    - `worker` (internal)
-   - `frontend` (Traefik-exposed on port 3001)
+   - `frontend` (Traefik-exposed on port 3000)
 2. Once containers are healthy, open a shell into the `backend` container (from Dokploy or via SSH + `docker compose exec` in the Dokploy stack) and run:
 
 ```bash
@@ -129,15 +129,6 @@ Your site is live at **https://z2e.zaidan-group.com**
 ---
 
 ## Step 6 — Configure Webhooks
-
-### Clerk
-
-1. [Clerk Dashboard](https://dashboard.clerk.com) → Production instance
-2. Domains → add `z2e.zaidan-group.com`
-3. Webhooks → create endpoint:
-   - URL: `https://z2e.zaidan-group.com/webhooks/clerk`
-   - Events: `user.created`, `user.updated`, `user.deleted`
-4. Copy signing secret → `CLERK_WEBHOOK_SECRET` in `.env`
 
 ### Stripe
 
@@ -193,7 +184,7 @@ docker compose build --no-cache && docker compose up -d
 | Site not loading | `docker compose ps` — all containers should be "Up (healthy)" |
 | 502 Bad Gateway | Frontend not ready yet — wait 30s, check `docker compose logs frontend` |
 | SSL error | DNS must resolve to VPS IP. Check Traefik logs in Dokploy dashboard. |
-| Clerk auth fails | Use **production** keys. Verify domain is added in Clerk dashboard. |
+| Auth / login fails | Verify `SUPABASE_JWT_SECRET` matches your Supabase instance. Check `NEXT_PUBLIC_SUPABASE_ANON_KEY` is the anon key, not the service role key. |
 | DB connection error | `docker compose logs postgres` — wait for healthcheck. Run migrations again. |
 | Webhooks failing | Check URL matches domain exactly. Check `docker compose logs backend`. |
 | Out of memory | Need 4GB+ RAM. Add swap: `fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile` |

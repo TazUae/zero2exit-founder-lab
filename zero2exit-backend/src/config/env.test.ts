@@ -8,7 +8,7 @@ vi.mock('dotenv/config', () => ({}))
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/testdb',
   REDIS_URL: 'redis://localhost:6379',
-  AUTHENTIK_ISSUER: 'https://auth.example.com/application/o/test/',
+  SUPABASE_JWT_SECRET: 'test-supabase-jwt-secret-at-least-32-chars-long',
 }
 
 describe('env config', () => {

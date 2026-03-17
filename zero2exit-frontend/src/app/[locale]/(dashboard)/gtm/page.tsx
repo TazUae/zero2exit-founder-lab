@@ -150,27 +150,15 @@ export default function GtmPage() {
   const [activeTab, setActiveTab] = useState<"builder" | "preview">("builder")
 
 
-  // Temporary placeholders so the GTM page can render without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const documentData: any = null
-  const isLoadingDoc = false
-  const refetchDocument = () => {}
+  const { data: documentData, isLoading: isLoadingDoc, refetch: refetchDocument } = trpc.gtm.getDocument.useQuery()
+  const { data: compiledData, isLoading: isLoadingCompiled } = trpc.gtm.getCompiledDocument.useQuery()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const compiledData: any = null
-  const isLoadingCompiled = false
-
-  const exportPdfMutation = { mutateAsync: async () => ({ url: undefined }), isPending: false }
-  const exportDocxMutation = {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mutateAsync: async (_input?: unknown) => ({ url: undefined }),
-    isPending: false,
-  }
-
-  const initMutation = { mutateAsync: async () => ({}), isPending: false }
-  const generateMutation = { mutateAsync: async () => ({}), isPending: false, variables: undefined }
-  const regenerateMutation = { mutateAsync: async () => ({}), isPending: false, variables: undefined }
-  const updateMutation = { mutateAsync: async () => ({}), isPending: false, variables: undefined }
+  const exportPdfMutation = trpc.gtm.exportPdf.useMutation()
+  const exportDocxMutation = trpc.gtm.exportDocx.useMutation()
+  const initMutation = trpc.gtm.initDocument.useMutation()
+  const generateMutation = trpc.gtm.generateSection.useMutation()
+  const regenerateMutation = trpc.gtm.regenerateSection.useMutation()
+  const updateMutation = trpc.gtm.updateSection.useMutation()
 
   const isInitializing = initMutation.isPending
 
@@ -222,7 +210,12 @@ export default function GtmPage() {
     void generateMutateRef.current({ sectionKey })
       .then(() => { refetchRef.current() })
       .catch((err: unknown) => {
-        toast.error((err instanceof Error && err.message) || "Section generation failed. Please try again.")
+        const msg = (err instanceof Error && err.message) || ""
+        if (msg.includes("currently running")) {
+          toast.info("Generation already in progress — please wait for it to finish.")
+        } else {
+          toast.error(msg || "Section generation failed. Please try again.")
+        }
       })
   }, [])
 
@@ -230,7 +223,12 @@ export default function GtmPage() {
     void regenerateMutateRef.current({ sectionKey })
       .then(() => { refetchRef.current() })
       .catch((err: unknown) => {
-        toast.error((err instanceof Error && err.message) || "Section regeneration failed. Please try again.")
+        const msg = (err instanceof Error && err.message) || ""
+        if (msg.includes("currently running")) {
+          toast.info("Generation already in progress — please wait for it to finish.")
+        } else {
+          toast.error(msg || "Section regeneration failed. Please try again.")
+        }
       })
   }, [])
 

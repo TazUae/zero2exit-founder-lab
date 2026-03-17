@@ -10,7 +10,7 @@ generator client {
 
 model Founder {
   id               String   @id @default(cuid())
-  clerkUserId      String   @unique @map("clerk_user_id")
+  userId           String   @unique @map("user_id") @db.Uuid
   email            String
   name             String?
   language         String   @default("en")

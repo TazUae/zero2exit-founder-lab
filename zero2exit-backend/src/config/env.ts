@@ -30,16 +30,15 @@ const envSchema = z.object({
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_HOST: z.string().optional(),
   USE_PUPPETEER: z.string().default('true'),
-  AUTHENTIK_ISSUER: z.string().url(),
+  SUPABASE_URL: z.string().min(1, 'SUPABASE_URL is required'),
+  SUPABASE_JWT_SECRET: z.string().min(1, 'SUPABASE_JWT_SECRET is required'),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
 })
 
 export type Env = z.infer<typeof envSchema>
 
+// Stripe, AWS S3, DocuSign, Resend are intentionally disabled for MVP.
 const OPTIONAL_SERVICE_KEYS = [
-  { key: 'STRIPE_SECRET_KEY', service: 'Stripe payments' },
-  { key: 'AWS_ACCESS_KEY_ID', service: 'AWS S3 document storage' },
-  { key: 'DOCUSIGN_INTEGRATION_KEY', service: 'DocuSign e-signatures' },
-  { key: 'RESEND_API_KEY', service: 'Resend email notifications' },
   { key: 'PERPLEXITY_API_KEY', service: 'Perplexity research' },
 ] as const
 

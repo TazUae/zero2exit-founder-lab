@@ -164,21 +164,14 @@ export function LegalStructureWorkspace() {
   const [hasSignificantIP, setHasSignificantIP] = useState(false)
   const [planningFundraising, setPlanningFundraising] = useState(false)
 
-  // Temporary stubs so frontend can build without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const utils: any = { m02: { getState: { invalidate: async () => {} } } }
+  const utils = trpc.useUtils()
 
-  // ── Queries (disabled for now) ──
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m02State: any = null
-  const isStateLoading = false
-  const stateError = null
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m01State: any = null
+  const { data: m02State, isLoading: isStateLoading, error: stateError } = trpc.m02.getState.useQuery()
   // Narrow to break excessively deep tRPC generic inference in deps array (TS2589)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m01StateDep = m01State as any
+  const m01State = trpc.m01.getState.useQuery()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m01StateDep = m01State.data as any
 
   // ── Pre-populate from M01 ──
   useEffect(() => {
@@ -195,15 +188,18 @@ export function LegalStructureWorkspace() {
     if (stateError) toast.error('Failed to load legal structure state.')
   }, [stateError])
 
-  // ── Mutations (disabled for now) ──
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const jurisdictionMutation: any = { data: null, isPending: false, mutate: () => {} }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entityMutation: any = { data: null, isPending: false, mutate: () => {} }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const holdcoMutation: any = { data: null, isPending: false, mutate: () => {} }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const roadmapMutation: any = { data: null, isPending: false, mutate: () => {} }
+  const jurisdictionMutation = trpc.m02.getJurisdictionComparison.useMutation({
+    onSuccess: () => utils.m02.getState.invalidate(),
+  })
+  const entityMutation = trpc.m02.getEntityRecommendation.useMutation({
+    onSuccess: () => utils.m02.getState.invalidate(),
+  })
+  const holdcoMutation = trpc.m02.runHoldcoWizard.useMutation({
+    onSuccess: () => utils.m02.getState.invalidate(),
+  })
+  const roadmapMutation = trpc.m02.getLegalRoadmap.useMutation({
+    onSuccess: () => utils.m02.getState.invalidate(),
+  })
 
   // ── Derived state ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tRPC inference depth workaround

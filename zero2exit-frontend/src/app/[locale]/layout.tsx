@@ -1,5 +1,5 @@
 import React from "react"
-import { SessionProvider } from "next-auth/react"
+import { AuthProvider } from "@/context/AuthContext"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -20,14 +20,13 @@ export default async function LocaleLayout({
   if (!locales.includes(locale)) notFound()
 
   const messages = await getMessages()
-  const isRTL = locale === "ar"
 
   return (
-    <SessionProvider>
+    <AuthProvider>
       <NextIntlClientProvider messages={messages} locale={locale}>
         <TrpcProvider>{children}</TrpcProvider>
         <Toaster position="top-right" />
       </NextIntlClientProvider>
-    </SessionProvider>
+    </AuthProvider>
   )
 }

@@ -1,28 +1,26 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
-function SignInContent() {
+function SignUpContent() {
   const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const locale = (params.locale as string) ?? 'en'
-  const callbackUrl = searchParams.get('callbackUrl') ?? `/${locale}/dashboard`
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleSignIn(e: React.FormEvent) {
+  async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
     const supabase = getSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
       setError(error.message)
@@ -30,7 +28,15 @@ function SignInContent() {
       return
     }
 
-    router.push(callbackUrl)
+    // Email confirmation is disabled — data.session is set immediately.
+    // If confirmation is accidentally re-enabled, guard the user here.
+    if (!data.session) {
+      setError('Please check your email to confirm your account.')
+      setLoading(false)
+      return
+    }
+
+    router.push(`/${locale}/onboarding`)
     router.refresh()
   }
 
@@ -42,13 +48,13 @@ function SignInContent() {
           <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mx-auto">
             <span className="text-white font-bold text-xl">Z</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">Welcome to Zero2Exit</h1>
+          <h1 className="text-2xl font-bold text-white">Create your account</h1>
           <p className="text-slate-400 text-sm">
-            Your AI-powered founder operating system
+            Start your founder journey with Zero2Exit
           </p>
         </div>
 
-        <form onSubmit={handleSignIn} className="space-y-4">
+        <form onSubmit={handleSignUp} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm text-slate-300">Email</label>
             <input
@@ -66,10 +72,11 @@ function SignInContent() {
             <input
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-              placeholder="••••••••"
+              placeholder="At least 8 characters"
             />
           </div>
 
@@ -80,29 +87,29 @@ function SignInContent() {
             disabled={loading}
             className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl px-4 py-3 font-medium transition-colors"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
         <p className="text-center text-slate-500 text-sm">
-          Don&apos;t have an account?{' '}
-          <a href={`/${locale}/sign-up`} className="text-emerald-400 hover:underline">
-            Sign up
+          Already have an account?{' '}
+          <a href={`/${locale}/sign-in`} className="text-emerald-400 hover:underline">
+            Sign in
           </a>
         </p>
 
         <p className="text-center text-slate-500 text-xs">
-          By signing in you agree to our Terms of Service and Privacy Policy
+          By signing up you agree to our Terms of Service and Privacy Policy
         </p>
       </div>
     </div>
   )
 }
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <Suspense>
-      <SignInContent />
+      <SignUpContent />
     </Suspense>
   )
 }

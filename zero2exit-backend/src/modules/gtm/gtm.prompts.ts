@@ -20,7 +20,12 @@ type PromptParts = {
 }
 
 /** Unmissable instruction: model MUST return parseable JSON only. */
-const CRITICAL_JSON_ONLY = `CRITICAL: Your entire response must be exactly one JSON object. No markdown code blocks (no \`\`\`), no explanation before or after, no other text. Start with { and end with }. The response will be parsed by JSON.parse() — anything else will break the system.`
+const CRITICAL_JSON_ONLY = `CRITICAL: Your entire response must be exactly one JSON object. No markdown code blocks (no \`\`\`), no explanation before or after, no other text. Start with { and end with }.
+JSON FORMAT RULES (violations will crash the parser):
+- Use double quotes (") for ALL JSON keys and string values. Never use single quotes (') as delimiters.
+- Do NOT put apostrophes or single quotes inside string values. Instead of "it's" write "it is"; instead of air-quoting a word like 'idea', just write it without quotes.
+- Do NOT put unescaped double quotes inside a string value. Use \\\" if you must include one.
+The response will be parsed by JSON.parse() — any deviation from these rules breaks the system.`
 
 const JSON_ONLY_RULES = `You must respond with valid JSON only.
 - Do not wrap JSON in markdown fences. Do not include explanations or markdown.
@@ -296,6 +301,7 @@ The following consumer/SMB values are FORBIDDEN in your response:
 If you write any of these values, your response is wrong.
 
 Write the "${GTM_SECTION_LABELS.kpis_metrics}" section.
+IMPORTANT TOKEN BUDGET: Keep "content" to 1-2 short paragraphs only — save tokens for the required "kpis" array, which MUST appear in the JSON.
 You MUST provide specific numeric targets for every KPI. Do not describe what metrics to track — state the actual target values. Every bullet must contain a number.
 
 Define the KPIs and 90-day targets that matter most for THIS specific business, not generic SaaS metrics.

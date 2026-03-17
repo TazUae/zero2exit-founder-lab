@@ -2,4 +2,29 @@ node_modules
 dist
 .env
 .env.local
+.env.*.local
 *.log
+
+# Git
+.git
+.gitignore
+
+# Tests & coverage
+coverage
+*.test.ts
+*.spec.ts
+vitest.config.*
+
+# Dev tooling
+eslint.config.mjs
+.eslintrc*
+scripts
+
+# Docs
+*.md
+docs
+
+# Docker files themselves (not needed in image)
+Dockerfile
+.dockerignore
+docker-compose*.yml
