@@ -20,12 +20,16 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
   // Avoids races where an async getSession() call returns stale/null data
   // (e.g. when the access token has just been refreshed in the background).
   const tokenRef = useRef<string | null>(null)
+  // Gate children until getSession() resolves so the first tRPC call always
+  // fires with a token (prevents the guaranteed-401 → retry race on cold load).
+  const [sessionLoaded, setSessionLoaded] = useState(false)
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
-    // Seed the ref from current session immediately
+    // Seed the ref from current session, then unblock children
     supabase.auth.getSession().then(({ data: { session } }) => {
       tokenRef.current = session?.access_token ?? null
+      setSessionLoaded(true)
     })
     // Keep the ref in sync on every auth state change (sign-in, sign-out, TOKEN_REFRESHED)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -49,6 +53,8 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
       ],
     }),
   )
+
+  if (!sessionLoaded) return null
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
