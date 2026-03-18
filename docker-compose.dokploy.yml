@@ -33,6 +33,18 @@ services:
       FRONTEND_URL: https://${DOMAIN}
     networks:
       - internal
+      - dokploy-network                          # ← added: Traefik must be on the same network
+    expose:
+      - "3000"                                   # ← added: advertise port to Traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network" # ← tell Traefik which network to use
+      # Router: match /api on the same domain as the frontend
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      # Service: forward to port 3000 inside the container
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
     healthcheck:
       test: ["CMD", "node", "-e", "require('net').connect(3000,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
       interval: 30s
