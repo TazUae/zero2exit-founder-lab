@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useLocale } from "next-intl"
+import { useParams } from "next/navigation"
 
 const navLinks = [
   { label: "Platform", href: "#journey" },
@@ -12,7 +12,8 @@ const navLinks = [
 ]
 
 export function Navbar() {
-  const locale = useLocale()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [scrolled, setScrolled] = useState(false)
   const isSignedIn = false
 
