@@ -130,7 +130,7 @@ export const brandRouter = router({
         }],
         'You are a brand naming expert. Respond with valid JSON only. No explanation outside the JSON.',
       )
-      const result = parseLLMResponse(raw, 'brand.suggestNames', 'name suggestions', NamesSchema)
+      const result = parseLLMResponse(raw, 'brand.suggestNames', 'name suggestions', NamesSchema) as z.infer<typeof NamesSchema>
       return { names: result.names.slice(0, 3) }
     }),
 
