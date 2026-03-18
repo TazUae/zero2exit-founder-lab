@@ -1,0 +1,39 @@
+# Dependency directories (large — reinstalled inside Docker)
+**/node_modules
+
+# Build artifacts
+zero2exit-backend/dist
+zero2exit-frontend/.next
+zero2exit-frontend/out
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Logs
+**/*.log
+
+# Test artifacts
+zero2exit-frontend/coverage
+zero2exit-frontend/playwright-report
+zero2exit-frontend/test-results
+zero2exit-frontend/e2e
+
+# IDE / OS
+.vscode
+.idea
+**/.DS_Store
+**/Thumbs.db
+
+# Claude memory
+.claude
+
+# Docker files (not needed inside build)
+docker-compose*.yml
+deploy/
+PRODUCTION_READINESS_REPORT.md

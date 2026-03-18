@@ -77,6 +77,18 @@ export const founderRouter = router({
         `Continue with ${activeModule.moduleId}`
     }
 
+    const moduleHrefMap: Record<string, string> = {
+      M01: '/dashboard/m01',
+      M02: '/dashboard/m02',
+      M03: '/dashboard/gtm',
+      M04: '/dashboard/brand',
+      M05: '/dashboard/coach',
+      M06: '/dashboard/roadmap',
+    }
+    const nextModuleHref = activeModule
+      ? (moduleHrefMap[activeModule.moduleId] ?? '/dashboard')
+      : '/onboarding'
+
     return {
       founder: {
         name: context.name,
@@ -91,6 +103,7 @@ export const founderRouter = router({
           totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
       },
       nextAction,
+      nextModuleHref,
       validationScore: context.validationScore,
       subscription: context.subscription,
     }

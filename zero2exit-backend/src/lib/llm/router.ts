@@ -87,6 +87,7 @@ export type LLMTask =
   | 'gtm.section'
   | 'gtm.critique'
   | 'brand.generate'
+  | 'brand.suggestNames'
 
 export type LLMMessage = {
   role: 'user' | 'assistant' | 'system'
@@ -117,6 +118,7 @@ const TASK_CONFIG: Record<LLMTask, { maxTokens: number; jsonMode: boolean }> = {
   'gtm.section':               { maxTokens: 5000, jsonMode: true  },
   'gtm.critique':              { maxTokens: 2500, jsonMode: true  },
   'brand.generate':            { maxTokens: 4000, jsonMode: true  },
+  'brand.suggestNames':        { maxTokens: 200,  jsonMode: true  },
 }
 
 // ── Task-aware provider routing ──────────────────────────────────────────────

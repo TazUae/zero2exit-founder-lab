@@ -2,7 +2,7 @@
 
 import React from "react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { ArrowRight, Trophy, Target, TrendingUp } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
@@ -25,6 +25,7 @@ const stageColors: Record<string, string> = {
 export function DashboardClient() {
   const t = useTranslations("dashboard")
   const tNav = useTranslations("nav")
+  const locale = useLocale()
   const { data, isLoading, error } = trpc.founder.getDashboard.useQuery()
 
   if (isLoading) {
@@ -87,8 +88,29 @@ export function DashboardClient() {
           Let&apos;s start by understanding your business
         </p>
         <Button asChild className="bg-emerald-500 hover:bg-emerald-600">
-          <Link href="/onboarding">
+          <Link href={`/${locale}/onboarding`}>
             Start Onboarding <ArrowRight className="ml-2 w-4 h-4" />
+          </Link>
+        </Button>
+      </div>
+    )
+  }
+
+  if (data.progress.totalModules === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
+          <Target className="h-8 w-8 text-emerald-400" />
+        </div>
+        <h1 className="text-3xl font-bold text-white mb-3">
+          Start Your Journey
+        </h1>
+        <p className="text-slate-400 max-w-sm mb-8 text-base">
+          Complete your founder profile to unlock your roadmap
+        </p>
+        <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-8">
+          <Link href={`/${locale}/onboarding`}>
+            Begin Idea Validation <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </div>
@@ -188,7 +210,7 @@ export function DashboardClient() {
           variant="ghost"
           className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-800/30 flex-shrink-0 text-xs h-7 px-3"
         >
-          <Link href="/onboarding">
+          <Link href={`/${locale}${data.nextModuleHref}`}>
             Go <ArrowRight className="ml-1 w-3 h-3" />
           </Link>
         </Button>

@@ -75,7 +75,16 @@ export function buildUserMessage(params: {
   brandPersonality: string;
   geographicFocus: string;
   avoidances: string;
+  brandName?: string;
+  selectedPalette?: string;
 }): string {
+  const brandNameHint = params.brandName
+    ? `\nPreferred Brand Name: ${params.brandName} — include this as the top entry in brandNames with a high score.`
+    : ''
+  const paletteHint = params.selectedPalette
+    ? `\nSelected Color Palette Style: ${params.selectedPalette} — align the colorPalette output to match the mood and colors of this palette.`
+    : ''
+
   return `Generate a complete brand identity for this startup:
 
 Business: ${params.businessDescription}
@@ -84,7 +93,7 @@ Industry: ${params.industry}
 Key Competitors: ${params.competitors}
 Desired Brand Personality: ${params.brandPersonality}
 Geographic Focus: ${params.geographicFocus}
-Things to Avoid: ${params.avoidances}
+Things to Avoid: ${params.avoidances}${brandNameHint}${paletteHint}
 
 Generate 5 brand name options, complete color palette (5 colors),
 typography pairing, 5 tagline options, logo direction, and brand voice.`;

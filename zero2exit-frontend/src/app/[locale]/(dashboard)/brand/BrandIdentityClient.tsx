@@ -1,14 +1,13 @@
 'use client'
 
 import Link from "next/link"
+import { useLocale } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/lib/trpc"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -17,7 +16,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Loader2, RefreshCw, Sparkles, Star, Type, ArrowRight } from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Star,
+  Type,
+} from "lucide-react"
+
+// ── Color palettes ────────────────────────────────────────────────────────────
+
+const PALETTES = [
+  { id: "midnight",    label: "Midnight",     colors: ["#0A0F2E", "#3B82F6", "#FFFFFF"] },
+  { id: "forest",      label: "Forest",       colors: ["#1A3C34", "#7E9E8E", "#F5F0E8"] },
+  { id: "coral",       label: "Coral Energy", colors: ["#FF6B5E", "#F59E0B", "#1E3A5F"] },
+  { id: "slate",       label: "Slate",        colors: ["#1C2526", "#F1F0EE", "#10B981"] },
+  { id: "desert",      label: "Desert",       colors: ["#C1644F", "#D4A96A", "#8BAF8A"] },
+  { id: "ocean",       label: "Ocean",        colors: ["#0D2440", "#0D9488", "#A7F3D0"] },
+] as const
+
+type PaletteId = (typeof PALETTES)[number]["id"]
+
+// ── Form questions (existing) ─────────────────────────────────────────────────
 
 const QUESTIONS = [
   {
@@ -89,9 +114,53 @@ type BrandData = {
 
 type FormState = Record<QuestionId, string>
 
+// ── Step indicator ────────────────────────────────────────────────────────────
+
+const STEP_LABELS = ["Brand Name", "Color Palette", "Generate"] as const
+
+function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
+  return (
+    <div className="flex items-center gap-1 text-xs mb-6">
+      {STEP_LABELS.map((label, i) => {
+        const s = (i + 1) as 1 | 2 | 3
+        const done = s < step
+        const active = s === step
+        return (
+          <div key={label} className="flex items-center gap-1">
+            <div className={cn(
+              "flex items-center justify-center w-5 h-5 rounded-full border text-[10px] font-semibold",
+              done   ? "border-emerald-500 bg-emerald-500 text-white"
+                     : active ? "border-emerald-400 bg-slate-800 text-emerald-400"
+                              : "border-slate-700 bg-slate-900 text-slate-600",
+            )}>
+              {done ? <Check className="w-3 h-3" /> : s}
+            </div>
+            <span className={cn(
+              "hidden sm:block",
+              done   ? "text-emerald-400"
+                     : active ? "text-white font-medium"
+                              : "text-slate-600",
+            )}>{label}</span>
+            {i < 2 && <ChevronRight className="w-3 h-3 text-slate-700 mx-0.5" />}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export function BrandIdentityClient() {
+  const locale = useLocale()
   const [form, setForm] = useState<FormState>({} as FormState)
   const [showForm, setShowForm] = useState(false)
+
+  // ── Wizard state ──
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [brandName, setBrandName] = useState("")
+  const [nameSuggestions, setNameSuggestions] = useState<string[]>([])
+  const [selectedPalette, setSelectedPalette] = useState<PaletteId | "">("")
 
   const { data, isLoading, refetch } = trpc.brand.getIdentity.useQuery()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,11 +173,8 @@ export function BrandIdentityClient() {
 
   // Autofill from existing founder data
   useEffect(() => {
-    // Loosen the types here to avoid deep type instantiation issues during build.
-    const ideaValidationSource =
-      (m01Data as any)?.ideaValidation ?? {}
-    const onboardingSource =
-      (gatewayData as any)?.onboardingResponses ?? {}
+    const ideaValidationSource = (m01Data as any)?.ideaValidation ?? {}
+    const onboardingSource = (gatewayData as any)?.onboardingResponses ?? {}
 
     if (!ideaValidationSource && !onboardingSource) return
 
@@ -116,8 +182,7 @@ export function BrandIdentityClient() {
       businessDescription:
         prev.businessDescription ||
         (onboardingSource as { businessIdea?: string }).businessIdea ||
-        (ideaValidationSource as { businessDescription?: string })
-          .businessDescription ||
+        (ideaValidationSource as { businessDescription?: string }).businessDescription ||
         "",
       targetAudience:
         prev.targetAudience ||
@@ -142,8 +207,6 @@ export function BrandIdentityClient() {
         "UAE, Saudi Arabia, MENA region",
       avoidances: prev.avoidances || "",
     }))
-    // We intentionally avoid deep type instantiation on the dependency array by
-    // narrowing it to primitive flags that still capture relevant changes.
   }, [Boolean(m01Data), Boolean(gatewayData)])
 
   const hasAutoFilled = useMemo(
@@ -151,17 +214,24 @@ export function BrandIdentityClient() {
     [form],
   )
 
+  const suggestNames = trpc.brand.suggestNames.useMutation({
+    onSuccess: (res) => {
+      setNameSuggestions(res.names)
+    },
+    onError: (err) => {
+      toast.error(err.message ?? "Name suggestions failed. Please try again.")
+    },
+  })
+
   const generate = trpc.brand.generate.useMutation({
     onSuccess: () => { void refetch() },
-    onError: (err) => { toast.error(err.message ?? 'Brand generation failed. Please try again.') },
+    onError: (err) => { toast.error(err.message ?? "Brand generation failed. Please try again.") },
   })
 
   function handleSubmit() {
     const missing = QUESTIONS.filter((q) => !form[q.id]?.trim())
     if (missing.length > 0) {
-      toast.error(
-        `Please fill in: ${missing.map((q) => q.label).join(", ")}`,
-      )
+      toast.error(`Please fill in: ${missing.map((q) => q.label).join(", ")}`)
       return
     }
 
@@ -173,8 +243,14 @@ export function BrandIdentityClient() {
       brandPersonality: form.brandPersonality ?? "",
       geographicFocus: form.geographicFocus ?? "",
       avoidances: form.avoidances ?? "",
+      brandName: brandName.trim() || undefined,
+      selectedPalette: selectedPalette || undefined,
     })
   }
+
+  const selectedPaletteData = PALETTES.find((p) => p.id === selectedPalette)
+
+  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -182,97 +258,259 @@ export function BrandIdentityClient() {
         <Skeleton className="h-8 w-48 bg-slate-800" />
         <div className="grid grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton
-              key={i}
-              className="h-40 rounded-xl bg-slate-900/80"
-            />
+            <Skeleton key={i} className="h-40 rounded-xl bg-slate-900/80" />
           ))}
         </div>
       </div>
     )
   }
 
-  // Form-first view when nothing generated yet or user wants to regenerate
+  // ── Wizard (new or regenerating) ──────────────────────────────────────────
+
   if (!brand || showForm) {
     return (
       <div className="space-y-6">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)]">
           <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                Brand Identity
-              </h1>
-              <p className="mt-1 text-sm text-slate-400">
-                Answer a few questions and we&apos;ll generate a complete
-                brand kit for you.
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-white">Brand Identity</h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  {step < 3
+                    ? "Set up your brand name and palette before generating."
+                    : "Answer a few questions and we'll generate a complete brand kit."}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {hasAutoFilled && (
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
-              <Sparkles className="h-4 w-4 shrink-0" />
-              <span>
-                We&apos;ve pre-filled answers from your onboarding and
-                validation data. Review and adjust before generating.
-              </span>
-            </div>
-          )}
+            <StepIndicator step={step} />
 
-          <div className="space-y-4">
-            {QUESTIONS.map((q) => (
-              <div key={q.id} className="space-y-1.5">
-                <Label className="text-slate-300">{q.label}</Label>
-                {q.type === "textarea" ? (
-                  <Textarea
-                    value={form[q.id] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        [q.id]: e.target.value,
-                      }))
-                    }
-                    placeholder={q.placeholder}
-                    className="min-h-[80px] resize-none border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
-                  />
-                ) : (
+            {/* ── STEP 1: Brand Name ── */}
+            {step === 1 && (
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label className="text-slate-300">Brand Name</Label>
                   <Input
-                    value={form[q.id] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        [q.id]: e.target.value,
-                      }))
-                    }
-                    placeholder={q.placeholder}
+                    value={brandName}
+                    onChange={(e) => setBrandName(e.target.value)}
+                    placeholder="e.g. Dentalytics, ClinicIQ, MedFlow…"
                     className="border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
                   />
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    suggestNames.mutate({
+                      businessDescription: form.businessDescription || "startup",
+                      industry: form.industry || "technology",
+                    })
+                  }
+                  disabled={suggestNames.isPending}
+                  className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                >
+                  {suggestNames.isPending ? (
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                  )}
+                  Generate name suggestions
+                </Button>
+
+                {nameSuggestions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500">Click to select:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {nameSuggestions.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => setBrandName(name)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg border text-sm transition-all",
+                            brandName === name
+                              ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+                              : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:text-white",
+                          )}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    onClick={() => setStep(2)}
+                    disabled={!brandName.trim()}
+                    className="bg-emerald-500 hover:bg-emerald-600"
+                  >
+                    Next <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={generate.isPending}
-            className="h-11 w-full bg-emerald-500 text-sm font-medium hover:bg-emerald-600"
-          >
-            {generate.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating your brand kit...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Brand Identity
-              </>
             )}
-          </Button>
-        </div>
 
-        {/* Simple preview column for when data already exists (temporarily disabled while brand router is offline) */}
+            {/* ── STEP 2: Color Palette ── */}
+            {step === 2 && (
+              <div className="space-y-5">
+                <div>
+                  <p className="text-sm text-slate-400">
+                    Select the palette that best fits your brand&apos;s feel.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {PALETTES.map((palette) => (
+                    <button
+                      key={palette.id}
+                      type="button"
+                      onClick={() => setSelectedPalette(palette.id)}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all",
+                        selectedPalette === palette.id
+                          ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/30"
+                          : "border-slate-800 bg-slate-900 hover:border-slate-600",
+                      )}
+                    >
+                      <div className="flex gap-1.5 mb-2.5">
+                        {palette.colors.map((color) => (
+                          <div
+                            key={color}
+                            className="h-6 flex-1 rounded-md"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs font-medium text-white">{palette.label}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {palette.colors.join(" · ")}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex justify-between pt-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep(1)}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                  </Button>
+                  <Button
+                    onClick={() => setStep(3)}
+                    disabled={!selectedPalette}
+                    className="bg-emerald-500 hover:bg-emerald-600"
+                  >
+                    Next <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3: Generate (existing form) ── */}
+            {step === 3 && (
+              <div className="space-y-4">
+                {/* Selection summary */}
+                <div className="flex flex-wrap items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-sm">
+                  <div>
+                    <span className="text-slate-500 text-xs">Name:</span>{" "}
+                    <span className="text-white font-medium">{brandName}</span>
+                  </div>
+                  {selectedPaletteData && (
+                    <>
+                      <div className="w-px h-4 bg-slate-700" />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500 text-xs">Palette:</span>
+                        {selectedPaletteData.colors.map((c) => (
+                          <div
+                            key={c}
+                            className="w-4 h-4 rounded-sm border border-slate-700"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        <span className="text-slate-400 text-xs">{selectedPaletteData.label}</span>
+                      </div>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="ml-auto text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                {hasAutoFilled && (
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                    <Sparkles className="h-4 w-4 shrink-0" />
+                    <span>
+                      We&apos;ve pre-filled answers from your onboarding and validation data.
+                      Review and adjust before generating.
+                    </span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {QUESTIONS.map((q) => (
+                    <div key={q.id} className="space-y-1.5">
+                      <Label className="text-slate-300">{q.label}</Label>
+                      {q.type === "textarea" ? (
+                        <Textarea
+                          value={form[q.id] ?? ""}
+                          onChange={(e) =>
+                            setForm((prev) => ({ ...prev, [q.id]: e.target.value }))
+                          }
+                          placeholder={q.placeholder}
+                          className="min-h-[80px] resize-none border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                        />
+                      ) : (
+                        <Input
+                          value={form[q.id] ?? ""}
+                          onChange={(e) =>
+                            setForm((prev) => ({ ...prev, [q.id]: e.target.value }))
+                          }
+                          placeholder={q.placeholder}
+                          className="border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between pt-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep(2)}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={generate.isPending}
+                    className="h-11 bg-emerald-500 text-sm font-medium hover:bg-emerald-600"
+                  >
+                    {generate.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating your brand kit...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate Brand Identity
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Next Step CTA */}
@@ -280,17 +518,13 @@ export function BrandIdentityClient() {
           <CardContent className="px-4 py-3">
             <div className="flex flex-col md:flex-row md:items-start gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="text-xs font-semibold text-white mb-1.5">
-                  Next Step
-                </h3>
+                <h3 className="text-xs font-semibold text-white mb-1.5">Next Step</h3>
                 <p className="text-[11px] text-slate-400">
                   Turn your validated brand and GTM into a unified execution roadmap.
                 </p>
               </div>
               <div className="md:w-52 flex-shrink-0 rounded-xl bg-slate-900/70 p-3 space-y-1.5">
-                <p className="text-[11px] font-semibold text-white">
-                  AI Roadmap
-                </p>
+                <p className="text-[11px] font-semibold text-white">AI Roadmap</p>
                 <p className="text-[10px] text-slate-400">
                   Generate a cross-module startup roadmap powered by the Zero2Exit agents.
                 </p>
@@ -299,7 +533,7 @@ export function BrandIdentityClient() {
                   size="sm"
                   className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
                 >
-                  <Link href="/dashboard/roadmap">
+                  <Link href={`/${locale}/dashboard/roadmap`}>
                     Go to Roadmap
                     <ArrowRight className="ml-1.5 h-3 w-3" />
                   </Link>
@@ -312,7 +546,8 @@ export function BrandIdentityClient() {
     )
   }
 
-  // Results-first view once a brand exists
+  // ── Results view ──────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -322,7 +557,7 @@ export function BrandIdentityClient() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setShowForm(true)}
+          onClick={() => { setShowForm(true); setStep(1) }}
           className="border-slate-700 text-slate-200 hover:bg-slate-800"
         >
           <RefreshCw className="mr-2 h-3.5 w-3.5" />
@@ -330,42 +565,50 @@ export function BrandIdentityClient() {
         </Button>
       </div>
 
+      {/* Selected name + palette summary */}
+      {(brandName || selectedPaletteData) && (
+        <div className="flex flex-wrap items-center gap-3 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm">
+          {brandName && (
+            <div>
+              <span className="text-slate-500 text-xs">Selected name:</span>{" "}
+              <span className="text-white font-medium">{brandName}</span>
+            </div>
+          )}
+          {brandName && selectedPaletteData && <div className="w-px h-4 bg-slate-700" />}
+          {selectedPaletteData && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500 text-xs">Palette:</span>
+              {selectedPaletteData.colors.map((c) => (
+                <div
+                  key={c}
+                  className="w-4 h-4 rounded-sm border border-slate-700"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+              <span className="text-slate-400 text-xs">{selectedPaletteData.label}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <Tabs defaultValue="names" className="w-full">
         <TabsList className="flex h-auto flex-wrap gap-1 rounded-lg border border-slate-800 bg-slate-950/80 p-1">
-          <TabsTrigger
-            value="names"
-            className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300"
-          >
+          <TabsTrigger value="names" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300">
             Names
           </TabsTrigger>
-          <TabsTrigger
-            value="colors"
-            className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300"
-          >
+          <TabsTrigger value="colors" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300">
             Colors
           </TabsTrigger>
-          <TabsTrigger
-            value="typography"
-            className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300"
-          >
+          <TabsTrigger value="typography" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300">
             Typography
           </TabsTrigger>
-          <TabsTrigger
-            value="logo"
-            className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300"
-          >
+          <TabsTrigger value="logo" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300">
             Logo
           </TabsTrigger>
-          <TabsTrigger
-            value="taglines"
-            className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300"
-          >
+          <TabsTrigger value="taglines" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300">
             Taglines
           </TabsTrigger>
-          <TabsTrigger
-            value="voice"
-            className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300"
-          >
+          <TabsTrigger value="voice" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300">
             Voice
           </TabsTrigger>
         </TabsList>
@@ -391,16 +634,25 @@ export function BrandIdentityClient() {
         </TabsContent>
 
         <TabsContent value="colors" className="mt-4">
+          {/* Selected palette reminder */}
+          {selectedPaletteData && (
+            <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400">
+              <span>Your selected palette:</span>
+              <div className="flex gap-1">
+                {selectedPaletteData.colors.map((c) => (
+                  <div key={c} className="w-4 h-4 rounded-sm border border-slate-700" style={{ backgroundColor: c }} />
+                ))}
+              </div>
+              <span className="text-slate-300">{selectedPaletteData.label}</span>
+            </div>
+          )}
           {(brand?.colorPalette ?? []).length === 0 ? (
             <p className="text-sm text-slate-500">No color palette generated yet.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {brand?.colorPalette?.map((c, i) => (
                 <div key={i} className="rounded-xl border border-slate-800 bg-slate-900 p-3 space-y-2">
-                  <div
-                    className="h-12 rounded-lg"
-                    style={{ backgroundColor: c.hex }}
-                  />
+                  <div className="h-12 rounded-lg" style={{ backgroundColor: c.hex }} />
                   <p className="text-sm font-medium text-white">{c.name}</p>
                   <p className="text-xs font-mono text-slate-400">{c.hex}</p>
                   <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-400">{c.role}</Badge>
@@ -548,17 +800,13 @@ export function BrandIdentityClient() {
         <CardContent className="px-4 py-3">
           <div className="flex flex-col md:flex-row md:items-start gap-3">
             <div className="flex-1 min-w-0">
-              <h3 className="text-xs font-semibold text-white mb-1.5">
-                Next Step
-              </h3>
+              <h3 className="text-xs font-semibold text-white mb-1.5">Next Step</h3>
               <p className="text-[11px] text-slate-400">
                 Use your validated idea, legal structure, GTM, and brand to generate a full startup roadmap.
               </p>
             </div>
             <div className="md:w-52 flex-shrink-0 rounded-xl bg-slate-900/70 p-3 space-y-1.5">
-              <p className="text-[11px] font-semibold text-white">
-                AI Roadmap
-              </p>
+              <p className="text-[11px] font-semibold text-white">AI Roadmap</p>
               <p className="text-[10px] text-slate-400">
                 Run the Zero2Exit agent swarm to create your execution plan.
               </p>
@@ -567,7 +815,7 @@ export function BrandIdentityClient() {
                 size="sm"
                 className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
               >
-                <Link href="/dashboard/roadmap">
+                <Link href={`/${locale}/dashboard/roadmap`}>
                   Go to Roadmap
                   <ArrowRight className="ml-1.5 h-3 w-3" />
                 </Link>
@@ -579,4 +827,3 @@ export function BrandIdentityClient() {
     </div>
   )
 }
-

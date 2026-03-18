@@ -110,6 +110,30 @@ type Json = import('@prisma/client/runtime/library').InputJsonValue
 type BrandIdentityOutput = z.infer<typeof BrandIdentitySchema>
 
 export const brandRouter = router({
+  // Generate 3 AI brand name suggestions
+  suggestNames: protectedProcedure
+    .input(
+      z.object({
+        businessDescription: z.string().default('startup'),
+        industry: z.string().default('technology'),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const NamesSchema = z.object({
+        names: z.array(z.string()).catch([]),
+      })
+      const raw = await llmCall(
+        'brand.suggestNames',
+        [{
+          role: 'user',
+          content: `Suggest exactly 3 short, memorable, unique brand names for a ${input.industry} startup. Business: ${input.businessDescription}. Return JSON only: {"names":["Name1","Name2","Name3"]}`,
+        }],
+        'You are a brand naming expert. Respond with valid JSON only. No explanation outside the JSON.',
+      )
+      const result = parseLLMResponse(raw, 'brand.suggestNames', 'name suggestions', NamesSchema)
+      return { names: result.names.slice(0, 3) }
+    }),
+
   // Submit questionnaire and generate brand identity
   generate: protectedProcedure
     .input(
@@ -121,6 +145,8 @@ export const brandRouter = router({
         brandPersonality: z.string(),
         geographicFocus: z.string(),
         avoidances: z.string().default(''),
+        brandName: z.string().optional(),
+        selectedPalette: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -128,7 +154,17 @@ export const brandRouter = router({
 
       const raw = await llmCall(
         'brand.generate',
-        [{ role: 'user', content: buildUserMessage(input) }],
+        [{ role: 'user', content: buildUserMessage({
+          businessDescription: input.businessDescription,
+          targetAudience: input.targetAudience,
+          industry: input.industry,
+          competitors: input.competitors,
+          brandPersonality: input.brandPersonality,
+          geographicFocus: input.geographicFocus,
+          avoidances: input.avoidances,
+          brandName: input.brandName,
+          selectedPalette: input.selectedPalette,
+        }) }],
         buildSystemPrompt(),
       )
 

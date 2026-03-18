@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { useState, useEffect, useMemo } from 'react'
 import {
   Loader2,
@@ -151,6 +152,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export function LegalStructureWorkspace() {
+  const locale = useLocale()
   // ── Form state ──
   const [businessDescription, setBusinessDescription] = useState('')
   const [industry, setIndustry] = useState('')
@@ -810,7 +812,7 @@ export function LegalStructureWorkspace() {
                 size="sm"
                 className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
               >
-                <Link href="/dashboard/gtm">
+                <Link href={`/${locale}/dashboard/gtm`}>
                   Go to GTM Builder
                   <ArrowRight className="ml-1.5 h-3 w-3" />
                 </Link>

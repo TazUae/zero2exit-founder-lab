@@ -62,7 +62,7 @@ export function Sidebar() {
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient()
     await supabase.auth.signOut()
-    router.push('/en/sign-in')
+    router.push(`/${locale}/sign-in`)
   }
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])

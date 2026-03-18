@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, type ReactNode } from "react"
 import Link from "next/link"
+import { useLocale } from "next-intl"
 import {
   Loader2,
   Check,
@@ -252,6 +253,7 @@ const INITIAL_PIPELINE: Record<PipelineStepKey, PipelineStepStatus> = {
 }
 
 export function IdeaValidationWorkspace() {
+  const locale = useLocale()
   const [description, setDescription] = useState("")
   const [industry, setIndustry] = useState("")
   const [geography, setGeography] = useState("")
@@ -1128,7 +1130,7 @@ export function IdeaValidationWorkspace() {
                   size="sm"
                   className="w-full bg-emerald-500 hover:bg-emerald-600 h-7 text-[11px]"
                 >
-                  <Link href="/dashboard/m02">
+                  <Link href={`/${locale}/dashboard/m02`}>
                     Go to Legal Structure
                     <ArrowRight className="ml-1.5 h-3 w-3" />
                   </Link>

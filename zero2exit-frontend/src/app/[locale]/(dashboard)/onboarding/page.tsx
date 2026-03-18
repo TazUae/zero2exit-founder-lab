@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useForm, Controller, type Control, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
@@ -199,6 +199,7 @@ function QuestionField({
 export default function OnboardingPage() {
   const t = useTranslations('onboarding')
   const router = useRouter()
+  const locale = useLocale()
   const [step, setStep] = React.useState(0)
 
   const { control, trigger, getValues, watch, formState: { errors } } = useForm<OnboardingFormValues>({
@@ -214,7 +215,7 @@ export default function OnboardingPage() {
   const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
     onSuccess: () => {
       toast.success('Onboarding complete! Analysing your responses…')
-      router.push('/dashboard')
+      router.push(`/${locale}/dashboard`)
     },
     onError: (err) => {
       toast.error(err.message ?? 'Submission failed. Please try again.')

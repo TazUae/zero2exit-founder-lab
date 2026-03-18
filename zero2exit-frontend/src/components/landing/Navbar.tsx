@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useLocale } from "next-intl"
 
 const navLinks = [
   { label: "Platform", href: "#journey" },
@@ -11,6 +12,7 @@ const navLinks = [
 ]
 
 export function Navbar() {
+  const locale = useLocale()
   const [scrolled, setScrolled] = useState(false)
   const isSignedIn = false
 
@@ -48,7 +50,7 @@ export function Navbar() {
       <div className="flex items-center gap-3">
         {isSignedIn ? (
           <Link
-            href="/en/dashboard"
+            href={`/${locale}/dashboard`}
             className="bg-z-gold text-z-black px-6 py-2.5 rounded-md font-body font-semibold text-sm cursor-pointer transition-all duration-200 hover:bg-z-gold-light hover:-translate-y-0.5"
           >
             Command Center →
@@ -56,13 +58,13 @@ export function Navbar() {
         ) : (
           <>
             <Link
-              href="/en/sign-in"
+              href={`/${locale}/sign-in`}
               className="text-z-muted text-sm font-medium hover:text-z-white transition-colors duration-200 hidden sm:block"
             >
               Login
             </Link>
             <Link
-              href="/en/sign-up"
+              href={`/${locale}/sign-up`}
               className="bg-z-gold text-z-black px-6 py-2.5 rounded-md font-body font-semibold text-sm cursor-pointer transition-all duration-200 hover:bg-z-gold-light hover:-translate-y-0.5"
             >
               Start Free →
