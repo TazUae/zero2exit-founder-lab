@@ -1,7 +1,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 # Change CACHE_BUST value to force a fresh npm install
-ARG CACHE_BUST=3
+ARG CACHE_BUST=4
 COPY package*.json ./
 RUN npm ci --prefer-offline=false
 
