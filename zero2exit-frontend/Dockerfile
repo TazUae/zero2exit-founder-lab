@@ -1,7 +1,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 # Change CACHE_BUST value to force a fresh npm install
-ARG CACHE_BUST=5
+ARG CACHE_BUST=6
 COPY package*.json ./
 RUN npm ci --prefer-offline=false
 
@@ -25,9 +25,11 @@ ENV TURBOPACK=0
 # Increase Node.js heap to prevent OOM during webpack builds
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
-# ── Diagnostic: verify all expected assets were emitted ──────────────────────
-RUN echo "=== .next/static/chunks count ===" && ls /app/.next/static/chunks/ | wc -l \
- && echo "=== CSS chunks ===" && ls /app/.next/static/chunks/*.css 2>/dev/null || echo "NONE" \
+# ── Diagnostic: verify webpack ran (not Turbopack) and all assets were emitted ─
+RUN echo "=== Bundler check (no 'turbopack' = webpack) ===" \
+ && ls /app/.next/static/chunks/ | grep -i turbopack && echo "TURBOPACK STILL ON" || echo "webpack confirmed (no turbopack-*.js)" \
+ && echo "=== .next/static/chunks total ===" && ls /app/.next/static/chunks/ | wc -l \
+ && echo "=== CSS files ===" && ls /app/.next/static/chunks/*.css 2>/dev/null; ls /app/.next/static/css/ 2>/dev/null \
  && echo "=== .next/static top-level ===" && ls /app/.next/static/
 
 FROM node:20-alpine AS runner
