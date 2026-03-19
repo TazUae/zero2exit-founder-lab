@@ -1,7 +1,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 # Change CACHE_BUST value to force a fresh npm install
-ARG CACHE_BUST=6
+ARG CACHE_BUST=7
 COPY package*.json ./
 RUN npm ci --prefer-offline=false
 
@@ -18,10 +18,6 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# Disable Turbopack: Next.js 16 defaults to Turbopack for `next build` but its
-# standalone output omits shared chunks that the runtime references → 404s on
-# every page. Webpack's standalone output is stable and correct.
-ENV TURBOPACK=0
 # Increase Node.js heap to prevent OOM during webpack builds
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
