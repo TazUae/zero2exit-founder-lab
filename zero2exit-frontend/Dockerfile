@@ -1,7 +1,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
+# Change CACHE_BUST value to force a fresh npm install
+ARG CACHE_BUST=3
 COPY package*.json ./
-ARG CACHE_BUST=1
 RUN npm ci --prefer-offline=false
 
 FROM node:20-alpine AS builder
@@ -17,6 +18,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+# Increase Node.js heap to prevent OOM during large webpack builds
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 FROM node:20-alpine AS runner
