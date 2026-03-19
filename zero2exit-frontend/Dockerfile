@@ -1,7 +1,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+ARG CACHE_BUST=1
+RUN npm ci --prefer-offline=false
 
 FROM node:20-alpine AS builder
 WORKDIR /app
