@@ -33,6 +33,7 @@ services:
       FRONTEND_URL: https://${DOMAIN}
     networks:
       - internal
+      - supabase-internal
       - dokploy-network                          # ← added: Traefik must be on the same network
     expose:
       - "3000"                                   # ← added: advertise port to Traefik
@@ -69,6 +70,7 @@ services:
       REDIS_URL: redis://redis:6379
     networks:
       - internal
+      - supabase-internal
     command: ["node", "dist/worker.js"]
 
   # ─── Frontend (Next.js) — Traefik-routed ───
@@ -122,4 +124,7 @@ networks:
     driver: bridge
   dokploy-network:
     external: true
+  supabase-internal:
+    external: true
+    name: supabase-internal
 
