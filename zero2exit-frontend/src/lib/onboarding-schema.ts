@@ -25,7 +25,12 @@ export type MultiSelectQuestion = BaseQuestion & {
   maxSelections?: number
 }
 
-export type Question = SingleSelectQuestion | MultiSelectQuestion
+export type TextQuestion = BaseQuestion & {
+  kind: "text"
+  placeholder?: string
+}
+
+export type Question = SingleSelectQuestion | MultiSelectQuestion | TextQuestion
 
 // ─── Schema & defaults ─────────────────────────────────────────────────────────
 
@@ -43,6 +48,7 @@ export const onboardingSchema = z.object({
   advantage: z.array(z.string()).min(1),
   challenge: z.array(z.string()).min(1),
   geographic_focus: z.array(z.string()).min(1),
+  business_name: z.string().default(""),
 })
 
 // Infer the form values from the schema so the resolver and form stay in sync
@@ -62,6 +68,7 @@ export const ONBOARDING_DEFAULTS: OnboardingFormValues = {
   advantage: [],
   challenge: [],
   geographic_focus: [],
+  business_name: "",
 }
 
 // ─── Question configuration ─────────────────────────────────────────────────────
@@ -225,6 +232,12 @@ export const QUESTIONS: Question[] = [
       { value: "global_english", label: "Global, English‑speaking first" },
       { value: "global_multilingual", label: "Global, multilingual from day one" },
     ],
+  },
+  {
+    id: "business_name",
+    kind: "text",
+    label: "Do you have a name for your business yet?",
+    placeholder: "e.g. Zero2Exit, NovaMed, DataFlow... (leave blank if undecided)",
   },
 ]
 

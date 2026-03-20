@@ -51,6 +51,7 @@ export const gatewayRouter = router({
           advantage: z.array(z.string()),
           challenge: z.array(z.string()),
           geographic_focus: z.array(z.string()),
+          business_name: z.string().optional().default(''),
         }),
         // Legacy free-text payload (backwards-compat during rollout)
         z.record(z.string(), z.unknown()),

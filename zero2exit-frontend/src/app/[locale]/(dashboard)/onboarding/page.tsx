@@ -19,6 +19,7 @@ import {
   type Question,
   type SingleSelectQuestion,
   type MultiSelectQuestion,
+  type TextQuestion,
 } from '@/lib/onboarding-schema'
 
 // ─── Single-select option grid ───────────────────────────────────────────────
@@ -141,6 +142,25 @@ function QuestionField({
   question: Question
   control: Control<OnboardingFormValues>
 }) {
+  if (question.kind === 'text') {
+    const q = question as TextQuestion
+    return (
+      <Controller
+        control={control}
+        name={question.id as keyof OnboardingFormValues}
+        render={({ field }) => (
+          <input
+            type="text"
+            value={(field.value as string) ?? ''}
+            onChange={field.onChange}
+            placeholder={q.placeholder}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
+          />
+        )}
+      />
+    )
+  }
+
   if (question.kind === 'single') {
     return (
       <div className="space-y-3">
@@ -227,6 +247,7 @@ export default function OnboardingPage() {
     advantage:        'Competitive Edge',
     challenge:        'Challenges',
     geographic_focus: 'Market Focus',
+    business_name:    'Brand Identity',
   }
   const category = QUESTION_CATEGORIES[question.id] ?? ''
 
@@ -244,9 +265,11 @@ export default function OnboardingPage() {
   const currentFieldId = question.id as keyof OnboardingFormValues
   const currentValue = watch(currentFieldId)
   const isAnswered =
-    question.kind === 'single'
-      ? typeof currentValue === 'string' && currentValue.length > 0
-      : Array.isArray(currentValue) && currentValue.length > 0
+    question.kind === 'text'
+      ? true  // optional — always skippable
+      : question.kind === 'single'
+        ? typeof currentValue === 'string' && currentValue.length > 0
+        : Array.isArray(currentValue) && currentValue.length > 0
 
   const handleNext = useCallback(async () => {
     const fieldsToValidate: (keyof OnboardingFormValues)[] = [currentFieldId]

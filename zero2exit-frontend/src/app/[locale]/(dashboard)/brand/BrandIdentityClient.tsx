@@ -267,6 +267,12 @@ export function BrandIdentityClient() {
       // no usable source
       avoidances: prev.avoidances || "",
     }))
+
+    // Pre-fill brand name step 1 from onboarding business_name answer
+    const savedName = typeof onb.business_name === "string" ? onb.business_name.trim() : ""
+    if (savedName) {
+      setBrandName((prev) => prev || savedName)
+    }
   }, [Boolean(m01Data), Boolean(gatewayData)])
 
   const hasAutoFilled = useMemo(
