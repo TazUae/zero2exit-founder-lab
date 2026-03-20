@@ -211,6 +211,22 @@ export default function OnboardingPage() {
   const question = QUESTIONS[step]
   const isLast = step === QUESTIONS.length - 1
   const progress = ((step + 1) / QUESTIONS.length) * 100
+  const progressPct = Math.round(((step + 1) / QUESTIONS.length) * 100)
+
+  const QUESTION_CATEGORIES: Record<string, string> = {
+    business_model:   'Business Model',
+    target_customer:  'Target Market',
+    stage:            'Startup Stage',
+    revenue:          'Financials',
+    team_size:        'Team',
+    funding_status:   'Funding',
+    exit_plan:        'Exit Strategy',
+    competitors:      'Competition',
+    advantage:        'Competitive Edge',
+    challenge:        'Challenges',
+    geographic_focus: 'Market Focus',
+  }
+  const category = QUESTION_CATEGORIES[question.id] ?? ''
 
   const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
     onSuccess: () => {
@@ -274,11 +290,16 @@ export default function OnboardingPage() {
 
       {/* Progress */}
       <div className="space-y-1.5">
-        <div className="w-full bg-slate-800 rounded-full h-1.5">
-          <div
-            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
+        <div className="flex items-center gap-3">
+          <div className="flex-1 bg-slate-800 rounded-full h-1.5">
+            <div
+              className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-xs text-emerald-400 font-medium tabular-nums w-16 text-right shrink-0">
+            {progressPct}% complete
+          </span>
         </div>
         <p className="text-slate-500 text-xs">
           Question {step + 1} of {QUESTIONS.length}
@@ -288,6 +309,11 @@ export default function OnboardingPage() {
       {/* Question card */}
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader className="pb-4">
+          {category && (
+            <span className="inline-block mb-2 px-2.5 py-0.5 rounded-full border border-emerald-800 text-emerald-500/70 text-[11px] font-medium tracking-wide w-fit">
+              {category}
+            </span>
+          )}
           <CardTitle className="text-white text-xl leading-snug">
             {question.label}
           </CardTitle>
