@@ -216,6 +216,7 @@ export default function OnboardingPage() {
 
   const QUESTION_CATEGORIES: Record<string, string> = {
     business_model:   'Business Model',
+    industry:         'Industry',
     target_customer:  'Target Market',
     stage:            'Startup Stage',
     revenue:          'Financials',

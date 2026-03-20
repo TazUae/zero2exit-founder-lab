@@ -39,6 +39,7 @@ export const gatewayRouter = router({
         // Structured payload from the new multi-choice wizard
         z.object({
           business_model: z.string(),
+          industry: z.string().optional().default(''),
           target_customer: z.array(z.string()),
           stage: z.string(),
           revenue: z.string(),

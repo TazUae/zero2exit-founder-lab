@@ -31,6 +31,7 @@ export type Question = SingleSelectQuestion | MultiSelectQuestion
 
 export const onboardingSchema = z.object({
   business_model: z.string().min(1),
+  industry: z.string().min(1),
   target_customer: z.array(z.string()).min(1),
   stage: z.string().min(1),
   revenue: z.string().min(1),
@@ -49,6 +50,7 @@ export type OnboardingFormValues = z.infer<typeof onboardingSchema>
 
 export const ONBOARDING_DEFAULTS: OnboardingFormValues = {
   business_model: "",
+  industry: "",
   target_customer: [],
   stage: "",
   revenue: "",
@@ -76,6 +78,24 @@ export const QUESTIONS: Question[] = [
       { value: "ads_or_affiliate", label: "Advertising / affiliate" },
       { value: "hardware_or_services", label: "Hardware / services" },
       { value: "other", label: "Other" },
+    ],
+  },
+  {
+    id: "industry",
+    kind: "single",
+    label: "What industry are you building in?",
+    options: [
+      { value: "fintech",     label: "FinTech / Payments" },
+      { value: "healthtech",  label: "HealthTech / MedTech" },
+      { value: "edtech",      label: "EdTech" },
+      { value: "ecommerce",   label: "E-commerce / Retail" },
+      { value: "saas",        label: "SaaS / B2B Software" },
+      { value: "marketplace", label: "Marketplace" },
+      { value: "proptech",    label: "Real Estate / PropTech" },
+      { value: "logistics",   label: "Logistics / Supply Chain" },
+      { value: "media",       label: "Media / Content" },
+      { value: "ai_data",     label: "AI / Data" },
+      { value: "other",       label: "Other" },
     ],
   },
   {
