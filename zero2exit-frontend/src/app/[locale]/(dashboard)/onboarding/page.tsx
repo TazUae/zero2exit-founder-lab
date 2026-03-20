@@ -201,6 +201,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const locale = useLocale()
   const [step, setStep] = React.useState(0)
+  const [direction, setDirection] = React.useState<'forward' | 'back'>('forward')
 
   const { control, trigger, getValues, watch, formState: { errors } } = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema) as Resolver<OnboardingFormValues>,
@@ -258,12 +259,16 @@ export default function OnboardingPage() {
       const values = getValues()
       submitQuestionnaire.mutate({ responses: values, language: 'en' })
     } else {
+      setDirection('forward')
       setStep((s) => s + 1)
     }
   }, [currentFieldId, isLast, question, trigger, getValues, submitQuestionnaire])
 
   const handleBack = useCallback(() => {
-    if (step > 0) setStep((s) => s - 1)
+    if (step > 0) {
+      setDirection('back')
+      setStep((s) => s - 1)
+    }
   }, [step])
 
   // Keyboard: Enter / Cmd+Enter → next
@@ -306,7 +311,16 @@ export default function OnboardingPage() {
         </p>
       </div>
 
+      {/* Slide animation keyframes */}
+      <style>{`
+        @keyframes slide-in-right  { from { opacity: 0; transform: translateX(48px);  } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slide-in-left   { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
+        .slide-forward { animation: slide-in-right 220ms cubic-bezier(0.25,0.46,0.45,0.94) both; }
+        .slide-back    { animation: slide-in-left  220ms cubic-bezier(0.25,0.46,0.45,0.94) both; }
+      `}</style>
+
       {/* Question card */}
+      <div key={step} className={direction === 'forward' ? 'slide-forward' : 'slide-back'}>
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader className="pb-4">
           {category && (
@@ -361,6 +375,7 @@ export default function OnboardingPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <p className="text-slate-600 text-xs text-center">
         Press <kbd className="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">⌘ Enter</kbd> to advance
