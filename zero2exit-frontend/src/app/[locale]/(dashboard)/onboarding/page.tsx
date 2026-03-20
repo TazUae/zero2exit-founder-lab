@@ -478,6 +478,39 @@ export default function OnboardingPage() {
         <p className="text-slate-400 mt-2">{t('subtitle')}</p>
       </div>
 
+      {/* Question jump pills */}
+      <div className="flex flex-wrap gap-1.5" role="navigation" aria-label="Jump to question">
+        {QUESTIONS.map((_, i) => {
+          const isCompleted = i < step
+          const isCurrent   = i === step
+          const isClickable = isCompleted
+          return (
+            <button
+              key={i}
+              type="button"
+              disabled={!isClickable}
+              onClick={() => {
+                if (!isClickable) return
+                setDirection(i < step ? 'back' : 'forward')
+                setStep(i)
+              }}
+              aria-label={`Go to question ${i + 1}`}
+              aria-current={isCurrent ? 'step' : undefined}
+              className={cn(
+                'flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold transition-all shrink-0',
+                isCompleted
+                  ? 'bg-emerald-500 text-white cursor-pointer hover:bg-emerald-400'
+                  : isCurrent
+                    ? 'bg-emerald-500 text-white ring-2 ring-emerald-400/50 ring-offset-1 ring-offset-slate-950 cursor-default'
+                    : 'bg-slate-800 text-slate-600 cursor-default',
+              )}
+            >
+              {i + 1}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Progress */}
       <div className="space-y-1.5">
         <div className="flex items-center gap-3">

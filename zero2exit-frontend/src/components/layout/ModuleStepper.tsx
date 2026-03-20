@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useEffect, useMemo } from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLocale } from "next-intl"
 import { Check, Circle, Lock } from "lucide-react"
@@ -130,29 +131,43 @@ export function ModuleStepper() {
             )
           }
 
+          const href = stage.href ? `${prefix}${stage.href}` : null
+          const isNavigable = (completed || isActive) && !!href
+
+          const pillContent = (
+            <>
+              {completed ? (
+                <Check className="h-2 w-2 shrink-0" aria-hidden />
+              ) : (
+                <Circle className="h-2 w-2 shrink-0" aria-hidden />
+              )}
+              {stage.label}
+            </>
+          )
+
+          const pillClass = `flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] leading-tight whitespace-nowrap transition-colors ${
+            completed
+              ? "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+              : isActive
+                ? "bg-white/10 font-semibold text-white hover:bg-white/20 cursor-pointer"
+                : "text-slate-500 cursor-default"
+          }`
+
           return (
             <div
               key={stage.id}
               ref={isActive ? activeStageRef : undefined}
               className="flex items-center shrink-0 min-w-0"
             >
-              <span
-                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] leading-tight whitespace-nowrap cursor-default ${
-                  completed
-                    ? "text-emerald-400"
-                    : isActive
-                      ? "bg-white/10 font-semibold text-white"
-                      : "text-slate-500"
-                }`}
-                aria-current={isActive ? "step" : undefined}
-              >
-                {completed ? (
-                  <Check className="h-2 w-2 shrink-0" aria-hidden />
-                ) : (
-                  <Circle className="h-2 w-2 shrink-0" aria-hidden />
-                )}
-                {stage.label}
-              </span>
+              {isNavigable ? (
+                <Link href={href!} className={pillClass} aria-current={isActive ? "step" : undefined}>
+                  {pillContent}
+                </Link>
+              ) : (
+                <span className={pillClass} aria-current={isActive ? "step" : undefined}>
+                  {pillContent}
+                </span>
+              )}
               {i < STAGES.length - 1 && (
                 <span className="text-slate-600 mx-px text-[8px] shrink-0" aria-hidden>›</span>
               )}
