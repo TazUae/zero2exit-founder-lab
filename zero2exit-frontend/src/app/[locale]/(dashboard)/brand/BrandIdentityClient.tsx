@@ -173,44 +173,63 @@ export function BrandIdentityClient() {
 
   // Autofill from existing founder data
   useEffect(() => {
-    const ideaValidationSource = (m01Data as any)?.ideaValidation ?? {}
-    const onboardingSource = (gatewayData as any)?.onboardingResponses ?? {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ideaVal = (m01Data as any)?.ideaValidation ?? {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onb = (gatewayData as any)?.onboardingResponses ?? {}
 
-    if (!ideaValidationSource && !onboardingSource) return
+    if (!ideaVal && !onb) return
+
+    // Onboarding stores arrays for multi-select fields — join them into a string
+    const joinArr = (v: unknown): string =>
+      Array.isArray(v) ? (v as string[]).filter(Boolean).join(", ") : ""
+
+    // targetAudience fallback: extract ICP profile titles/names from M01
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const icpProfiles: any[] = Array.isArray(ideaVal.icpProfiles) ? ideaVal.icpProfiles : []
+    const icpAudience = icpProfiles
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((p: any) => p.title || p.name)
+      .filter(Boolean)
+      .join(", ")
 
     setForm((prev) => ({
+      // onboarding: business_model | m01: businessDescription
       businessDescription:
         prev.businessDescription ||
-        (onboardingSource as { businessIdea?: string }).businessIdea ||
-        (ideaValidationSource as { businessDescription?: string }).businessDescription ||
+        (onb.business_model as string | undefined) ||
+        (ideaVal.businessDescription as string | undefined) ||
         "",
+      // onboarding: target_customer[] | m01: icpProfiles titles
       targetAudience:
         prev.targetAudience ||
-        (onboardingSource as { targetMarket?: string }).targetMarket ||
+        joinArr(onb.target_customer) ||
+        icpAudience ||
         "",
-      industry:
-        prev.industry ||
-        (onboardingSource as { industry?: string }).industry ||
-        "",
+      // no stored source for industry
+      industry: prev.industry || "",
+      // onboarding: competitors[]
       competitors:
         prev.competitors ||
-        (onboardingSource as { competitorAware?: string }).competitorAware ||
-        (ideaValidationSource as { competitorAware?: string }).competitorAware ||
+        joinArr(onb.competitors) ||
         "",
+      // onboarding: advantage[] (closest proxy for brand personality)
       brandPersonality:
         prev.brandPersonality ||
-        (onboardingSource as { uniqueAdvantage?: string }).uniqueAdvantage ||
+        joinArr(onb.advantage) ||
         "",
+      // onboarding: geographic_focus[]
       geographicFocus:
         prev.geographicFocus ||
-        (onboardingSource as { geography?: string }).geography ||
-        "UAE, Saudi Arabia, MENA region",
+        joinArr(onb.geographic_focus) ||
+        "",
+      // no usable source
       avoidances: prev.avoidances || "",
     }))
   }, [Boolean(m01Data), Boolean(gatewayData)])
 
   const hasAutoFilled = useMemo(
-    () => Object.values(form).some((v) => v && v.trim().length > 0),
+    () => Object.values(form).filter((v) => v && v.trim().length > 0).length >= 3,
     [form],
   )
 
