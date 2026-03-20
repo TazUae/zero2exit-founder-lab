@@ -307,7 +307,9 @@ export default function OnboardingPage() {
           </span>
         </div>
         <p className="text-slate-500 text-xs">
-          Question {step + 1} of {QUESTIONS.length}
+          {step === 0
+            ? `~3 minutes to complete · ${QUESTIONS.length} questions`
+            : `Question ${step + 1} of ${QUESTIONS.length}`}
         </p>
       </div>
 
@@ -373,6 +375,9 @@ export default function OnboardingPage() {
               )}
             </Button>
           </div>
+          <p className="text-center text-[11px] text-slate-600">
+            Your answers are saved automatically
+          </p>
         </CardContent>
       </Card>
       </div>
