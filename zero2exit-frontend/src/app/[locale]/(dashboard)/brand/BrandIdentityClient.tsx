@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useLocale } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/lib/trpc"
-import { QUESTIONS } from "@/lib/onboarding-schema"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -119,14 +118,39 @@ type FormState = Record<QuestionId, string>
 
 const STEP_LABELS = ["Brand Name", "Color Palette", "Generate"] as const
 
-// Build a lookup map from the onboarding schema: { fieldId → { value → label } }
-// This ensures keys like "saas_subscriptions" resolve to "SaaS subscriptions"
-const ONBOARDING_LABELS: Record<string, Record<string, string>> = {}
-for (const q of QUESTIONS) {
-  ONBOARDING_LABELS[q.id] = {}
-  for (const opt of q.options) {
-    ONBOARDING_LABELS[q.id][opt.value] = opt.label
-  }
+// Static key→label maps for the four onboarding fields used in brand auto-fill.
+// Inlined to avoid iterating QUESTIONS at module-level (SSR-safe).
+const ONBOARDING_LABELS: Record<string, Record<string, string>> = {
+  business_model: {
+    saas_subscriptions:   "SaaS subscriptions",
+    transaction_fees:     "Transaction / marketplace fees",
+    enterprise_contracts: "Enterprise contracts",
+    ads_or_affiliate:     "Advertising / affiliate",
+    hardware_or_services: "Hardware / services",
+    other:                "Other",
+  },
+  target_customer: {
+    consumers:       "Consumers (B2C)",
+    smb:             "Small & medium businesses",
+    enterprise:      "Large enterprises",
+    developers:      "Developers / technical teams",
+    creators:        "Creators / freelancers",
+    gov_or_nonprofit:"Government / non‑profits",
+  },
+  advantage: {
+    founder_experience: "Founder / domain experience",
+    proprietary_data:   "Proprietary data / insights",
+    technology:         "Technology / product quality",
+    distribution:       "Distribution / audience access",
+    pricing:            "Pricing / business model",
+    brand:              "Brand / community",
+  },
+  geographic_focus: {
+    local:               "Local market only",
+    regional:            "Regional (e.g. MENA, EU, APAC)",
+    global_english:      "Global, English‑speaking first",
+    global_multilingual: "Global, multilingual from day one",
+  },
 }
 
 function resolveLabels(fieldId: string, values: unknown): string {
