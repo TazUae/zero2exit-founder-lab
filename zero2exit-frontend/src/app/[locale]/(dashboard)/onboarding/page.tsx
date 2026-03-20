@@ -222,6 +222,10 @@ export default function OnboardingPage() {
   const locale = useLocale()
   const [step, setStep] = React.useState(0)
   const [direction, setDirection] = React.useState<'forward' | 'back'>('forward')
+  const [showQuestionnaire, setShowQuestionnaire] = React.useState(false)
+
+  // Check if onboarding was already completed
+  const planQuery = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
 
   const { control, trigger, getValues, watch, formState: { errors } } = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema) as Resolver<OnboardingFormValues>,
@@ -308,6 +312,90 @@ export default function OnboardingPage() {
 
   const errorMsg =
     errors[currentFieldId]?.message as string | undefined
+
+  // ── Summary screen (already completed) ────────────────────────────────────
+
+  if (planQuery.isLoading) {
+    return (
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4 animate-pulse">
+        <div className="h-8 w-64 rounded bg-slate-800" />
+        <div className="h-4 w-48 rounded bg-slate-800" />
+        <div className="h-48 rounded-xl bg-slate-800" />
+      </div>
+    )
+  }
+
+  const savedResponses = planQuery.data?.onboardingResponses as Record<string, unknown> | null | undefined
+  const hasCompleted = planQuery.isSuccess && !!savedResponses
+
+  if (hasCompleted && !showQuestionnaire) {
+    // Build label lookup from QUESTIONS (inside component — SSR-safe)
+    const labelMap: Record<string, Record<string, string>> = {}
+    for (const q of QUESTIONS) {
+      if ('options' in q && Array.isArray(q.options)) {
+        labelMap[q.id] = Object.fromEntries(q.options.map((o) => [o.value, o.label]))
+      }
+    }
+    const resolveLabel = (field: string, val: unknown): string => {
+      const map = labelMap[field] ?? {}
+      if (Array.isArray(val)) return (val as string[]).map((v) => map[v] ?? v).filter(Boolean).join(', ')
+      if (typeof val === 'string') return map[val] ?? val
+      return '—'
+    }
+
+    const SUMMARY_FIELDS: { key: string; label: string }[] = [
+      { key: 'stage',           label: 'Stage' },
+      { key: 'industry',        label: 'Industry' },
+      { key: 'target_customer', label: 'Target Market' },
+      { key: 'geographic_focus',label: 'Geographic Focus' },
+      { key: 'funding_status',  label: 'Funding Status' },
+    ]
+
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 lg:px-8 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Your founder profile is set up</h1>
+          <p className="mt-2 text-slate-400">Here's a summary of your onboarding answers.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {SUMMARY_FIELDS.map(({ key, label }) => {
+            const val = resolveLabel(key, savedResponses?.[key])
+            if (!val || val === '—') return null
+            return (
+              <div key={key} className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 space-y-0.5">
+                <p className="text-[11px] font-medium text-emerald-500/70 uppercase tracking-wide">{label}</p>
+                <p className="text-sm text-white leading-snug">{val}</p>
+              </div>
+            )
+          })}
+          {savedResponses?.business_name && String(savedResponses.business_name).trim() && (
+            <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 space-y-0.5">
+              <p className="text-[11px] font-medium text-emerald-500/70 uppercase tracking-wide">Business Name</p>
+              <p className="text-sm text-white leading-snug">{String(savedResponses.business_name)}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => router.push(`/${locale}/dashboard`)}
+            className="flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors text-center"
+          >
+            Go to Dashboard
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowQuestionnaire(true)}
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white transition-colors text-center"
+          >
+            Update my answers
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
