@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useLocale } from "next-intl"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/lib/trpc"
+import { QUESTIONS } from "@/lib/onboarding-schema"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -118,6 +119,28 @@ type FormState = Record<QuestionId, string>
 
 const STEP_LABELS = ["Brand Name", "Color Palette", "Generate"] as const
 
+// Build a lookup map from the onboarding schema: { fieldId → { value → label } }
+// This ensures keys like "saas_subscriptions" resolve to "SaaS subscriptions"
+const ONBOARDING_LABELS: Record<string, Record<string, string>> = {}
+for (const q of QUESTIONS) {
+  ONBOARDING_LABELS[q.id] = {}
+  for (const opt of q.options) {
+    ONBOARDING_LABELS[q.id][opt.value] = opt.label
+  }
+}
+
+function resolveLabels(fieldId: string, values: unknown): string {
+  const map = ONBOARDING_LABELS[fieldId] ?? {}
+  if (Array.isArray(values)) {
+    return (values as string[])
+      .map((v) => map[v] ?? v)
+      .filter(Boolean)
+      .join(", ")
+  }
+  if (typeof values === "string") return map[values] ?? values
+  return ""
+}
+
 function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   return (
     <div className="flex items-center gap-1 text-xs mb-6">
@@ -180,10 +203,6 @@ export function BrandIdentityClient() {
 
     if (!ideaVal && !onb) return
 
-    // Onboarding stores arrays for multi-select fields — join them into a string
-    const joinArr = (v: unknown): string =>
-      Array.isArray(v) ? (v as string[]).filter(Boolean).join(", ") : ""
-
     // targetAudience fallback: extract ICP profile titles/names from M01
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const icpProfiles: any[] = Array.isArray(ideaVal.icpProfiles) ? ideaVal.icpProfiles : []
@@ -194,34 +213,32 @@ export function BrandIdentityClient() {
       .join(", ")
 
     setForm((prev) => ({
-      // onboarding: business_model | m01: businessDescription
+      // onboarding: business_model (label) | m01: businessDescription (free text)
       businessDescription:
         prev.businessDescription ||
-        (onb.business_model as string | undefined) ||
         (ideaVal.businessDescription as string | undefined) ||
+        resolveLabels("business_model", onb.business_model) ||
         "",
-      // onboarding: target_customer[] | m01: icpProfiles titles
+      // onboarding: target_customer[] (labels) | m01: icpProfiles titles
       targetAudience:
         prev.targetAudience ||
-        joinArr(onb.target_customer) ||
+        resolveLabels("target_customer", onb.target_customer) ||
         icpAudience ||
         "",
-      // no stored source for industry
+      // no stored source for industry — user must fill
       industry: prev.industry || "",
-      // onboarding: competitors[]
-      competitors:
-        prev.competitors ||
-        joinArr(onb.competitors) ||
-        "",
-      // onboarding: advantage[] (closest proxy for brand personality)
+      // onboarding competitors field describes landscape density, not company names —
+      // no actual competitor names available from any source
+      competitors: prev.competitors || "",
+      // onboarding: advantage[] labels are the best brand personality proxy
       brandPersonality:
         prev.brandPersonality ||
-        joinArr(onb.advantage) ||
+        resolveLabels("advantage", onb.advantage) ||
         "",
-      // onboarding: geographic_focus[]
+      // onboarding: geographic_focus[] (labels)
       geographicFocus:
         prev.geographicFocus ||
-        joinArr(onb.geographic_focus) ||
+        resolveLabels("geographic_focus", onb.geographic_focus) ||
         "",
       // no usable source
       avoidances: prev.avoidances || "",
