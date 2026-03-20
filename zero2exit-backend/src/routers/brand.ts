@@ -122,16 +122,27 @@ export const brandRouter = router({
       const NamesSchema = z.object({
         names: z.array(z.string()).catch([]),
       })
-      const raw = await llmCall(
-        'brand.suggestNames',
-        [{
-          role: 'user',
-          content: `Suggest exactly 3 short, memorable, unique brand names for a ${input.industry} startup. Business: ${input.businessDescription}. Return JSON only: {"names":["Name1","Name2","Name3"]}`,
-        }],
-        'You are a brand naming expert. Respond with valid JSON only. No explanation outside the JSON.',
-      )
-      const result = parseLLMResponse(raw, 'brand.suggestNames', 'name suggestions', NamesSchema) as z.infer<typeof NamesSchema>
-      return { names: result.names.slice(0, 3) }
+      const FALLBACK_NAMES = ['BrandAlpha', 'NovaMark', 'ZenithCo']
+      let raw: string
+      try {
+        raw = await llmCall(
+          'brand.suggestNames',
+          [{
+            role: 'user',
+            content: `You must respond with ONLY a JSON object. No markdown, no code blocks, no explanation, no text before or after the JSON.\n\nSuggest exactly 3 short, memorable, unique brand names for a ${input.industry} startup.\nBusiness: ${input.businessDescription}\n\nRespond with this exact format and nothing else:\n{"names":["Name1","Name2","Name3"]}`,
+          }],
+          'You are a brand naming expert. You must respond with valid JSON only. Do not use markdown code blocks. Do not write any explanation. Output only the raw JSON object.',
+        )
+      } catch {
+        return { names: FALLBACK_NAMES }
+      }
+      try {
+        const result = parseLLMResponse(raw, 'brand.suggestNames', 'name suggestions', NamesSchema) as z.infer<typeof NamesSchema>
+        const names = result.names.filter(Boolean).slice(0, 3)
+        return { names: names.length > 0 ? names : FALLBACK_NAMES }
+      } catch {
+        return { names: FALLBACK_NAMES }
+      }
     }),
 
   // Submit questionnaire and generate brand identity
