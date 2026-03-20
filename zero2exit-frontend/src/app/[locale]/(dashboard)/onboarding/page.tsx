@@ -223,6 +223,7 @@ export default function OnboardingPage() {
   const [step, setStep] = React.useState(0)
   const [direction, setDirection] = React.useState<'forward' | 'back'>('forward')
   const [showQuestionnaire, setShowQuestionnaire] = React.useState(false)
+  const [completedAnswers, setCompletedAnswers] = React.useState<Record<string, unknown> | null>(null)
 
   // Check if onboarding was already completed
   const planQuery = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
@@ -256,9 +257,13 @@ export default function OnboardingPage() {
   const category = QUESTION_CATEGORIES[question.id] ?? ''
 
   const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
-    onSuccess: () => {
-      toast.success('Onboarding complete! Analysing your responses…')
-      router.push(`/${locale}/dashboard`)
+    onSuccess: (_data, variables) => {
+      // Show personalized completion screen, then redirect after 3 s
+      const responses = typeof variables.responses === 'object' && variables.responses !== null
+        ? variables.responses as Record<string, unknown>
+        : {}
+      setCompletedAnswers(responses)
+      setTimeout(() => router.push(`/${locale}/dashboard`), 3000)
     },
     onError: (err) => {
       toast.error(err.message ?? 'Submission failed. Please try again.')
@@ -312,6 +317,74 @@ export default function OnboardingPage() {
 
   const errorMsg =
     errors[currentFieldId]?.message as string | undefined
+
+  // ── Completion screen (just submitted) ────────────────────────────────────
+
+  if (completedAnswers) {
+    // Build label lookup (same pattern as summary screen, inside component)
+    const labelMap: Record<string, Record<string, string>> = {}
+    for (const q of QUESTIONS) {
+      if ('options' in q && Array.isArray(q.options)) {
+        labelMap[q.id] = Object.fromEntries(q.options.map((o) => [o.value, o.label]))
+      }
+    }
+    const resolveLabel = (field: string, val: unknown): string => {
+      const map = labelMap[field] ?? {}
+      if (Array.isArray(val)) return (val as string[]).map((v) => map[v] ?? v).filter(Boolean).join(', ')
+      if (typeof val === 'string' && val) return map[val] ?? val
+      return ''
+    }
+
+    const lines = [
+      { label: 'Stage',   value: resolveLabel('stage',           completedAnswers.stage) },
+      { label: 'Market',  value: resolveLabel('geographic_focus', completedAnswers.geographic_focus) },
+      { label: 'Focus',   value: resolveLabel('challenge',        completedAnswers.challenge) },
+    ].filter((l) => l.value)
+
+    return (
+      <div className="mx-auto w-full max-w-md px-4 flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
+        <style>{`
+          @keyframes check-draw {
+            from { stroke-dashoffset: 48; }
+            to   { stroke-dashoffset: 0; }
+          }
+          @keyframes circle-pop {
+            0%   { transform: scale(0.6); opacity: 0; }
+            60%  { transform: scale(1.1); }
+            100% { transform: scale(1);   opacity: 1; }
+          }
+          .check-circle { animation: circle-pop 400ms cubic-bezier(0.34,1.56,0.64,1) both; }
+          .check-path   { stroke-dasharray: 48; animation: check-draw 350ms 300ms ease-out both; }
+        `}</style>
+
+        <div className="check-circle flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500">
+          <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" strokeLinecap="round" strokeLinejoin="round">
+            <path className="check-path" d="M5 13l4 4L19 7" stroke="#10b981" strokeWidth="2.5" />
+          </svg>
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-white">Your founder profile is ready</h1>
+          <div className="space-y-1 pt-1">
+            {lines.map(({ label, value }) => (
+              <p key={label} className="text-sm text-slate-400">
+                <span className="text-slate-500">{label}:</span>{' '}
+                <span className="text-slate-300">{value}</span>
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <svg className="w-4 h-4 animate-spin text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Taking you to your dashboard...
+        </div>
+      </div>
+    )
+  }
 
   // ── Summary screen (already completed) ────────────────────────────────────
 
