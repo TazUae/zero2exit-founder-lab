@@ -234,6 +234,15 @@ function QuestionField({
   )
 }
 
+// ─── Post-submit loading steps ────────────────────────────────────────────────
+
+const LOADING_STEPS = [
+  'Saving your founder profile…',
+  'Analysing your idea…',
+  'Building your validation scorecard…',
+  'Your founder OS is ready!',
+] as const
+
 // ─── Wizard page ──────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
@@ -243,7 +252,10 @@ export default function OnboardingPage() {
   const [step, setStep] = React.useState(0)
   const [direction, setDirection] = React.useState<'forward' | 'back'>('forward')
   const [showQuestionnaire, setShowQuestionnaire] = React.useState(false)
-  const [completedAnswers, setCompletedAnswers] = React.useState<Record<string, unknown> | null>(null)
+  const [autoValidatePhase, setAutoValidatePhase] = React.useState<{
+    step: 1 | 2 | 3 | 4
+    error: string | null
+  } | null>(null)
 
   // Check if onboarding was already completed
   const planQuery = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
@@ -277,16 +289,36 @@ export default function OnboardingPage() {
   }
   const category = QUESTION_CATEGORIES[question.id] ?? ''
 
-  const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
-    onSuccess: (_data, variables) => {
-      // Show personalized completion screen, then redirect after 3 s
-      const responses = typeof variables.responses === 'object' && variables.responses !== null
-        ? variables.responses as Record<string, unknown>
-        : {}
-      setCompletedAnswers(responses)
-      setTimeout(() => router.push(`/${locale}/dashboard`), 3000)
+  const autoValidate = trpc.m01.autoValidate.useMutation({
+    onSuccess: () => {
+      setAutoValidatePhase(p => p ? { ...p, step: 4, error: null } : null)
+      setTimeout(() => router.push(`/${locale}/dashboard/m01`), 1500)
     },
     onError: (err) => {
+      setAutoValidatePhase(p => p ? { ...p, error: err.message ?? 'Idea validation failed. You can continue to the dashboard.' } : null)
+    },
+  })
+
+  const submitQuestionnaire = trpc.gateway.submitQuestionnaire.useMutation({
+    onSuccess: (_data, _variables) => {
+      // Advance to step 2 and kick off auto-validation
+      setAutoValidatePhase({ step: 2, error: null })
+
+      const values = getValues()
+      autoValidate.mutate({
+        ideaDescription: values.idea_description,
+        industry:        values.industry,
+        targetCustomer:  values.target_customer,
+        geographicFocus: values.geographic_focus,
+      })
+
+      // Advance 2 → 3 after 8 s (while stress test runs)
+      setTimeout(() => {
+        setAutoValidatePhase(p => p?.step === 2 ? { ...p, step: 3 } : p)
+      }, 8000)
+    },
+    onError: (err) => {
+      setAutoValidatePhase(null)
       toast.error(err.message ?? 'Submission failed. Please try again.')
     },
   })
@@ -315,6 +347,7 @@ export default function OnboardingPage() {
     if (isLast) {
       const values = getValues()
       const lang: 'en' | 'ar' = values.preferred_language === 'ar' ? 'ar' : 'en'
+      setAutoValidatePhase({ step: 1, error: null })  // show loading screen immediately
       submitQuestionnaire.mutate({ responses: values, language: lang })
     } else {
       setDirection('forward')
@@ -345,69 +378,69 @@ export default function OnboardingPage() {
 
   // ── Completion screen (just submitted) ────────────────────────────────────
 
-  if (completedAnswers) {
-    // Build label lookup (same pattern as summary screen, inside component)
-    const labelMap: Record<string, Record<string, string>> = {}
-    for (const q of QUESTIONS) {
-      if ('options' in q && Array.isArray(q.options)) {
-        labelMap[q.id] = Object.fromEntries(q.options.map((o) => [o.value, o.label]))
-      }
-    }
-    const resolveLabel = (field: string, val: unknown): string => {
-      const map = labelMap[field] ?? {}
-      if (Array.isArray(val)) return (val as string[]).map((v) => map[v] ?? v).filter(Boolean).join(', ')
-      if (typeof val === 'string' && val) return map[val] ?? val
-      return ''
-    }
-
-    const ideaRaw = typeof completedAnswers.idea_description === 'string' ? completedAnswers.idea_description.trim() : ''
-    const lines = [
-      { label: 'Idea',    value: ideaRaw.length > 80 ? ideaRaw.slice(0, 80) + '…' : ideaRaw },
-      { label: 'Stage',   value: resolveLabel('stage',           completedAnswers.stage) },
-      { label: 'Based In', value: resolveLabel('primary_country', completedAnswers.primary_country) },
-    ].filter((l) => l.value)
-
+  if (autoValidatePhase) {
+    const { step, error } = autoValidatePhase
     return (
-      <div className="mx-auto w-full max-w-md px-4 flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
-        <style>{`
-          @keyframes check-draw {
-            from { stroke-dashoffset: 48; }
-            to   { stroke-dashoffset: 0; }
-          }
-          @keyframes circle-pop {
-            0%   { transform: scale(0.6); opacity: 0; }
-            60%  { transform: scale(1.1); }
-            100% { transform: scale(1);   opacity: 1; }
-          }
-          .check-circle { animation: circle-pop 400ms cubic-bezier(0.34,1.56,0.64,1) both; }
-          .check-path   { stroke-dasharray: 48; animation: check-draw 350ms 300ms ease-out both; }
-        `}</style>
-
-        <div className="check-circle flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500">
-          <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" strokeLinecap="round" strokeLinejoin="round">
-            <path className="check-path" d="M5 13l4 4L19 7" stroke="#10b981" strokeWidth="2.5" />
-          </svg>
+      <div className="mx-auto w-full max-w-md px-4 flex flex-col items-center justify-center min-h-[60vh] space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold text-white">
+            {step === 4 ? 'Your founder OS is ready!' : 'Setting up your founder OS…'}
+          </h1>
+          {step < 4 && !error && (
+            <p className="text-slate-400 text-sm">This takes about 30 seconds — hang tight.</p>
+          )}
         </div>
 
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-white">Your founder profile is ready</h1>
-          <div className="space-y-1 pt-1">
-            {lines.map(({ label, value }) => (
-              <p key={label} className="text-sm text-slate-400">
-                <span className="text-slate-500">{label}:</span>{' '}
-                <span className="text-slate-300">{value}</span>
-              </p>
-            ))}
+        <div className="w-full space-y-4">
+          {LOADING_STEPS.map((label, i) => {
+            const stepNum = (i + 1) as 1 | 2 | 3 | 4
+            const isDone   = step > stepNum
+            const isActive = step === stepNum
+            return (
+              <div key={i} className="flex items-center gap-4">
+                <div className={cn(
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-300',
+                  isDone
+                    ? 'border-emerald-500 bg-emerald-500'
+                    : isActive
+                      ? 'border-emerald-400 bg-emerald-400/10'
+                      : 'border-slate-700 bg-transparent',
+                )}>
+                  {isDone ? (
+                    <span className="text-white text-sm font-bold leading-none">✓</span>
+                  ) : isActive && stepNum < 4 ? (
+                    <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                  ) : isActive && stepNum === 4 ? (
+                    <span className="text-emerald-400 text-sm font-bold leading-none">✓</span>
+                  ) : null}
+                </div>
+                <span className={cn(
+                  'text-sm',
+                  isDone   ? 'text-emerald-400'
+                  : isActive ? 'text-white font-medium'
+                  : 'text-slate-600',
+                )}>
+                  {label}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+
+        {error && (
+          <div className="w-full space-y-3 pt-2">
+            <p className="text-red-400 text-sm text-center">
+              {error.length > 140 ? error.slice(0, 140) + '…' : error}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(`/${locale}/dashboard`)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+            >
+              Continue to Dashboard →
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <svg className="w-4 h-4 animate-spin text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
-          Taking you to your dashboard...
-        </div>
+        )}
       </div>
     )
   }

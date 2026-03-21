@@ -506,6 +506,159 @@ export const m01Router = router({
       return { scorecard, score, passed: score >= 60 }
     }),
 
+  // Auto-validate: runs stress test + scorecard in one shot (called after onboarding)
+  autoValidate: protectedProcedure
+    .input(
+      z.object({
+        ideaDescription:  z.string().min(20).max(5000),
+        industry:         z.string(),
+        targetCustomer:   z.array(z.string()).optional().default([]),
+        geographicFocus:  z.array(z.string()).optional().default([]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { founderId, db } = ctx
+      logger.info({ founderId }, 'm01.autoValidate started')
+
+      // ── Step 1: Stress test ───────────────────────────────────────────────
+      let objections: unknown[] = []
+      try {
+        const raw = await llmCall(
+          'm01.stressTest',
+          [{ role: 'user', content: stressTestUser(input.ideaDescription) }],
+          stressTestSystem(),
+        )
+        const parsed = parseLLMResponse(raw, 'm01.stressTest', 'stress test', StressTestOutputSchema)
+        objections = parsed.objections ?? []
+      } catch (err) {
+        logger.warn({ err }, 'm01.autoValidate stress test failed, continuing to scorecard')
+      }
+
+      // Save business description + objections
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await db.ideaValidation.upsert({
+        where: { founderId } as any,
+        update: {
+          businessDescription: input.ideaDescription,
+          ...(objections.length > 0 && { objections: objections as any }),
+          updatedAt: new Date(),
+        },
+        create: {
+          founderId,
+          businessDescription: input.ideaDescription,
+          objections: objections as any,
+        },
+      })
+
+      await safeAsync('moduleProgress in_progress', () =>
+        db.moduleProgress.updateMany({
+          where: { founderId, moduleId: 'M01' },
+          data: { status: 'in_progress', lastActivity: new Date() },
+        }),
+      )
+
+      // ── Step 2: Scorecard ─────────────────────────────────────────────────
+      let scorecard: {
+        total?: number
+        breakdown?: Record<string, number>
+        dimensions?: Array<{ name?: string; score?: number; risks?: string[] }>
+      } = {}
+      let score = 0
+
+      try {
+        const raw = await llmCall(
+          'm01.scorecard',
+          [
+            {
+              role: 'user',
+              content: scorecardUser({
+                businessDescription: input.ideaDescription,
+                industry: input.industry,
+                objectionResponses: objections.length > 0 ? JSON.stringify(objections) : undefined,
+              }),
+            },
+          ],
+          scorecardSystem(),
+        )
+
+        scorecard = parseLLMResponse(raw, 'm01.scorecard', 'scorecard', ScorecardOutputSchema) as typeof scorecard
+
+        // Build breakdown from dimensions if missing
+        if (!scorecard.breakdown && Array.isArray(scorecard.dimensions) && scorecard.dimensions.length > 0) {
+          const nameToKey: Record<string, string> = {
+            'market opportunity':   'marketOpportunity',
+            'market size':          'marketOpportunity',
+            'differentiation':      'differentiation',
+            'competitive advantage':'differentiation',
+            'execution feasibility':'executionFeasibility',
+            'execution':            'executionFeasibility',
+            'defensibility':        'defensibility',
+            'timing':               'timing',
+          }
+          const bd: Record<string, number> = {}
+          for (const dim of scorecard.dimensions) {
+            const key = nameToKey[(dim.name ?? '').toLowerCase()]
+            if (key && typeof dim.score === 'number') bd[key] = dim.score
+          }
+          if (Object.keys(bd).length > 0) scorecard.breakdown = bd
+        }
+
+        score = scorecard.total ?? 0
+      } catch (err) {
+        logger.warn({ err }, 'm01.autoValidate scorecard failed, continuing')
+      }
+
+      if (Object.keys(scorecard).length > 0) {
+        try {
+          await db.$transaction(async (tx: any) => {
+            await tx.ideaValidation.update({
+              where: { founderId } as any,
+              data: { scorecard: scorecard as any, updatedAt: new Date() },
+            })
+            await tx.moduleProgress.updateMany({
+              where: { founderId, moduleId: 'M01' },
+              data: {
+                score,
+                lastActivity: new Date(),
+                status: score >= 60 ? 'complete' : 'in_progress',
+                completedAt: score >= 60 ? new Date() : null,
+              },
+            })
+            if (score >= 60) {
+              await tx.moduleProgress.updateMany({
+                where: { founderId, moduleId: 'M02' },
+                data: { status: 'active', lastActivity: new Date() },
+              })
+            }
+            await writeAuditLog({
+              db: tx,
+              founderId,
+              actorType: 'founder',
+              action: 'm01.auto_validation_complete',
+              metadata: { score, passed: score >= 60 },
+            })
+          })
+        } catch (err) {
+          logger.warn({ err }, 'm01.autoValidate transaction failed')
+        }
+      }
+
+      await safeAsync('getOrCreateStartupNode', () =>
+        getOrCreateStartupNode({
+          founderId,
+          title: 'Startup',
+          data: { businessDescription: input.ideaDescription },
+        }),
+      )
+
+      await safeAsync('invalidateFounderContext', () =>
+        invalidateFounderContext(founderId),
+      )
+
+      logger.info({ score }, 'm01.autoValidate completed')
+      return { success: true, score }
+    }),
+
   // Get current M01 state
   getState: protectedProcedure.query(async ({ ctx }) => {
     const { founderId, db } = ctx
