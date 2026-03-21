@@ -7,9 +7,16 @@ export async function GET(
   { params }: { params: Promise<{ locale: string }> }
 ) {
   const { locale } = await params
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? `/${locale}/dashboard`
+
+  // request.url contains the internal Docker bind address (0.0.0.0:3000),
+  // not the public hostname. Use the reverse-proxy forwarded headers instead.
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const host = forwardedHost ?? request.headers.get('host') ?? ''
+  const origin = `${forwardedProto}://${host}`
 
   if (code) {
     const supabase = await createClient()
