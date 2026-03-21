@@ -43,6 +43,116 @@ async function safeAsync<T>(
   }
 }
 
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+// Core generation logic extracted so both the tRPC procedures and autoValidate
+// can call them without duplicating code.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function generateMarketSizing(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  founderId: string,
+  businessDescription: string,
+  industry: string,
+  geography: string,
+  targetSegment: string,
+): Promise<Record<string, unknown>> {
+  let research: unknown = null
+  try {
+    research = await researchTopic(industry, [
+      `market size ${industry} ${geography}`,
+      `number of customers ${targetSegment} ${geography}`,
+      `average spending in ${industry}`,
+    ])
+  } catch (err) {
+    logger.warn({ err }, 'm01 market research failed, continuing without')
+  }
+
+  const raw = await llmCall(
+    'm01.marketSizing',
+    [
+      {
+        role: 'user',
+        content:
+          marketSizingUser(businessDescription, industry, geography, targetSegment) +
+          (research ? `\n\nAdditional market research (JSON):\n${JSON.stringify(research)}` : ''),
+      },
+    ],
+    marketSizingSystem(),
+  )
+
+  let marketSizing: Record<string, unknown> = {}
+  try {
+    marketSizing = parseLLMResponse(raw, 'm01.marketSizing', 'market sizing', MarketSizingOutputSchema) as Record<string, unknown>
+  } catch {
+    logger.warn({ rawLen: raw.length }, 'm01 failed to parse market sizing JSON')
+  }
+
+  if (Object.keys(marketSizing).length > 0) {
+    await safeAsync('marketSizing db update', () =>
+      db.ideaValidation.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        where: { founderId } as any,
+        data: { marketSizing, updatedAt: new Date() },
+      }),
+    )
+  }
+
+  return marketSizing
+}
+
+async function generateIcpProfiles(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  founderId: string,
+  businessDescription: string,
+  industry: string,
+): Promise<unknown[]> {
+  let research: unknown = null
+  try {
+    research = await researchTopic(industry, [
+      `customer segments in ${industry}`,
+      `common pain points customers ${industry}`,
+      `who buys ${industry} products`,
+    ])
+  } catch (err) {
+    logger.warn({ err }, 'm01 ICP research failed, continuing without')
+  }
+
+  const raw = await llmCall(
+    'm01.icpBuilder',
+    [
+      {
+        role: 'user',
+        content:
+          icpUser(businessDescription, industry) +
+          (research ? `\n\nAdditional market research (JSON):\n${JSON.stringify(research)}` : ''),
+      },
+    ],
+    icpSystem(),
+  )
+
+  let icpProfiles: unknown[] = []
+  try {
+    const parsed = parseLLMResponse(raw, 'm01.icpBuilder', 'ICP profiles', ICPOutputSchema)
+    icpProfiles = parsed.profiles ?? []
+  } catch {
+    logger.warn({ rawLen: raw.length }, 'm01 failed to parse ICP JSON')
+  }
+
+  if (icpProfiles.length > 0) {
+    await safeAsync('icpProfiles db update', () =>
+      db.ideaValidation.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        where: { founderId } as any,
+        data: { icpProfiles, updatedAt: new Date() },
+      }),
+    )
+  }
+
+  return icpProfiles
+}
+
 export const m01Router = router({
   // Submit business description → get stress-test objections
   submitBusinessDescription: protectedProcedure
@@ -227,44 +337,13 @@ export const m01Router = router({
         })
       }
 
-      let research: unknown = null
+      let marketSizing: Record<string, unknown> = {}
       try {
-        research = await researchTopic(input.industry, [
-          `market size ${input.industry} ${input.geography}`,
-          `number of customers ${input.targetSegment} ${input.geography}`,
-          `average spending in ${input.industry}`,
-        ])
-      } catch (err) {
-        logger.warn({ err }, 'm01 market research failed, continuing without')
-      }
-
-      let marketSizing = {}
-      try {
-        const raw = await llmCall(
-          'm01.marketSizing',
-          [
-            {
-              role: 'user',
-              content:
-                marketSizingUser(
-                  ideaVal.businessDescription,
-                  input.industry,
-                  input.geography,
-                  input.targetSegment,
-                ) +
-                (research
-                  ? `\n\nAdditional market research (JSON):\n${JSON.stringify(research)}`
-                  : ''),
-            },
-          ],
-          marketSizingSystem(),
+        marketSizing = await generateMarketSizing(
+          db, founderId,
+          ideaVal.businessDescription,
+          input.industry, input.geography, input.targetSegment,
         )
-
-        try {
-          marketSizing = parseLLMResponse(raw, 'm01.marketSizing', 'market sizing', MarketSizingOutputSchema)
-        } catch {
-          logger.warn({ rawLen: raw.length }, 'm01 failed to parse market sizing JSON')
-        }
       } catch (err) {
         const msg = (err as Error).message ?? String(err)
         logger.error({ msg }, 'm01 market sizing LLM failed')
@@ -274,15 +353,6 @@ export const m01Router = router({
             ? 'Market analysis timed out. Please try again.'
             : `Market analysis failed: ${msg.slice(0, 200)}`,
         })
-      }
-
-      if (Object.keys(marketSizing).length > 0) {
-        await safeAsync('marketSizing db update', () =>
-          db.ideaValidation.update({
-            where: { id: ideaVal.id },
-            data: { marketSizing: marketSizing as any, updatedAt: new Date() },
-          }),
-        )
       }
 
       await safeAsync('invalidateFounderContext', () =>
@@ -315,40 +385,13 @@ export const m01Router = router({
         })
       }
 
-      let research: unknown = null
-      try {
-        research = await researchTopic(input.industry, [
-          `customer segments in ${input.industry}`,
-          `common pain points customers ${input.industry}`,
-          `who buys ${input.industry} products`,
-        ])
-      } catch (err) {
-        logger.warn({ err }, 'm01 ICP research failed, continuing without')
-      }
-
       let icpProfiles: unknown[] = []
       try {
-        const raw = await llmCall(
-          'm01.icpBuilder',
-          [
-            {
-              role: 'user',
-              content:
-                icpUser(ideaVal.businessDescription, input.industry) +
-                (research
-                  ? `\n\nAdditional market research (JSON):\n${JSON.stringify(research)}`
-                  : ''),
-            },
-          ],
-          icpSystem(),
+        icpProfiles = await generateIcpProfiles(
+          db, founderId,
+          ideaVal.businessDescription,
+          input.industry,
         )
-
-        try {
-          const parsed = parseLLMResponse(raw, 'm01.icpBuilder', 'ICP profiles', ICPOutputSchema)
-          icpProfiles = parsed.profiles ?? []
-        } catch {
-          logger.warn({ rawLen: raw.length }, 'm01 failed to parse ICP JSON')
-        }
       } catch (err) {
         const msg = (err as Error).message ?? String(err)
         logger.error({ msg }, 'm01 ICP LLM failed')
@@ -358,15 +401,6 @@ export const m01Router = router({
             ? 'ICP analysis timed out. Please try again.'
             : `ICP analysis failed: ${msg.slice(0, 200)}`,
         })
-      }
-
-      if (icpProfiles.length > 0) {
-        await safeAsync('icpProfiles db update', () =>
-          db.ideaValidation.update({
-            where: { id: ideaVal.id },
-            data: { icpProfiles: icpProfiles as any, updatedAt: new Date() },
-          }),
-        )
       }
 
       logger.info({ profiles: icpProfiles.length }, 'm01.getIcpProfiles completed')
@@ -642,6 +676,35 @@ export const m01Router = router({
           logger.warn({ err }, 'm01.autoValidate transaction failed')
         }
       }
+
+      // ── Step 3: Market Sizing + ICP Personas (parallel, non-critical) ────────
+      // Derive human-readable values from the onboarding array inputs
+      const GEO_MAP: Record<string, string> = {
+        global_english:      'Global',
+        global_multilingual: 'Global',
+        regional:            'MENA',
+        local:               'Local',
+      }
+      const geography = GEO_MAP[input.geographicFocus[0] ?? ''] ?? 'Global'
+
+      const SEGMENT_MAP: Record<string, string> = {
+        consumers:        'Consumers (B2C)',
+        smb:              'SMEs',
+        enterprise:       'Enterprise / Corporate',
+        developers:       'Startups',
+        creators:         'Freelancers / Solopreneurs',
+        gov_or_nonprofit: 'Government / Public Sector',
+      }
+      const targetSegment = SEGMENT_MAP[input.targetCustomer[0] ?? ''] ?? input.targetCustomer[0] ?? ''
+
+      await Promise.allSettled([
+        safeAsync('autoValidate.marketSizing', () =>
+          generateMarketSizing(db, founderId, input.ideaDescription, input.industry, geography, targetSegment),
+        ),
+        safeAsync('autoValidate.icpProfiles', () =>
+          generateIcpProfiles(db, founderId, input.ideaDescription, input.industry),
+        ),
+      ])
 
       await safeAsync('getOrCreateStartupNode', () =>
         getOrCreateStartupNode({
