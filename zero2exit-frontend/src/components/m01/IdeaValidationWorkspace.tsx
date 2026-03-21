@@ -684,7 +684,7 @@ export function IdeaValidationWorkspace() {
             {(effectiveIcps as Record<string, unknown>[]).slice(0, 3).map((icp, index) => (
               <div key={(icp.id as string | number) ?? index} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
                 <p className="text-sm font-medium text-white">Persona {index + 1}</p>
-                <p className="mt-1 text-xs text-slate-400">{(icp.description as string) ?? "No description available yet."}</p>
+                <p className="mt-1 text-xs text-slate-400">{(icp.problem as string) ?? (icp.demographics as string) ?? "No description available yet."}</p>
                 {Array.isArray(icp.painPoints) && icp.painPoints.length > 0 && <p className="mt-2 text-xs text-slate-300">Top pain: {icp.painPoints[0] as string}</p>}
               </div>
             ))}
