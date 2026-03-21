@@ -197,7 +197,7 @@ export const m01Router = router({
       }
 
       // 2. Database upsert (critical path)
-      // Only overwrite objections if we got actual data — prevents wiping good data on parse failure
+      // Only overwrite objections/improvements if we got actual data — prevents wiping good data on parse failure
       try {
         const updateData: Record<string, unknown> = {
           businessDescription: input.businessDescription,
@@ -205,6 +205,9 @@ export const m01Router = router({
         }
         if (objections.length > 0) {
           updateData.objections = objections
+        }
+        if (suggestedImprovements.length > 0) {
+          updateData.suggestedImprovements = suggestedImprovements
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `founderId` unique where resolves after `prisma generate`
@@ -215,6 +218,7 @@ export const m01Router = router({
             founderId,
             businessDescription: input.businessDescription,
             objections: objections as any,
+            suggestedImprovements: suggestedImprovements as any,
           },
         })
       } catch (err) {
@@ -556,6 +560,7 @@ export const m01Router = router({
 
       // ── Step 1: Stress test ───────────────────────────────────────────────
       let objections: unknown[] = []
+      let suggestedImprovements: unknown[] = []
       try {
         const raw = await llmCall(
           'm01.stressTest',
@@ -564,23 +569,26 @@ export const m01Router = router({
         )
         const parsed = parseLLMResponse(raw, 'm01.stressTest', 'stress test', StressTestOutputSchema)
         objections = parsed.objections ?? []
+        suggestedImprovements = parsed.suggestedImprovements ?? []
       } catch (err) {
         logger.warn({ err }, 'm01.autoValidate stress test failed, continuing to scorecard')
       }
 
-      // Save business description + objections
+      // Save business description + objections + suggestedImprovements
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await db.ideaValidation.upsert({
         where: { founderId } as any,
         update: {
           businessDescription: input.ideaDescription,
           ...(objections.length > 0 && { objections: objections as any }),
+          ...(suggestedImprovements.length > 0 && { suggestedImprovements: suggestedImprovements as any }),
           updatedAt: new Date(),
         },
         create: {
           founderId,
           businessDescription: input.ideaDescription,
           objections: objections as any,
+          suggestedImprovements: suggestedImprovements as any,
         },
       })
 

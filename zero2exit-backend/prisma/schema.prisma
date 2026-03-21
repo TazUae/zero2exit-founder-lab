@@ -73,11 +73,12 @@ model IdeaValidation {
   id                  String   @id @default(cuid())
   founderId           String   @unique @map("founder_id")
   businessDescription String   @map("business_description")
-  objections          Json?
-  marketSizing        Json?    @map("market_sizing")
-  competitiveMap      Json?    @map("competitive_map")
-  icpProfiles         Json?    @map("icp_profiles")
-  scorecard           Json?
+  objections             Json?
+  suggestedImprovements  Json?    @map("suggested_improvements")
+  marketSizing           Json?    @map("market_sizing")
+  competitiveMap         Json?    @map("competitive_map")
+  icpProfiles            Json?    @map("icp_profiles")
+  scorecard              Json?
   shareCardUrl        String?  @map("share_card_url")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
