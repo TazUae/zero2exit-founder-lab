@@ -86,7 +86,7 @@ function SignInContent() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + `/${locale}/dashboard`,
+        redirectTo: window.location.origin + `/${locale}/auth/callback`,
       },
     })
     // Redirect is in progress; keep spinner visible
