@@ -121,29 +121,26 @@ const STEP_LABELS = ["Brand Name", "Color Palette", "Generate"] as const
 // Static key→label maps for the four onboarding fields used in brand auto-fill.
 // Inlined to avoid iterating QUESTIONS at module-level (SSR-safe).
 const ONBOARDING_LABELS: Record<string, Record<string, string>> = {
-  business_model: {
-    saas_subscriptions:   "SaaS subscriptions",
-    transaction_fees:     "Transaction / marketplace fees",
-    enterprise_contracts: "Enterprise contracts",
-    ads_or_affiliate:     "Advertising / affiliate",
-    hardware_or_services: "Hardware / services",
-    other:                "Other",
+  industry: {
+    fintech:     "FinTech / Payments",
+    healthtech:  "HealthTech / MedTech",
+    edtech:      "EdTech",
+    ecommerce:   "E-commerce / Retail",
+    saas:        "SaaS / B2B Software",
+    marketplace: "Marketplace",
+    proptech:    "Real Estate / PropTech",
+    logistics:   "Logistics / Supply Chain",
+    media:       "Media / Content",
+    ai_data:     "AI / Data",
+    other:       "Other",
   },
   target_customer: {
-    consumers:       "Consumers (B2C)",
-    smb:             "Small & medium businesses",
-    enterprise:      "Large enterprises",
-    developers:      "Developers / technical teams",
-    creators:        "Creators / freelancers",
-    gov_or_nonprofit:"Government / non‑profits",
-  },
-  advantage: {
-    founder_experience: "Founder / domain experience",
-    proprietary_data:   "Proprietary data / insights",
-    technology:         "Technology / product quality",
-    distribution:       "Distribution / audience access",
-    pricing:            "Pricing / business model",
-    brand:              "Brand / community",
+    consumers:        "Consumers (B2C)",
+    smb:              "Small & medium businesses",
+    enterprise:       "Large enterprises",
+    developers:       "Developers / technical teams",
+    creators:         "Creators / freelancers",
+    gov_or_nonprofit: "Government / non‑profits",
   },
   geographic_focus: {
     local:               "Local market only",
@@ -237,11 +234,11 @@ export function BrandIdentityClient() {
       .join(", ")
 
     setForm((prev) => ({
-      // onboarding: business_model (label) | m01: businessDescription (free text)
+      // idea_description (v2) is the primary source; fall back to M01 businessDescription
       businessDescription:
         prev.businessDescription ||
+        (onb.idea_description as string | undefined) ||
         (ideaVal.businessDescription as string | undefined) ||
-        resolveLabels("business_model", onb.business_model) ||
         "",
       // onboarding: target_customer[] (labels) | m01: icpProfiles titles
       targetAudience:
@@ -249,22 +246,23 @@ export function BrandIdentityClient() {
         resolveLabels("target_customer", onb.target_customer) ||
         icpAudience ||
         "",
-      // no stored source for industry — user must fill
-      industry: prev.industry || "",
-      // onboarding competitors field describes landscape density, not company names —
-      // no actual competitor names available from any source
-      competitors: prev.competitors || "",
-      // onboarding: advantage[] labels are the best brand personality proxy
-      brandPersonality:
-        prev.brandPersonality ||
-        resolveLabels("advantage", onb.advantage) ||
+      // industry is now a direct onboarding field — resolve label from value
+      industry:
+        prev.industry ||
+        resolveLabels("industry", onb.industry) ||
         "",
+      // known_competitors (v2) is a free-text field with actual names
+      competitors:
+        prev.competitors ||
+        (onb.known_competitors as string | undefined) ||
+        "",
+      // no reliable brand personality proxy without advantage field
+      brandPersonality: prev.brandPersonality || "",
       // onboarding: geographic_focus[] (labels)
       geographicFocus:
         prev.geographicFocus ||
         resolveLabels("geographic_focus", onb.geographic_focus) ||
         "",
-      // no usable source
       avoidances: prev.avoidances || "",
     }))
 

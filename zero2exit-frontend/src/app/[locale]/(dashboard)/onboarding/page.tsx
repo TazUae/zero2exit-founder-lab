@@ -20,6 +20,7 @@ import {
   type SingleSelectQuestion,
   type MultiSelectQuestion,
   type TextQuestion,
+  type TextareaQuestion,
 } from '@/lib/onboarding-schema'
 
 // ─── Single-select option grid ───────────────────────────────────────────────
@@ -142,6 +143,25 @@ function QuestionField({
   question: Question
   control: Control<OnboardingFormValues>
 }) {
+  if (question.kind === 'textarea') {
+    const q = question as TextareaQuestion
+    return (
+      <Controller
+        control={control}
+        name={question.id as keyof OnboardingFormValues}
+        render={({ field }) => (
+          <textarea
+            rows={4}
+            value={(field.value as string) ?? ''}
+            onChange={field.onChange}
+            placeholder={q.placeholder}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-4 py-3 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors resize-none"
+          />
+        )}
+      />
+    )
+  }
+
   if (question.kind === 'text') {
     const q = question as TextQuestion
     return (
@@ -240,19 +260,20 @@ export default function OnboardingPage() {
   const progressPct = Math.round(((step + 1) / QUESTIONS.length) * 100)
 
   const QUESTION_CATEGORIES: Record<string, string> = {
-    business_model:   'Business Model',
-    industry:         'Industry',
-    target_customer:  'Target Market',
-    stage:            'Startup Stage',
-    revenue:          'Financials',
-    team_size:        'Team',
-    funding_status:   'Funding',
-    exit_plan:        'Exit Strategy',
-    competitors:      'Competition',
-    advantage:        'Competitive Edge',
-    challenge:        'Challenges',
-    geographic_focus: 'Market Focus',
-    business_name:    'Brand Identity',
+    idea_description:   'Your Idea',
+    business_name:      'Brand Identity',
+    industry:           'Industry',
+    business_model:     'Business Model',
+    target_customer:    'Target Market',
+    primary_country:    'Company Base',
+    geographic_focus:   'Market Focus',
+    stage:              'Startup Stage',
+    revenue:            'Financials',
+    team_size:          'Team',
+    funding:            'Funding',
+    known_competitors:  'Competition',
+    challenges:         'Challenges',
+    preferred_language: 'Language',
   }
   const category = QUESTION_CATEGORIES[question.id] ?? ''
 
@@ -273,12 +294,15 @@ export default function OnboardingPage() {
   /** watch() subscribes to value changes and triggers re-renders, unlike getValues(). */
   const currentFieldId = question.id as keyof OnboardingFormValues
   const currentValue = watch(currentFieldId)
-  const isAnswered =
-    question.kind === 'text'
-      ? true  // optional — always skippable
-      : question.kind === 'single'
-        ? typeof currentValue === 'string' && currentValue.length > 0
-        : Array.isArray(currentValue) && currentValue.length > 0
+  const isAnswered = (() => {
+    if (question.kind === 'text') return true  // optional — always skippable
+    if (question.kind === 'textarea') {
+      const minLen = (question as TextareaQuestion).minLength ?? 1
+      return typeof currentValue === 'string' && currentValue.length >= minLen
+    }
+    if (question.kind === 'single') return typeof currentValue === 'string' && currentValue.length > 0
+    return Array.isArray(currentValue) && currentValue.length > 0
+  })()
 
   const handleNext = useCallback(async () => {
     const fieldsToValidate: (keyof OnboardingFormValues)[] = [currentFieldId]
@@ -290,7 +314,8 @@ export default function OnboardingPage() {
 
     if (isLast) {
       const values = getValues()
-      submitQuestionnaire.mutate({ responses: values, language: 'en' })
+      const lang: 'en' | 'ar' = values.preferred_language === 'ar' ? 'ar' : 'en'
+      submitQuestionnaire.mutate({ responses: values, language: lang })
     } else {
       setDirection('forward')
       setStep((s) => s + 1)
@@ -335,10 +360,11 @@ export default function OnboardingPage() {
       return ''
     }
 
+    const ideaRaw = typeof completedAnswers.idea_description === 'string' ? completedAnswers.idea_description.trim() : ''
     const lines = [
+      { label: 'Idea',    value: ideaRaw.length > 80 ? ideaRaw.slice(0, 80) + '…' : ideaRaw },
       { label: 'Stage',   value: resolveLabel('stage',           completedAnswers.stage) },
-      { label: 'Market',  value: resolveLabel('geographic_focus', completedAnswers.geographic_focus) },
-      { label: 'Focus',   value: resolveLabel('challenge',        completedAnswers.challenge) },
+      { label: 'Based In', value: resolveLabel('primary_country', completedAnswers.primary_country) },
     ].filter((l) => l.value)
 
     return (
@@ -417,11 +443,13 @@ export default function OnboardingPage() {
     }
 
     const SUMMARY_FIELDS: { key: string; label: string }[] = [
-      { key: 'stage',           label: 'Stage' },
-      { key: 'industry',        label: 'Industry' },
-      { key: 'target_customer', label: 'Target Market' },
-      { key: 'geographic_focus',label: 'Geographic Focus' },
-      { key: 'funding_status',  label: 'Funding Status' },
+      { key: 'idea_description',  label: 'Startup Idea' },
+      { key: 'stage',             label: 'Stage' },
+      { key: 'industry',          label: 'Industry' },
+      { key: 'primary_country',   label: 'Based In' },
+      { key: 'target_customer',   label: 'Target Market' },
+      { key: 'geographic_focus',  label: 'Geographic Focus' },
+      { key: 'funding',           label: 'Funding Status' },
     ]
 
     return (

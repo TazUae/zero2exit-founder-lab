@@ -36,22 +36,31 @@ export const gatewayRouter = router({
   submitQuestionnaire: protectedProcedure
     .input(z.object({
       responses: z.union([
-        // Structured payload from the new multi-choice wizard
+        // Structured payload from the multi-choice wizard
         z.object({
-          business_model: z.string(),
-          industry: z.string().optional().default(''),
-          target_customer: z.array(z.string()),
-          stage: z.string(),
-          revenue: z.string(),
-          team_size: z.string(),
-          funding_status: z.string(),
+          // New fields (v2 schema)
+          idea_description:   z.string().optional().default(''),
+          primary_country:    z.string().optional().default(''),
+          known_competitors:  z.string().optional().default(''),
+          preferred_language: z.string().optional().default(''),
+          funding:            z.string().optional().default(''),
+          challenges:         z.array(z.string()).optional().default([]),
+          // Core fields
+          business_model:     z.string(),
+          industry:           z.string().optional().default(''),
+          target_customer:    z.array(z.string()),
+          stage:              z.string(),
+          revenue:            z.string(),
+          team_size:          z.string(),
+          geographic_focus:   z.array(z.string()),
+          business_name:      z.string().optional().default(''),
           actively_fundraising: z.boolean().default(false),
-          exit_plan: z.string(),
-          competitors: z.array(z.string()),
-          advantage: z.array(z.string()),
-          challenge: z.array(z.string()),
-          geographic_focus: z.array(z.string()),
-          business_name: z.string().optional().default(''),
+          // Legacy fields (kept for backward compat with old submissions)
+          funding_status:     z.string().optional().default(''),
+          exit_plan:          z.string().optional().default(''),
+          competitors:        z.array(z.string()).optional().default([]),
+          advantage:          z.array(z.string()).optional().default([]),
+          challenge:          z.array(z.string()).optional().default([]),
         }),
         // Legacy free-text payload (backwards-compat during rollout)
         z.record(z.string(), z.unknown()),
