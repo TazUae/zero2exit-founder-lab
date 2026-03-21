@@ -268,6 +268,7 @@ export function IdeaValidationWorkspace() {
 
   const utils = trpc.useUtils()
   const { data: state, isLoading: isStateLoading, isFetching: isStateFetching, error: stateError } = trpc.m01.getState.useQuery()
+  const { data: planData } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
 
   useEffect(() => {
     const ideaValidation = state?.ideaValidation as
@@ -279,6 +280,73 @@ export function IdeaValidationWorkspace() {
       setTimeout(() => setDescription(desc), 0)
     }
   }, [state?.ideaValidation])
+
+  // Pre-fill dropdowns from onboarding answers on first load
+  useEffect(() => {
+    const responses = planData?.onboardingResponses as Record<string, unknown> | null | undefined
+    if (!responses) return
+
+    setIndustry(prev => {
+      if (prev) return prev
+      const INDUSTRY_MAP: Record<string, string> = {
+        fintech:     'FinTech',
+        healthtech:  'HealthTech',
+        edtech:      'EdTech',
+        ecommerce:   'E-Commerce / Marketplace',
+        saas:        'B2B SaaS',
+        marketplace: 'E-Commerce / Marketplace',
+        proptech:    'PropTech / Real Estate',
+        logistics:   'Logistics / Supply Chain',
+        media:       'Media / Content',
+        ai_data:     'AI / Machine Learning',
+        other:       'Other',
+      }
+      return INDUSTRY_MAP[responses.industry as string] ?? prev
+    })
+
+    setGeography(prev => {
+      if (prev) return prev
+      const country = (responses.primary_country as string) ?? ''
+      const geoFocus = Array.isArray(responses.geographic_focus)
+        ? (responses.geographic_focus as string[])
+        : []
+      if (geoFocus.includes('global_english') || geoFocus.includes('global_multilingual')) return 'Global'
+      const MENA = ['saudi', 'uae', 'egypt', 'bahrain', 'kuwait', 'qatar', 'oman', 'jordan', 'lebanon']
+      if (geoFocus.includes('regional')) {
+        if (MENA.includes(country)) return 'MENA'
+        if (country === 'uk') return 'Europe'
+        if (country === 'usa') return 'North America'
+        return 'Global'
+      }
+      const COUNTRY_MAP: Record<string, string> = {
+        saudi: 'Saudi Arabia', uae: 'UAE',
+        egypt: 'MENA', bahrain: 'MENA', kuwait: 'MENA',
+        qatar: 'MENA', oman: 'MENA', jordan: 'MENA', lebanon: 'MENA',
+        uk: 'Europe', usa: 'North America',
+      }
+      return COUNTRY_MAP[country] ?? 'Global'
+    })
+
+    setTargetSegment(prev => {
+      if (prev) return prev
+      const SEGMENT_MAP: Record<string, string> = {
+        consumers:        'Consumers (B2C)',
+        smb:              'SMEs',
+        enterprise:       'Enterprise / Corporate',
+        developers:       'Startups',
+        creators:         'Freelancers / Solopreneurs',
+        gov_or_nonprofit: 'Government / Public Sector',
+      }
+      const customers = Array.isArray(responses.target_customer)
+        ? (responses.target_customer as string[])
+        : []
+      for (const c of customers) {
+        const mapped = SEGMENT_MAP[c]
+        if (mapped) return mapped
+      }
+      return prev
+    })
+  }, [planData])
 
   useEffect(() => {
     if (stateError) toast.error("Failed to load idea validation state.")
