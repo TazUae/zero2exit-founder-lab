@@ -174,6 +174,7 @@ export function LegalStructureWorkspace() {
   const m01State = trpc.m01.getState.useQuery()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const m01StateDep = m01State.data as any
+  const { data: planData } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
 
   // ── Pre-populate from M01 ──
   useEffect(() => {
@@ -185,6 +186,67 @@ export function LegalStructureWorkspace() {
       setTimeout(() => setBusinessDescription(desc), 0)
     }
   }, [m01StateDep?.ideaValidation, businessDescription])
+
+  // ── Pre-populate dropdowns from onboarding ──
+  useEffect(() => {
+    const responses = planData?.onboardingResponses as Record<string, unknown> | null | undefined
+    if (!responses) return
+
+    const INDUSTRY_MAP: Record<string, string> = {
+      fintech:     'FinTech',
+      healthtech:  'HealthTech',
+      edtech:      'EdTech',
+      ecommerce:   'E-Commerce / Marketplace',
+      saas:        'B2B SaaS',
+      marketplace: 'E-Commerce / Marketplace',
+      proptech:    'PropTech / Real Estate',
+      logistics:   'Logistics / Supply Chain',
+      media:       'Media / Content',
+      ai_data:     'AI / Machine Learning',
+      other:       'Other',
+    }
+    setIndustry(prev => {
+      if (prev) return prev
+      return INDUSTRY_MAP[responses.industry as string] ?? prev
+    })
+
+    setGeography(prev => {
+      if (prev) return prev
+      const country = responses.primary_country as string | undefined
+      const focus = responses.geographic_focus as string[] | undefined
+      if (country === 'uae') return 'UAE'
+      if (country === 'saudi') return 'Saudi Arabia'
+      if (country === 'bahrain') return 'Bahrain'
+      if (country === 'egypt') return 'Egypt'
+      if (focus?.includes('regional')) return 'MENA'
+      if (focus?.includes('global_english') || focus?.includes('global_multilingual')) return 'Global'
+      return 'UAE'
+    })
+
+    const FUNDING_MAP: Record<string, string> = {
+      bootstrapped:     'Bootstrapped',
+      friends_family:   'Pre-Seed',
+      angel:            'Pre-Seed',
+      vc_pre_seed_seed: 'Seed',
+      vc_series_a_plus: 'Series A',
+    }
+    setFundingStatus(prev => {
+      if (prev) return prev
+      return FUNDING_MAP[responses.funding as string] ?? prev
+    })
+
+    const TEAM_SIZE_MAP: Record<string, string> = {
+      solo:     'Solo founder',
+      '2_3':    '2-5',
+      '4_10':   '6-15',
+      '11_25':  '16-50',
+      '26_plus': '50+',
+    }
+    setTeamSize(prev => {
+      if (prev) return prev
+      return TEAM_SIZE_MAP[responses.team_size as string] ?? prev
+    })
+  }, [planData])
 
   useEffect(() => {
     if (stateError) toast.error('Failed to load legal structure state.')
