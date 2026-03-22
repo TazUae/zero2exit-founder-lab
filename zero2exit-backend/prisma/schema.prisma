@@ -34,6 +34,7 @@ model Founder {
   roadmaps           FounderRoadmap[]
   gtmDocument        GtmDocument?
   brandIdentity      BrandIdentity?
+  businessPlan       BusinessPlan?
 
   @@map("founders")
 }
@@ -287,4 +288,53 @@ model GtmSection {
   @@unique([gtmDocumentId, sectionKey])
   @@index([gtmDocumentId])
   @@map("gtm_sections")
+}
+
+model BusinessPlan {
+  id        String   @id @default(cuid())
+  founderId String   @unique @map("founder_id")
+  title     String   @default("Business Plan")
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  founder    Founder               @relation(fields: [founderId], references: [id], onDelete: Cascade)
+  sections   BusinessPlanSection[]
+  financials FinancialProjection?
+
+  @@index([founderId])
+  @@map("business_plans")
+}
+
+model BusinessPlanSection {
+  id         String   @id @default(cuid())
+  planId     String   @map("plan_id")
+  sectionKey String   @map("section_key")
+  title      String
+  status     String   @default("pending")
+  content    Json     @default("{}")
+  plainText  String?  @map("plain_text")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  plan BusinessPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, sectionKey])
+  @@index([planId])
+  @@map("business_plan_sections")
+}
+
+model FinancialProjection {
+  id          String   @id @default(cuid())
+  planId      String   @unique @map("plan_id")
+  inputs      Json     @default("{}")
+  projections Json?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  plan BusinessPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("financial_projections")
 }
