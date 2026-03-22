@@ -9,6 +9,7 @@ export type FounderProgress = {
   icpProfilesComplete: boolean
   legalStructureComplete: boolean
   gtmComplete: boolean
+  bpComplete: boolean
   brandingComplete: boolean
 }
 
@@ -18,6 +19,7 @@ export type StageId =
   | "icp-profiles"
   | "legal-structure"
   | "go-to-market"
+  | "business-plan"
   | "brand-identity"
   | "scaling"
   | "fundraising"
@@ -39,6 +41,7 @@ export const STAGES: StageDef[] = [
   { id: "icp-profiles", label: "ICP Profiles", module: "icpProfilesComplete", href: "/dashboard/m01" },
   { id: "legal-structure", label: "Legal Structure", module: "legalStructureComplete", href: "/dashboard/m02" },
   { id: "go-to-market", label: "Go-To-Market", module: "gtmComplete", href: "/dashboard/gtm" },
+  { id: "business-plan", label: "Business Plan", module: "bpComplete", href: "/dashboard/bp" },
   { id: "brand-identity", label: "Brand Identity", module: "brandingComplete", href: "/dashboard/brand" },
   { id: "scaling", label: "Scaling Strategy", locked: true },
   { id: "fundraising", label: "Fundraising Readiness", locked: true },
@@ -51,6 +54,7 @@ const STAGE_ORDER: StageId[] = [
   "icp-profiles",
   "legal-structure",
   "go-to-market",
+  "business-plan",
   "brand-identity",
   "scaling",
   "fundraising",
@@ -71,6 +75,7 @@ export function getFounderStage(progress: Partial<FounderProgress> | null | unde
   if (!progress.icpProfilesComplete) return "icp-profiles"
   if (!progress.legalStructureComplete) return "legal-structure"
   if (!progress.gtmComplete) return "go-to-market"
+  if (!progress.bpComplete) return "business-plan"
   if (!progress.brandingComplete) return "brand-identity"
   return "scaling"
 }

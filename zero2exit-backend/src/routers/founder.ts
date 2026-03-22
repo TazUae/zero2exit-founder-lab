@@ -68,9 +68,9 @@ export const founderRouter = router({
         M01: 'Validate your business idea',
         M02: 'Set up your legal structure',
         M03: 'Build your go-to-market strategy',
-        M04: 'Launch your MVP',
+        M04: 'Build your brand identity',
         M05: 'Set up operations and automation',
-        M06: 'Plan your exit strategy',
+        M06: 'Build your business plan',
       }
       nextAction =
         actionMap[activeModule.moduleId] ??
@@ -83,7 +83,7 @@ export const founderRouter = router({
       M03: '/dashboard/gtm',
       M04: '/dashboard/brand',
       M05: '/dashboard/coach',
-      M06: '/dashboard/roadmap',
+      M06: '/dashboard/bp',
     }
     const nextModuleHref = activeModule
       ? (moduleHrefMap[activeModule.moduleId] ?? '/dashboard')

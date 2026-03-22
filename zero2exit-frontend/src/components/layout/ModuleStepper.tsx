@@ -29,8 +29,10 @@ function buildProgress(
 
   const m02 = moduleProgress.find((m) => m.moduleId === "M02")
   const m03 = moduleProgress.find((m) => m.moduleId === "M03")
+  const m06 = moduleProgress.find((m) => m.moduleId === "M06")
   const m02Done = m02?.status === "complete" || m02?.status === "completed"
   const m03Done = m03?.status === "complete" || m03?.status === "completed"
+  const m06Done = m06?.status === "complete" || m06?.status === "completed"
 
   return {
     ideaValidationComplete: !!iv?.scorecard,
@@ -38,6 +40,7 @@ function buildProgress(
     icpProfilesComplete: !!iv?.icpProfiles,
     legalStructureComplete: m02Done,
     gtmComplete: m03Done,
+    bpComplete: m06Done,
     brandingComplete: false,
   }
 }

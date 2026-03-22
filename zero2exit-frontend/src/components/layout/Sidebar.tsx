@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
+import { trpc } from "@/lib/trpc"
 import {
   LayoutDashboard,
   Lightbulb,
@@ -60,6 +61,13 @@ export function Sidebar() {
   const router = useRouter()
   const prefix = `/${locale}`
 
+  const { data: modulePlan } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gtmDone = (modulePlan as any)?.moduleProgress?.some(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (m: any) => m.moduleId === "M03" && (m.status === "complete" || m.status === "completed")
+  ) ?? false
+
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient()
     await supabase.auth.signOut()
@@ -95,6 +103,43 @@ export function Sidebar() {
             pathname.includes(item.href) && item.href !== "/dashboard"
               ? true
               : pathname.endsWith("/dashboard") && item.href === "/dashboard"
+
+          // Business Plan is conditionally locked until GTM (M03) is complete
+          if (item.key === "businessPlan" && !gtmDone) {
+            return (
+              <Tooltip key={item.key}>
+                <TooltipTrigger asChild>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => e.preventDefault()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") e.preventDefault()
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                      "opacity-50 cursor-not-allowed select-none text-slate-500",
+                      "focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-inset"
+                    )}
+                    aria-disabled="true"
+                  >
+                    <Lock className="w-5 h-5 flex-shrink-0" />
+                    {sidebarOpen && (
+                      <span className="text-sm font-medium">{t(item.key)}</span>
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  sideOffset={8}
+                  className="bg-slate-800 text-slate-200 border border-slate-700"
+                >
+                  Complete your Go-To-Market strategy first
+                </TooltipContent>
+              </Tooltip>
+            )
+          }
+
           return (
             <Link
               key={item.key}

@@ -3,7 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
-import { ArrowRight, Trophy, Target, TrendingUp } from "lucide-react"
+import { ArrowRight, Trophy, Target, TrendingUp, FileText } from "lucide-react"
 import { trpc } from "@/lib/trpc"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,7 @@ export function DashboardClient() {
   const tNav = useTranslations("nav")
   const locale = useLocale()
   const { data, isLoading, error } = trpc.founder.getDashboard.useQuery()
+  const { data: bpPlanData } = trpc.bp.getPlan.useQuery(undefined, { retry: false })
 
   if (isLoading) {
     return (
@@ -221,6 +222,44 @@ export function DashboardClient() {
         <MarketSizeSnapshot />
         <FounderOnboardingSummary />
       </div>
+
+      {/* BP progress card — shown once plan exists or M06 is in progress */}
+      {(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const plan = (bpPlanData as any)?.plan
+        if (!plan) return null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sections: any[] = plan.sections ?? []
+        const total = 7
+        const completed = sections.filter((s: { status?: string }) => s.status === "completed").length
+        const pct = Math.round((completed / total) * 100)
+        return (
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 uppercase tracking-wide font-medium flex items-center gap-1.5 mb-2">
+                  <FileText className="w-3.5 h-3.5" /> Business Plan
+                </p>
+                <div className="flex items-baseline gap-1.5 mb-2">
+                  <span className="text-xl font-bold text-white">{completed}</span>
+                  <span className="text-xs text-slate-500">/ {total} sections</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+              <Button asChild size="sm" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-800/30 text-xs h-7 px-3 flex-shrink-0">
+                <Link href={`/${locale}/dashboard/bp`}>
+                  {completed === total ? "Review" : "Continue"} <ArrowRight className="ml-1 w-3 h-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Row 3 — Competitor Snapshot (full width) */}
       <div className="grid grid-cols-1 gap-4">

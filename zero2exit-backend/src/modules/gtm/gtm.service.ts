@@ -23,6 +23,8 @@ import {
   type GenerateGtmSectionResult,
   GtmSectionOutputSchema,
 } from './gtm.types.js'
+// @ts-ignore – resolved at runtime via NodeNext ESM loader
+import { initBusinessPlan } from '../bp/bp.service.js'
 
 function truncate(s: string, max = 4000): string {
   if (s.length <= max) return s
@@ -282,6 +284,27 @@ export async function syncDocumentStatus(
         trigger: 'gtm_document_completed',
       },
     })
+
+    // Unlock M06 (Business Plan) now that GTM is complete
+    await db.moduleProgress.upsert({
+      where: { founderId_moduleId: { founderId, moduleId: 'M06' } },
+      update: { status: 'active', lastActivity: new Date() },
+      create: {
+        founderId,
+        moduleId: 'M06',
+        status: 'active',
+        startedAt: new Date(),
+        lastActivity: new Date(),
+        score: null,
+      },
+    })
+
+    // Pre-seed BP sections so they are ready when the founder navigates there
+    try {
+      await initBusinessPlan(founderId)
+    } catch (err) {
+      logger.warn({ err, founderId }, 'syncDocumentStatus: failed to pre-seed BP plan — will init on first visit')
+    }
 
     await invalidateFounderContext(founderId)
   } else if (newStatus === 'in_progress') {
