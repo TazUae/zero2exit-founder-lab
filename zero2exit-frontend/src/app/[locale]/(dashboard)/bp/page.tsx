@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
+import { useLocale } from "next-intl"
 import { trpc } from "@/lib/trpc"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,7 +19,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { Loader2, RefreshCw, Sparkles, Save, FileDown, FileText } from "lucide-react"
+import { Loader2, RefreshCw, Sparkles, Save, FileDown, FileText, ArrowRight, Target } from "lucide-react"
 
 type BpSectionKey =
   | "executive_summary"
@@ -132,7 +134,7 @@ function statusLabel(status: SectionStatus) {
     case "pending": return "Pending"
     case "generating": return "Generating…"
     case "completed": return "Completed"
-    case "failed": return "Failed"
+    case "failed": return "Failed — retry"
   }
 }
 
@@ -179,6 +181,12 @@ export default function BpPage() {
   const { data: compiledData, isLoading: isLoadingCompiled, refetch: refetchCompiledPlan } = trpc.bp.getCompiledPlan.useQuery()
   const { data: financialsData, refetch: refetchFinancials } = trpc.bp.getFinancials.useQuery()
   const { data: gatewayData } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
+  const locale = useLocale()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gtmDone = (gatewayData as any)?.moduleProgress?.some(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (m: any) => m.moduleId === "M03" && (m.status === "complete" || m.status === "completed")
+  ) ?? false
 
   const initMutation = trpc.bp.initPlan.useMutation()
   const generateMutation = trpc.bp.generateSection.useMutation()
@@ -306,12 +314,12 @@ export default function BpPage() {
     }
   }, [])
 
-  // Auto-init when no plan exists
+  // Auto-init when no plan exists (only after GTM is complete)
   useEffect(() => {
-    if (!isLoadingPlan && !planData?.plan && !initialized && !isInitializing) {
+    if (!isLoadingPlan && !planData?.plan && !initialized && !isInitializing && gtmDone) {
       triggerInit()
     }
-  }, [planData, initialized, isInitializing, isLoadingPlan, triggerInit])
+  }, [planData, initialized, isInitializing, isLoadingPlan, triggerInit, gtmDone])
 
   // Auto-fill financials form from onboarding data
   useEffect(() => {
@@ -471,6 +479,23 @@ export default function BpPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+      {!gtmDone ? (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20">
+            <Target className="h-8 w-8 text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">Complete GTM First</h1>
+          <p className="text-slate-400 max-w-sm mb-8 text-sm">
+            Complete your Go-To-Market strategy first to unlock the Business Plan module.
+          </p>
+          <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-8">
+            <Link href={`/${locale}/dashboard/gtm`}>
+              Go to GTM <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      ) : (
+      <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -507,7 +532,9 @@ export default function BpPage() {
                   }
                 }}
               >
-                {isGeneratingAll ? "Generating..." : "Generate All"}
+                {isGeneratingAll
+                  ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Generating {generateAllIndex}/{generateAllTotal}…</>
+                  : "Generate All"}
               </Button>
             )}
             {showRegenerateAllButton && (
@@ -729,6 +756,7 @@ export default function BpPage() {
             }
             onGenerate={triggerGenerateFinancials}
             isGenerating={generateFinancialsMutation.isPending}
+            isError={generateFinancialsMutation.isError}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             projections={(financialsData as any)?.financials?.projections as FinancialProjection | null | undefined}
           />
@@ -773,6 +801,8 @@ export default function BpPage() {
           />
         </TabsContent>
       </Tabs>
+      </>
+      )}
     </div>
   )
 }
@@ -844,13 +874,23 @@ function SectionCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={8}
-          className="resize-vertical text-sm bg-slate-950/40 border-slate-800 focus-visible:ring-emerald-500/80"
-          placeholder="Generate this section, then refine it with your own language..."
-        />
+        <div className="relative">
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={8}
+            className="resize-vertical text-sm bg-slate-950/40 border-slate-800 focus-visible:ring-emerald-500/80"
+            placeholder="Generate this section, then refine it with your own language..."
+          />
+          {isGenerating && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-md bg-slate-900/85">
+              <div className="flex items-center gap-2 text-sm text-emerald-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating {section.title}…</span>
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
       <CardFooter className="flex items-center justify-between gap-3 border-t border-slate-800 pt-4">
         <div className="flex items-center gap-2">
@@ -904,10 +944,11 @@ type FinancialPanelProps = {
   onInputChange: (field: keyof FinancialInputs, value: string) => void
   onGenerate: () => void
   isGenerating: boolean
+  isError: boolean
   projections: FinancialProjection | null | undefined
 }
 
-function FinancialPanel({ inputs, onInputChange, onGenerate, isGenerating, projections }: FinancialPanelProps) {
+function FinancialPanel({ inputs, onInputChange, onGenerate, isGenerating, isError, projections }: FinancialPanelProps) {
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -1037,7 +1078,7 @@ function FinancialPanel({ inputs, onInputChange, onGenerate, isGenerating, proje
         {isGenerating ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating Model…
+            Building your 3-year model…
           </>
         ) : (
           <>
@@ -1046,6 +1087,13 @@ function FinancialPanel({ inputs, onInputChange, onGenerate, isGenerating, proje
           </>
         )}
       </Button>
+
+      {/* Error state */}
+      {isError && !isGenerating && (
+        <div className="flex items-center gap-2 rounded-md border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+          <span>Unable to generate model — check your inputs and try again.</span>
+        </div>
+      )}
 
       {/* Results */}
       {projections && <FinancialResults projections={projections} />}
