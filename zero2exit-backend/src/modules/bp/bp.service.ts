@@ -398,6 +398,100 @@ export async function generateBpSection(input: {
 
       try {
         const ctx = await loadBpContext(input.founderId)
+
+        // ── Build explicit labeled context from all available data sources ──────
+        const onbResponses = (ctx.startup.onboarding as any)?.responses ?? {}
+        const ideaVal = ctx.startup.ideaValidation as any
+        const legalStr = ctx.startup.legalStructure as any
+        const gtmData = ctx.startup.gtm as any[]
+
+        const richContext: Record<string, unknown> = {
+          ideaDescription:      onbResponses.idea_description    ?? null,
+          industry:             onbResponses.industry             ?? null,
+          businessModel:        onbResponses.business_model       ?? null,
+          teamSize:             onbResponses.team_size            ?? null,
+          funding:              onbResponses.funding              ?? null,
+          geography:            onbResponses.geographic_focus     ?? null,
+          validationScore:      (ideaVal?.scorecard as any)?.overallScore ?? null,
+          marketSizing:         ideaVal?.marketSizing             ?? null,
+          icpProfiles:          ideaVal?.icpProfiles              ?? null,
+          investorObjections:   ideaVal?.objections               ?? null,
+          recommendedJurisdiction: legalStr?.recommendedJurisdiction ?? null,
+          recommendedEntityType:   legalStr?.recommendedEntityType   ?? null,
+          gtmSections: Array.isArray(gtmData)
+            ? gtmData.map((s: any) => ({ key: s.key, title: s.title, content: s.plainText }))
+            : null,
+        }
+
+        // ── go_to_market: assemble directly from GTM compiled content ────────────
+        // No LLM call — this section IS the GTM module output.
+        if (input.sectionKey === 'go_to_market') {
+          const gtmSections = richContext.gtmSections as Array<{
+            key: string; title: string; content: string | null
+          }> | null
+
+          if (Array.isArray(gtmSections) && gtmSections.length > 0) {
+            const parts: string[] = []
+            for (const s of gtmSections) {
+              if (s.content) parts.push(`${s.title}\n\n${s.content}`)
+            }
+            const assembled = parts.join('\n\n---\n\n').trim()
+            const plainText = assembled || 'Go-To-Market strategy compiled from GTM module.'
+            const contentObj: Record<string, unknown> = {
+              title: fallbackTitle,
+              content: plainText,
+              _source: 'gtm_compiled',
+            }
+            const finalSection = await upsertBpSection({
+              planId: plan.id,
+              sectionKey: input.sectionKey,
+              title: fallbackTitle,
+              status: 'completed',
+              sortOrder,
+              content: contentObj as Json,
+              plainText,
+            })
+            await syncPlanStatus(plan.id, input.founderId)
+            return {
+              planId: plan.id,
+              sectionId: finalSection.id,
+              sectionKey: input.sectionKey,
+              title: fallbackTitle,
+              content: contentObj,
+              plainText,
+              status: 'completed',
+            }
+          }
+          // No GTM data yet — fall through to LLM generation
+        }
+
+        // ── executive_summary: inject all other completed sections ────────────────
+        // Generating last gives the LLM real content to summarize rather than guessing.
+        if (input.sectionKey === 'executive_summary') {
+          const existingPlan = await db.businessPlan.findUnique({
+            where: { id: plan.id },
+            include: {
+              sections: {
+                where: {
+                  status: 'completed',
+                  sectionKey: { not: 'executive_summary' },
+                },
+                orderBy: { sortOrder: 'asc' },
+              },
+            },
+          })
+          if (existingPlan && (existingPlan as any).sections?.length) {
+            richContext.completedSections = ((existingPlan as any).sections as any[]).map(
+              (s: any) => ({
+                key: s.sectionKey,
+                title: s.title,
+                content: s.plainText ? truncate(s.plainText, 1000) : null,
+              }),
+            )
+          }
+        }
+
+        // ── Resolve prompt builder ────────────────────────────────────────────────
         const promptBuilder =
           (BP_SECTION_PROMPT_BUILDERS as unknown as Record<string, (c: BpPromptContext) => { system: string; user: string }>)[
             input.sectionKey
@@ -405,6 +499,12 @@ export async function generateBpSection(input: {
 
         if (!promptBuilder) {
           throw new Error(`No prompt builder for BP section: ${input.sectionKey}`)
+        }
+
+        // Merge explicit richContext alongside existing startup data for the LLM
+        const enrichedStartup: Record<string, unknown> = {
+          ...ctx.startup,
+          context: richContext,
         }
 
         const prompt = promptBuilder({
@@ -416,7 +516,7 @@ export async function generateBpSection(input: {
             stage: ctx.founder.stage,
             plan: ctx.founder.plan,
           },
-          startup: ctx.startup,
+          startup: enrichedStartup,
         })
 
         const raw = await llmCall(
