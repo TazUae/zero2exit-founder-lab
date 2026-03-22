@@ -338,17 +338,6 @@ export default function BpPage() {
     }
   }, [gatewayData])
 
-  // Auto-reset on mount if ALL sections are stale-failed (pre-migration DB state)
-  useEffect(() => {
-    if (autoResetDone || isLoadingPlan || !planData?.plan || sections.length === 0) return
-    if (sections.every((s) => s.status === "failed")) {
-      setAutoResetDone(true)
-      void resetPlanMutateRef.current()
-        .then(() => { refetchRef.current() })
-        .catch(() => { /* silently ignore — user can retry via button */ })
-    }
-  }, [autoResetDone, isLoadingPlan, planData, sections])
-
   const sections: BpSection[] = useMemo(() => {
     const fromServer =
       planData?.plan?.sections?.map((s: ServerBpSection) => ({
@@ -376,6 +365,17 @@ export default function BpPage() {
       }
     })
   }, [planData])
+
+  // Auto-reset on mount if ALL sections are stale-failed (pre-migration DB state)
+  useEffect(() => {
+    if (autoResetDone || isLoadingPlan || !planData?.plan || sections.length === 0) return
+    if (sections.every((s) => s.status === "failed")) {
+      setAutoResetDone(true)
+      void resetPlanMutateRef.current()
+        .then(() => { refetchRef.current() })
+        .catch(() => { /* silently ignore — user can retry via button */ })
+    }
+  }, [autoResetDone, isLoadingPlan, planData, sections])
 
   const totalSections = sections.length
   const completedSections = sections.filter((s) => s.status === "completed").length
