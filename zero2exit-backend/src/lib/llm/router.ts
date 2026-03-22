@@ -56,12 +56,12 @@ function getNvidiaClient(): OpenAI | null {
   return nvidiaClient
 }
 
-// DeepSeek-V3.2 — strong structured reasoning, generous free tier, OpenAI-compatible
+// DeepSeek-V3.2 via OpenRouter — strong structured reasoning, OpenAI-compatible
 // Best for: legal reasoning (M02), structured output, financial analysis (BP)
-// IMPORTANT: Add DEEPSEEK_API_KEY to Dokploy environment variables after getting key from platform.deepseek.com
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY?.trim() || ''
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat'
-const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1'
+// IMPORTANT: Add OPENROUTER_API_KEY to Dokploy environment variables (get key from openrouter.ai)
+const DEEPSEEK_API_KEY = process.env.OPENROUTER_API_KEY?.trim() || ''
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek/deepseek-chat-v3-0324:free'
+const DEEPSEEK_BASE_URL = 'https://openrouter.ai/api/v1'
 
 let deepseekClient: OpenAI | null = null
 function getDeepseekClient(): OpenAI | null {
@@ -89,7 +89,7 @@ const langfuse =
 
 // One-time startup log: warn if optional providers are absent
 if (!DEEPSEEK_API_KEY) {
-  logger.warn('DeepSeek provider not configured — skipping in fallback chain (set DEEPSEEK_API_KEY to enable)')
+  logger.warn('DeepSeek (via OpenRouter) not configured — skipping in fallback chain (set OPENROUTER_API_KEY to enable)')
 }
 
 export type LLMTask =
