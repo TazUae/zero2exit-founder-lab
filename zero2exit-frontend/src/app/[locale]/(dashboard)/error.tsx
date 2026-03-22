@@ -13,6 +13,10 @@ export default function DashboardError({
   const isDev = process.env.NODE_ENV === "development"
 
   useEffect(() => {
+    if (error.name === "ChunkLoadError") {
+      window.location.reload()
+      return
+    }
     if (isDev) {
       console.error("[Command Center]", error)
     }

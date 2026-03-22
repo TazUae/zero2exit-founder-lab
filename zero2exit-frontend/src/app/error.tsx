@@ -11,6 +11,10 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
+    if (error.name === "ChunkLoadError") {
+      window.location.reload()
+      return
+    }
     if (process.env.NODE_ENV === "development") {
       console.error("App error:", error)
     }
