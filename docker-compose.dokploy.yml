@@ -111,6 +111,7 @@ services:
       - "traefik.http.routers.zero2exit-frontend.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.zero2exit-frontend.entrypoints=websecure"
       - "traefik.http.routers.zero2exit-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.zero2exit-frontend.service=zero2exit-frontend"
       - "traefik.http.services.zero2exit-frontend.loadbalancer.server.port=3000"
 
     healthcheck:
