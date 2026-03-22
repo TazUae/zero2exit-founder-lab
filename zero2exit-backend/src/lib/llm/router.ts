@@ -4,12 +4,12 @@ import { logger } from '../logger.js'
 
 // ── Provider clients ─────────────────────────────────────────────────────────
 
-type Provider = 'gemini' | 'groq' | 'nvidia' | 'deepseek'
+type Provider = 'gemini' | 'groq' | 'nvidia' | 'openrouter'
 
 /*
  * Free-tier reality — March 2026
- * Gemini 2.5 Flash:     ~60 RPM burst, ~2,000-2,500 req/day, ~1.5-2M TPM
- * DeepSeek-V3.2:        generous free tier, strong structured/legal reasoning, OpenAI-compatible
+ * Gemini 1.5 Flash:     ~60 RPM burst, ~2,000-2,500 req/day, ~1.5-2M TPM
+ * OpenRouter auto:      routes to best available free model; great for structured/legal reasoning
  * NVIDIA NIM Nemotron:  40 RPM, ~800-1,200 credits/day (~1 credit ≈ 1K tokens)
  * Groq Llama-3.3-70B:   30 RPM, 100K tokens/day HARD LIMIT — use as LAST RESORT only for tasks >1K output tokens
  */
@@ -56,20 +56,19 @@ function getNvidiaClient(): OpenAI | null {
   return nvidiaClient
 }
 
-// DeepSeek-V3.2 via OpenRouter — strong structured reasoning, OpenAI-compatible
-// Best for: legal reasoning (M02), structured output, financial analysis (BP)
+// OpenRouter auto — routes to best available free model; handles structured/legal reasoning well
 // IMPORTANT: Add OPENROUTER_API_KEY to Dokploy environment variables (get key from openrouter.ai)
-const DEEPSEEK_API_KEY = process.env.OPENROUTER_API_KEY?.trim() || ''
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek/deepseek-v3.2'
-const DEEPSEEK_BASE_URL = 'https://openrouter.ai/api/v1'
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY?.trim() || ''
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'openrouter/auto'
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 
-let deepseekClient: OpenAI | null = null
-function getDeepseekClient(): OpenAI | null {
-  if (!DEEPSEEK_API_KEY) return null
-  if (!deepseekClient) {
-    deepseekClient = new OpenAI({ apiKey: DEEPSEEK_API_KEY, baseURL: DEEPSEEK_BASE_URL })
+let openrouterClient: OpenAI | null = null
+function getOpenrouterClient(): OpenAI | null {
+  if (!OPENROUTER_API_KEY) return null
+  if (!openrouterClient) {
+    openrouterClient = new OpenAI({ apiKey: OPENROUTER_API_KEY, baseURL: OPENROUTER_BASE_URL })
   }
-  return deepseekClient
+  return openrouterClient
 }
 
 // ── Shared config ─────────────────────────────────────────────────────────────
@@ -88,8 +87,8 @@ const langfuse =
     : null
 
 // One-time startup log: warn if optional providers are absent
-if (!DEEPSEEK_API_KEY) {
-  logger.warn('DeepSeek (via OpenRouter) not configured — skipping in fallback chain (set OPENROUTER_API_KEY to enable)')
+if (!OPENROUTER_API_KEY) {
+  logger.warn('OpenRouter not configured — skipping in fallback chain (set OPENROUTER_API_KEY to enable)')
 }
 
 export type LLMTask =
@@ -155,32 +154,32 @@ const TASK_CONFIG: Record<LLMTask, { maxTokens: number; jsonMode: boolean }> = {
 }
 
 // ── Task-aware provider routing ──────────────────────────────────────────────
-// Gemini:   primary — best reasoning, ~60 RPM burst, ~2K req/day, huge context
-// DeepSeek: secondary — superior structured/legal reasoning, generous free tier
-// NVIDIA:   tertiary — 40 RPM, ~1K credits/day
-// Groq:     last resort — 100K tokens/DAY absolute ceiling; never first on >1K output tasks
+// Gemini:     primary — best reasoning, ~60 RPM burst, ~2K req/day, huge context
+// OpenRouter: secondary — auto-routes to best available free model
+// NVIDIA:     tertiary — 40 RPM, ~1K credits/day
+// Groq:       last resort — 100K tokens/DAY absolute ceiling; never first on >1K output tasks
 
 const TASK_PROVIDER_ORDER: Partial<Record<LLMTask, Provider[]>> = {
-  // ── DeepSeek PRIMARY — tasks where structured legal/financial reasoning is critical ──
-  'm02.jurisdictionComparison': ['deepseek', 'gemini', 'nvidia', 'groq'],
-  'm02.entityRecommendation':   ['deepseek', 'gemini', 'nvidia', 'groq'],
-  'm02.legalRoadmap':           ['deepseek', 'gemini', 'nvidia', 'groq'],
-  'm01.scorecard':              ['deepseek', 'gemini', 'nvidia', 'groq'],
-  'bp.financials':              ['deepseek', 'gemini', 'nvidia', 'groq'],
+  // ── OpenRouter PRIMARY — tasks where structured legal/financial reasoning is critical ──
+  'm02.jurisdictionComparison': ['openrouter', 'gemini', 'nvidia', 'groq'],
+  'm02.entityRecommendation':   ['openrouter', 'gemini', 'nvidia', 'groq'],
+  'm02.legalRoadmap':           ['openrouter', 'gemini', 'nvidia', 'groq'],
+  'm01.scorecard':              ['openrouter', 'gemini', 'nvidia', 'groq'],
+  'bp.financials':              ['openrouter', 'gemini', 'nvidia', 'groq'],
 
-  // ── Gemini PRIMARY, DeepSeek FALLBACK — general generation tasks ──
-  'gateway.classify':           ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'm01.stressTest':             ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'm01.marketSizing':           ['gemini', 'deepseek', 'nvidia', 'groq'],
+  // ── Gemini PRIMARY, OpenRouter FALLBACK — general generation tasks ──
+  'gateway.classify':           ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'm01.stressTest':             ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'm01.marketSizing':           ['gemini', 'openrouter', 'nvidia', 'groq'],
   // TODO: Switch m01.icpBuilder to Perplexity sonar-pro first when configured as LLM provider
-  'm01.icpBuilder':             ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'gtm.section':                ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'bp.section':                 ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'brand.generate':             ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'coach.conversation':         ['gemini', 'deepseek', 'nvidia', 'groq'],
-  'coach.proactiveSuggestion':  ['gemini', 'deepseek', 'nvidia', 'groq'],
+  'm01.icpBuilder':             ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'gtm.section':                ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'bp.section':                 ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'brand.generate':             ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'coach.conversation':         ['gemini', 'openrouter', 'nvidia', 'groq'],
+  'coach.proactiveSuggestion':  ['gemini', 'openrouter', 'nvidia', 'groq'],
   // TODO: Switch dashboard.competitorSnapshot to Perplexity sonar-pro first when configured as LLM provider
-  'dashboard.competitorSnapshot': ['gemini', 'deepseek', 'nvidia', 'groq'],
+  'dashboard.competitorSnapshot': ['gemini', 'openrouter', 'nvidia', 'groq'],
 
   // ── Gemini PRIMARY, NVIDIA fallback — large-context or document tasks ──
   'roadmap.aggregator':         ['gemini', 'nvidia', 'groq'],
@@ -201,23 +200,23 @@ function getProviderOrder(task: LLMTask): Provider[] {
 // ── Provider call helpers ─────────────────────────────────────────────────────
 
 function getClient(provider: Provider): OpenAI | null {
-  if (provider === 'gemini')   return getGeminiClient()
-  if (provider === 'groq')     return getGroqClient()
-  if (provider === 'deepseek') return getDeepseekClient()
+  if (provider === 'gemini')     return getGeminiClient()
+  if (provider === 'groq')       return getGroqClient()
+  if (provider === 'openrouter') return getOpenrouterClient()
   return getNvidiaClient()
 }
 
 function getModel(provider: Provider): string {
-  if (provider === 'gemini')   return GEMINI_MODEL
-  if (provider === 'groq')     return GROQ_MODEL
-  if (provider === 'deepseek') return DEEPSEEK_MODEL
+  if (provider === 'gemini')     return GEMINI_MODEL
+  if (provider === 'groq')       return GROQ_MODEL
+  if (provider === 'openrouter') return OPENROUTER_MODEL
   return NVIDIA_MODEL
 }
 
 function getApiKey(provider: Provider): string {
-  if (provider === 'gemini')   return GEMINI_API_KEY
-  if (provider === 'groq')     return GROQ_API_KEY
-  if (provider === 'deepseek') return DEEPSEEK_API_KEY
+  if (provider === 'gemini')     return GEMINI_API_KEY
+  if (provider === 'groq')       return GROQ_API_KEY
+  if (provider === 'openrouter') return OPENROUTER_API_KEY
   return NVIDIA_API_KEY
 }
 
@@ -348,5 +347,5 @@ export async function llmCall(
 }
 
 export function isLLMConfigured(): boolean {
-  return !!(GEMINI_API_KEY || GROQ_API_KEY || NVIDIA_API_KEY || DEEPSEEK_API_KEY)
+  return !!(GEMINI_API_KEY || GROQ_API_KEY || NVIDIA_API_KEY || OPENROUTER_API_KEY)
 }
