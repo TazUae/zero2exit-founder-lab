@@ -60,7 +60,7 @@ function getNvidiaClient(): OpenAI | null {
 // Best for: legal reasoning (M02), structured output, financial analysis (BP)
 // IMPORTANT: Add OPENROUTER_API_KEY to Dokploy environment variables (get key from openrouter.ai)
 const DEEPSEEK_API_KEY = process.env.OPENROUTER_API_KEY?.trim() || ''
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek/deepseek-chat-v3-0324:free'
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL ?? 'deepseek/deepseek-v3.2'
 const DEEPSEEK_BASE_URL = 'https://openrouter.ai/api/v1'
 
 let deepseekClient: OpenAI | null = null
