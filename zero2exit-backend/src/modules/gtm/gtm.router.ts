@@ -10,7 +10,7 @@ import {
   type DefaultGtmSection,
 } from './gtm.constants.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
-import { generateGtmSection } from './gtm.service.js'
+import { generateGtmSection, syncDocumentStatus } from './gtm.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
 import { exportGtmPdf, buildGtmPdfBuffer } from './gtm-pdf.service.js'
 // @ts-ignore – resolved at runtime via NodeNext ESM loader
@@ -299,6 +299,8 @@ export const gtmRouter = router({
             plainText: input.plainText,
           },
         } as any)
+
+        await syncDocumentStatus(doc.id, founderId)
 
         return {
           section: updated,

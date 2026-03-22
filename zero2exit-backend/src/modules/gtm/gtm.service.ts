@@ -230,7 +230,7 @@ async function ensureGtmDocument(founderId: string): Promise<{ id: string }> {
  * Rules: all sections completed → 'completed'; any generating/failed → 'in_progress'.
  * This prevents contradictory states (e.g. status=completed with only 5/13 sections done).
  */
-async function syncDocumentStatus(
+export async function syncDocumentStatus(
   gtmDocumentId: string,
   founderId: string,
 ): Promise<void> {

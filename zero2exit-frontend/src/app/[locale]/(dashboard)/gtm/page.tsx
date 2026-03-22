@@ -151,7 +151,7 @@ export default function GtmPage() {
 
 
   const { data: documentData, isLoading: isLoadingDoc, refetch: refetchDocument } = trpc.gtm.getDocument.useQuery()
-  const { data: compiledData, isLoading: isLoadingCompiled } = trpc.gtm.getCompiledDocument.useQuery()
+  const { data: compiledData, isLoading: isLoadingCompiled, refetch: refetchCompiledDocument } = trpc.gtm.getCompiledDocument.useQuery()
 
   const exportPdfMutation = trpc.gtm.exportPdf.useMutation()
   const exportDocxMutation = trpc.gtm.exportDocx.useMutation()
@@ -204,7 +204,7 @@ export default function GtmPage() {
   // Store refetchDocument in a ref too, so .then() chains don't pull in the tRPC query type
   type RefetchFn = () => void
   const refetchRef = useRef<RefetchFn>(() => { void refetchDocument() })
-  refetchRef.current = () => { void refetchDocument() }
+  refetchRef.current = () => { void refetchDocument(); void refetchCompiledDocument() }
 
   const triggerGenerate = useCallback((sectionKey: GtmSectionKey): void => {
     void generateMutateRef.current({ sectionKey })
