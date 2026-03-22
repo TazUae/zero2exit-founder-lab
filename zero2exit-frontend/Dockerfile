@@ -39,6 +39,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Fail the build if static chunks weren't copied — count appears in Dokploy build logs
+RUN CHUNK_COUNT=$(ls .next/static/chunks/ 2>/dev/null | wc -l) \
+ && echo "=== runner: .next/static/chunks/ has ${CHUNK_COUNT} files ===" \
+ && [ "$CHUNK_COUNT" -gt 0 ] || (echo "ERROR: .next/static/chunks/ is empty — runner stage is stale" && exit 1)
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
