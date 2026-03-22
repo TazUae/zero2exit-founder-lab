@@ -6,7 +6,14 @@ import { logger } from '../logger.js'
 
 type Provider = 'gemini' | 'groq' | 'nvidia'
 
-// Gemini — best reasoning quality, low free-tier RPM (10 RPM)
+/*
+ * Free-tier reality — March 2026
+ * Gemini 2.5 Flash: ~60 RPM burst, ~2,000-2,500 req/day, ~1.5-2M TPM
+ * Groq Llama-3.3-70B: 30 RPM, 100K tokens/day HARD LIMIT — use as LAST RESORT only for tasks >1K output tokens
+ * NVIDIA NIM Nemotron-49B: 40 RPM, ~800-1,200 credits/day (~1 credit ≈ 1K tokens)
+ */
+
+// Gemini — best reasoning quality, high free-tier throughput (~60 RPM burst, ~2K req/day)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() || ''
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/'
@@ -20,7 +27,7 @@ function getGeminiClient(): OpenAI | null {
   return geminiClient
 }
 
-// Groq — fastest inference (~280 tok/s), high free-tier RPM (30 RPM)
+// Groq — fastest inference (~280 tok/s), 30 RPM, BUT only 100K tokens/day — last resort for >1K output tasks
 const GROQ_API_KEY = process.env.GROQ_API_KEY?.trim() || ''
 const GROQ_MODEL = process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile'
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
@@ -34,7 +41,7 @@ function getGroqClient(): OpenAI | null {
   return groqClient
 }
 
-// NVIDIA — reliable fallback, high free-tier RPM (40 RPM)
+// NVIDIA NIM — reliable secondary, 40 RPM, ~800-1,200 credits/day — use before Groq on large-output tasks
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY?.trim() || ''
 const NVIDIA_BASE_URL = process.env.NVIDIA_BASE_URL ?? 'https://integrate.api.nvidia.com/v1'
 const NVIDIA_MODEL = process.env.NVIDIA_MODEL ?? 'nvidia/llama-3.3-nemotron-super-49b-v1.5'
@@ -126,26 +133,33 @@ const TASK_CONFIG: Record<LLMTask, { maxTokens: number; jsonMode: boolean }> = {
 }
 
 // ── Task-aware provider routing ──────────────────────────────────────────────
-// Gemini: best reasoning, 10 RPM, huge context → use for high-value + large prompts
-// Groq: fastest, 30 RPM, 12K TPM free tier → use for small/medium tasks only
-// NVIDIA: reliable, 40 RPM, large context → universal fallback + large-prompt capable
+// Gemini: best reasoning, ~60 RPM burst, ~2K req/day, huge context → primary for all tasks
+// NVIDIA: reliable secondary, 40 RPM, ~1K credits/day → use before Groq on large-output tasks
+// Groq: fastest inference but only 100K tokens/DAY → absolute last resort; never first on >1K output tasks
 
 const TASK_PROVIDER_ORDER: Partial<Record<LLMTask, Provider[]>> = {
-  // Large-prompt tasks (>12K tokens): skip Groq (TPM overflow on free tier)
+  // Large-prompt tasks: Gemini first, NVIDIA second, Groq emergency-only
   'm01.stressTest':            ['gemini', 'nvidia', 'groq'],
   'roadmap.aggregator':        ['gemini', 'nvidia', 'groq'],
   'roadmap.revision':          ['gemini', 'nvidia', 'groq'],
   'roadmap.critic':            ['gemini', 'nvidia', 'groq'],
   'roadmap.consistency':       ['gemini', 'nvidia', 'groq'],
   'm02.documentGeneration':    ['gemini', 'nvidia', 'groq'],
-  // Medium tasks: Groq first for speed
-  'm01.scorecard':             ['groq', 'gemini', 'nvidia'],
-  'm01.marketSizing':          ['groq', 'gemini', 'nvidia'],
-  'm01.icpBuilder':            ['groq', 'gemini', 'nvidia'],
-  'm02.jurisdictionComparison': ['groq', 'gemini', 'nvidia'],
-  'm02.entityRecommendation':  ['groq', 'gemini', 'nvidia'],
-  'm02.legalRoadmap':          ['groq', 'gemini', 'nvidia'],
-  'dashboard.competitorSnapshot': ['groq', 'gemini', 'nvidia'],
+  // Medium tasks (previously Groq-first — moved to gemini→nvidia→groq to protect 100K TPD limit)
+  // TODO: Switch m01.scorecard to Perplexity sonar-pro first when configured as LLM provider
+  'm01.scorecard':             ['gemini', 'nvidia', 'groq'],
+  // TODO: Switch m01.marketSizing to Perplexity sonar-pro first when configured as LLM provider
+  'm01.marketSizing':          ['gemini', 'nvidia', 'groq'],
+  // TODO: Switch m01.icpBuilder to Perplexity sonar-pro first when configured as LLM provider
+  'm01.icpBuilder':            ['gemini', 'nvidia', 'groq'],
+  // TODO: Switch m02.jurisdictionComparison to DeepSeek-V3.2 first when configured — better structured legal reasoning
+  'm02.jurisdictionComparison': ['gemini', 'nvidia', 'groq'],
+  // TODO: Switch m02.entityRecommendation to DeepSeek-V3.2 first when configured — better structured legal reasoning
+  'm02.entityRecommendation':  ['gemini', 'nvidia', 'groq'],
+  // TODO: Switch m02.legalRoadmap to DeepSeek-V3.2 first when configured — better structured legal reasoning
+  'm02.legalRoadmap':          ['gemini', 'nvidia', 'groq'],
+  // TODO: Switch dashboard.competitorSnapshot to Perplexity sonar-pro first when configured as LLM provider
+  'dashboard.competitorSnapshot': ['gemini', 'nvidia', 'groq'],
   'gtm.roadmap':               ['gemini', 'groq', 'nvidia'],
   'gtm.section':               ['gemini', 'groq', 'nvidia'],
   'gtm.critique':              ['gemini', 'groq', 'nvidia'],
@@ -276,6 +290,16 @@ export async function llmCall(
         lastError = err as Error
         const msg = lastError.message
         logger.warn({ provider, task, error: msg.slice(0, 200) }, 'llm provider failed')
+
+        // Detect Groq daily token limit exhaustion and emit a distinct warning
+        if (provider === 'groq' && (err as any)?.status === 429) {
+          const isDailyLimit =
+            msg.toLowerCase().includes('tokens per day') ||
+            msg.toLowerCase().includes('daily limit')
+          if (isDailyLimit) {
+            logger.warn({ msg: 'groq_daily_limit_approaching', task, provider: 'groq' })
+          }
+        }
 
         const nonRetryable =
           msg.includes('timed out') ||

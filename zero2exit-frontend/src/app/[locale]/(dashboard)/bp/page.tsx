@@ -118,7 +118,7 @@ const REVENUE_MODELS = [
   { value: "other", label: "Other" },
 ]
 
-const GENERATE_ALL_DELAY_MS = 8000
+const GENERATE_ALL_DELAY_MS = 800
 const GENERATE_ALL_RECOVERY_DELAY_MS = 15000
 const GENERATE_ALL_RECOVERY_INTERVAL = 4
 
@@ -258,7 +258,7 @@ export default function BpPage() {
         if (msg.includes("currently running")) {
           toast.info("Generation already in progress — please wait for it to finish.")
         } else {
-          toast.error(msg || "Section generation failed. Please try again.")
+          toast.error("AI capacity temporarily limited. Your progress is saved — try again in a few hours or click Retry.")
         }
       })
   }, [])
@@ -271,7 +271,7 @@ export default function BpPage() {
         if (msg.includes("currently running")) {
           toast.info("Generation already in progress — please wait for it to finish.")
         } else {
-          toast.error(msg || "Section regeneration failed. Please try again.")
+          toast.error("AI capacity temporarily limited. Your progress is saved — try again in a few hours or click Retry.")
         }
       })
   }, [])
