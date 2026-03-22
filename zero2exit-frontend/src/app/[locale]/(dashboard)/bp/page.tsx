@@ -165,6 +165,7 @@ function formatCurrency(n: number): string {
 
 export default function BpPage() {
   const [initialized, setInitialized] = useState(false)
+  const [autoResetDone, setAutoResetDone] = useState(false)
   const [activeTab, setActiveTab] = useState<"builder" | "preview">("builder")
   const [financialsForm, setFinancialsForm] = useState<FinancialInputs>({
     revenueModel: "",
@@ -195,6 +196,7 @@ export default function BpPage() {
   const generateFinancialsMutation = trpc.bp.generateFinancials.useMutation()
   const exportPdfMutation = trpc.bp.exportPdf.useMutation()
   const exportDocxMutation = trpc.bp.exportDocx.useMutation()
+  const resetPlanMutation = trpc.bp.resetPlan.useMutation()
 
   const isInitializing = initMutation.isPending
 
@@ -205,6 +207,7 @@ export default function BpPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type MutateFinancials = (input: { inputs: Record<string, any> }) => Promise<unknown>
   type MutateExport = () => Promise<{ url?: string } | null | undefined>
+  type MutateReset = () => Promise<unknown>
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const initMutateRef = useRef<MutateInit>(initMutation.mutateAsync as any)
@@ -220,6 +223,8 @@ export default function BpPage() {
   const exportMutateRef = useRef<MutateExport>(exportPdfMutation.mutateAsync as any)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exportDocxMutateRef = useRef<MutateExport>(exportDocxMutation.mutateAsync as any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resetPlanMutateRef = useRef<MutateReset>(resetPlanMutation.mutateAsync as any)
 
   initMutateRef.current = initMutation.mutateAsync as unknown as MutateInit
   generateMutateRef.current = generateMutation.mutateAsync as unknown as MutateSection
@@ -228,6 +233,7 @@ export default function BpPage() {
   generateFinancialsMutateRef.current = generateFinancialsMutation.mutateAsync as unknown as MutateFinancials
   exportMutateRef.current = exportPdfMutation.mutateAsync as unknown as MutateExport
   exportDocxMutateRef.current = exportDocxMutation.mutateAsync as unknown as MutateExport
+  resetPlanMutateRef.current = resetPlanMutation.mutateAsync as unknown as MutateReset
 
   type RefetchFn = () => void
   const refetchRef = useRef<RefetchFn>(() => { void refetchPlan() })
@@ -331,6 +337,17 @@ export default function BpPage() {
       setFinancialsForm((prev) => ({ ...prev, revenueModel: prev.revenueModel || model }))
     }
   }, [gatewayData])
+
+  // Auto-reset on mount if ALL sections are stale-failed (pre-migration DB state)
+  useEffect(() => {
+    if (autoResetDone || isLoadingPlan || !planData?.plan || sections.length === 0) return
+    if (sections.every((s) => s.status === "failed")) {
+      setAutoResetDone(true)
+      void resetPlanMutateRef.current()
+        .then(() => { refetchRef.current() })
+        .catch(() => { /* silently ignore — user can retry via button */ })
+    }
+  }, [autoResetDone, isLoadingPlan, planData, sections])
 
   const sections: BpSection[] = useMemo(() => {
     const fromServer =
@@ -454,6 +471,8 @@ export default function BpPage() {
   }
 
   const hasFailedAfterRun = !isGeneratingAll && generateAllResults.failed.length > 0
+  const dbFailedSections = sections.filter((s) => s.status === "failed").map((s) => s.sectionKey)
+  const showRetryBanner = !isGeneratingAll && (generateAllResults.failed.length > 0 || dbFailedSections.length > 0)
 
   // ─── Generate financials ────────────────────────────────────────────────────
   function triggerGenerateFinancials(): void {
@@ -643,15 +662,17 @@ export default function BpPage() {
       )}
 
       {/* Failed sections retry banner */}
-      {hasFailedAfterRun && (
+      {showRetryBanner && (
         <div className="mt-2 rounded-md border border-red-400 bg-red-950/60 px-4 py-3 text-xs text-red-100">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="font-medium">
-                {generateAllResults.failed.length} sections failed to generate:
+                {hasFailedAfterRun
+                  ? `${generateAllResults.failed.length} sections failed to generate:`
+                  : `${dbFailedSections.length} sections have a failed status — click Retry to regenerate:`}
               </p>
               <ul className="mt-1 list-inside list-disc space-y-0.5">
-                {generateAllResults.failed.map((key) => {
+                {(hasFailedAfterRun ? generateAllResults.failed : dbFailedSections).map((key) => {
                   const label = SECTION_LABELS.find((s) => s.key === key)?.title ?? key
                   return <li key={key}>{label}</li>
                 })}
@@ -660,7 +681,7 @@ export default function BpPage() {
                 size="xs"
                 className="mt-2 bg-red-500 hover:bg-red-600 text-white"
                 onClick={() => {
-                  const failedKeys = [...generateAllResults.failed]
+                  const failedKeys = hasFailedAfterRun ? [...generateAllResults.failed] : [...dbFailedSections]
                   if (failedKeys.length === 0) return
                   generateAllStoppedRef.current = false
                   setIsGeneratingAll(true)
@@ -670,6 +691,9 @@ export default function BpPage() {
                   setGenerateAllResults({ succeeded: [], failed: [] })
 
                   void (async () => {
+                    // Reset plan status in DB first to clear stale failed rows
+                    try { await resetPlanMutateRef.current() } catch { /* non-critical */ }
+
                     const succeeded: BpSectionKey[] = []
                     const failed: BpSectionKey[] = []
 

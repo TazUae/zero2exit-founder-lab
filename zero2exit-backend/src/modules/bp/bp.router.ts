@@ -104,6 +104,49 @@ export const bpRouter = router({
       }
     }),
 
+  resetPlan: protectedProcedure.mutation(async ({ ctx }) => {
+    const { founderId, db } = ctx
+
+    try {
+      const plan = await db.businessPlan.findUnique({
+        where: { founderId },
+      })
+
+      if (!plan) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Business Plan not found.',
+        })
+      }
+
+      await db.$transaction([
+        db.businessPlanSection.updateMany({
+          where: { planId: plan.id },
+          data: {
+            status: 'pending',
+            content: {},
+            plainText: null,
+          },
+        }),
+        db.businessPlan.update({
+          where: { id: plan.id },
+          data: { status: 'draft' },
+        }),
+      ])
+
+      logger.info({ founderId, planId: plan.id }, 'bp.resetPlan: all sections reset to pending')
+
+      return { success: true, planId: plan.id }
+    } catch (err) {
+      if (err instanceof TRPCError) throw err
+      logger.error({ err, founderId }, 'bp.resetPlan failed')
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to reset Business Plan. Please try again.',
+      })
+    }
+  }),
+
   getPlan: protectedProcedure.query(async ({ ctx }) => {
     const { founderId, db } = ctx
 
