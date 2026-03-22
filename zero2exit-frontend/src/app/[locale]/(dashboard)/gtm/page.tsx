@@ -182,6 +182,8 @@ export default function GtmPage() {
   const updateMutateRef = useRef<MutateUpdate>(updateMutation.mutateAsync as any)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exportMutateRef = useRef<MutateExport>(exportPdfMutation.mutateAsync as any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exportDocxMutateRef = useRef<MutateExport>(exportDocxMutation.mutateAsync as any)
 
   // Keep refs in sync with the latest mutation functions each render
   initMutateRef.current = initMutation.mutateAsync as unknown as MutateInit
@@ -189,6 +191,7 @@ export default function GtmPage() {
   regenerateMutateRef.current = regenerateMutation.mutateAsync as unknown as MutateSection
   updateMutateRef.current = updateMutation.mutateAsync as unknown as MutateUpdate
   exportMutateRef.current = exportPdfMutation.mutateAsync as unknown as MutateExport
+  exportDocxMutateRef.current = exportDocxMutation.mutateAsync as unknown as MutateExport
 
   const triggerInit = useCallback((): void => {
     void initMutateRef.current()
@@ -248,7 +251,34 @@ export default function GtmPage() {
   }, [])
 
   const onExportDocx = useCallback(async (): Promise<void> => {
-    toast.info("DOCX export is temporarily disabled in this environment.")
+    try {
+      const res = await exportDocxMutateRef.current()
+      if (!res?.url) {
+        toast.error("Unable to export Word document. Please try again.")
+        return
+      }
+      if (res.url.startsWith("data:")) {
+        const base64 = res.url.replace(/^data:[^;]+;base64,/, "")
+        const bin = atob(base64)
+        const bytes = new Uint8Array(bin.length)
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+        const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" })
+        const objectUrl = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = objectUrl
+        a.download = "gtm-strategy.docx"
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+      } else {
+        window.open(res.url, "_blank")
+      }
+      toast.success("Word document downloaded successfully.")
+    } catch (err: unknown) {
+      const message =
+        (err instanceof Error && err.message) ||
+        "Failed to export GTM strategy as Word document."
+      toast.error(message)
+    }
   }, [])
 
   useEffect(() => {
