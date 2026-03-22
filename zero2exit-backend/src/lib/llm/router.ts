@@ -88,6 +88,8 @@ export type LLMTask =
   | 'gtm.critique'
   | 'brand.generate'
   | 'brand.suggestNames'
+  | 'bp.section'
+  | 'bp.financials'
 
 export type LLMMessage = {
   role: 'user' | 'assistant' | 'system'
@@ -119,6 +121,8 @@ const TASK_CONFIG: Record<LLMTask, { maxTokens: number; jsonMode: boolean }> = {
   'gtm.critique':              { maxTokens: 2500, jsonMode: true  },
   'brand.generate':            { maxTokens: 4000, jsonMode: true  },
   'brand.suggestNames':        { maxTokens: 200,  jsonMode: true  },
+  'bp.section':                { maxTokens: 5000, jsonMode: true  },
+  'bp.financials':             { maxTokens: 3000, jsonMode: true  },
 }
 
 // ── Task-aware provider routing ──────────────────────────────────────────────
@@ -145,6 +149,8 @@ const TASK_PROVIDER_ORDER: Partial<Record<LLMTask, Provider[]>> = {
   'gtm.roadmap':               ['gemini', 'groq', 'nvidia'],
   'gtm.section':               ['gemini', 'groq', 'nvidia'],
   'gtm.critique':              ['gemini', 'groq', 'nvidia'],
+  'bp.section':                ['gemini', 'groq', 'nvidia'],
+  'bp.financials':             ['gemini', 'groq', 'nvidia'],
 }
 
 const DEFAULT_PROVIDER_ORDER: Provider[] = ['gemini', 'groq', 'nvidia']
