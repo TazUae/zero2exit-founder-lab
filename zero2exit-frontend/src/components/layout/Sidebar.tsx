@@ -38,6 +38,7 @@ const navItems = [
   { key: "ideaValidation", href: "/dashboard/m01", icon: Lightbulb },
   { key: "legalStructure", href: "/dashboard/m02", icon: Scale },
   { key: "gtm", href: "/dashboard/gtm", icon: Target },
+  { key: "businessPlan", href: "/dashboard/bp", icon: FileText },
   { key: "brand", href: "/dashboard/brand", icon: Palette },
   { key: "coach", href: "/dashboard/coach", icon: MessageSquare },
   { key: "documents", href: "/dashboard/documents", icon: FileText },
