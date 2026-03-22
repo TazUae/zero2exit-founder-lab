@@ -181,7 +181,7 @@ export default function BpPage() {
   const { data: planData, isLoading: isLoadingPlan, refetch: refetchPlan } = trpc.bp.getPlan.useQuery()
   const { data: compiledData, isLoading: isLoadingCompiled, refetch: refetchCompiledPlan } = trpc.bp.getCompiledPlan.useQuery()
   const { data: financialsData, refetch: refetchFinancials } = trpc.bp.getFinancials.useQuery()
-  const { data: gatewayData } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
+  const { data: gatewayData } = trpc.gateway.getModulePlan.useQuery(undefined)
   const locale = useLocale()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gtmDone = (gatewayData as any)?.moduleProgress?.some(
@@ -246,6 +246,7 @@ export default function BpPage() {
         refetchRef.current()
       })
       .catch((err: unknown) => {
+        setInitialized(true) // stop retry loop — user can manually refresh
         toast.error((err instanceof Error && err.message) || "Failed to initialize Business Plan.")
       })
   }, [])
@@ -393,6 +394,7 @@ export default function BpPage() {
     failed: BpSectionKey[]
   }>({ succeeded: [], failed: [] })
   const generateAllStoppedRef = useRef(false)
+  const generateAllRunningRef = useRef(false)
   const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false)
 
   const anyPendingOrFailed = sections.some((s) => s.status === "pending" || s.status === "failed")
@@ -401,6 +403,9 @@ export default function BpPage() {
   const showRegenerateAllButton = !isGeneratingAll && !anyPendingOrFailed && allCompleted
 
   async function startGenerateAll(mode: "remaining" | "all") {
+    if (generateAllRunningRef.current) return
+    generateAllRunningRef.current = true
+
     const sectionsToGenerate: BpSectionKey[] =
       mode === "all"
         ? [...SECTION_KEYS_IN_ORDER]
@@ -410,6 +415,7 @@ export default function BpPage() {
           })
 
     if (sectionsToGenerate.length === 0) {
+      generateAllRunningRef.current = false
       toast.info("All sections are already completed.")
       return
     }
@@ -459,6 +465,7 @@ export default function BpPage() {
     setIsGeneratingAll(false)
     setGenerateAllCurrentKey(null)
     setGenerateAllResults({ succeeded, failed })
+    generateAllRunningRef.current = false
     refetchRef.current()
 
     if (generateAllStoppedRef.current) {
@@ -858,7 +865,8 @@ function SectionCard({
 
   useEffect(() => {
     const text = section.plainText ?? ""
-    setTimeout(() => setDraft(text), 0)
+    const id = setTimeout(() => setDraft(text), 0)
+    return () => clearTimeout(id)
   }, [section.plainText, section.sectionKey])
 
   const canGenerate = section.status === "pending" || section.status === "failed"
