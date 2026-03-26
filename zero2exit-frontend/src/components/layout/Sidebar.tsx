@@ -47,6 +47,8 @@ const navItems = [
 ]
 
 const lockedRoadmapItems = [
+  { key: "core", icon: Target },
+  { key: "pulse", icon: Zap },
   { key: "scalingStrategy", icon: TrendingUp },
   { key: "fundraisingReadiness", icon: Wallet },
   { key: "exitPlanning", icon: Flag },
