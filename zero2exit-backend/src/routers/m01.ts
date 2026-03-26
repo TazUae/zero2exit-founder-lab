@@ -153,6 +153,200 @@ async function generateIcpProfiles(
   return icpProfiles
 }
 
+const autoValidateInputSchema = z.object({
+  ideaDescription: z.string().min(20).max(5000),
+  industry: z.string(),
+  targetCustomer: z.array(z.string()).optional().default([]),
+  geographicFocus: z.array(z.string()).optional().default([]),
+})
+
+async function runAutoValidateMutation({
+  ctx,
+  input,
+  procedureName,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ctx: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  input: any
+  procedureName: 'autoValidate' | 'autovalidate'
+}): Promise<{ success: true; score: number }> {
+  const { founderId, db } = ctx
+
+  logger.info({ founderId }, `m01.${procedureName} started`)
+
+  // ── Step 1: Stress test ───────────────────────────────────────────────
+  let objections: unknown[] = []
+  let suggestedImprovements: unknown[] = []
+  try {
+    const raw = await llmCall(
+      'm01.stressTest',
+      [{ role: 'user', content: stressTestUser(input.ideaDescription) }],
+      stressTestSystem(),
+    )
+    const parsed = parseLLMResponse(raw, 'm01.stressTest', 'stress test', StressTestOutputSchema)
+    objections = parsed.objections ?? []
+    suggestedImprovements = parsed.suggestedImprovements ?? []
+  } catch (err) {
+    logger.warn({ err }, `m01.${procedureName} stress test failed, continuing to scorecard`)
+  }
+
+  // Save business description + objections + suggestedImprovements
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.ideaValidation.upsert({
+    where: { founderId } as any,
+    update: {
+      businessDescription: input.ideaDescription,
+      ...(objections.length > 0 && { objections: objections as any }),
+      ...(suggestedImprovements.length > 0 && { suggestedImprovements: suggestedImprovements as any }),
+      updatedAt: new Date(),
+    },
+    create: {
+      founderId,
+      businessDescription: input.ideaDescription,
+      objections: objections as any,
+      suggestedImprovements: suggestedImprovements as any,
+    },
+  })
+
+  await safeAsync('moduleProgress in_progress', () =>
+    db.moduleProgress.updateMany({
+      where: { founderId, moduleId: 'M01' },
+      data: { status: 'in_progress', lastActivity: new Date() },
+    }),
+  )
+
+  // ── Step 2: Scorecard ─────────────────────────────────────────────────
+  let scorecard: {
+    total?: number
+    breakdown?: Record<string, number>
+    dimensions?: Array<{ name?: string; score?: number; risks?: string[] }>
+  } = {}
+  let score = 0
+
+  try {
+    const raw = await llmCall(
+      'm01.scorecard',
+      [
+        {
+          role: 'user',
+          content: scorecardUser({
+            businessDescription: input.ideaDescription,
+            industry: input.industry,
+            objectionResponses: objections.length > 0 ? JSON.stringify(objections) : undefined,
+          }),
+        },
+      ],
+      scorecardSystem(),
+    )
+
+    scorecard = parseLLMResponse(raw, 'm01.scorecard', 'scorecard', ScorecardOutputSchema) as typeof scorecard
+
+    // Build breakdown from dimensions if missing
+    if (!scorecard.breakdown && Array.isArray(scorecard.dimensions) && scorecard.dimensions.length > 0) {
+      const nameToKey: Record<string, string> = {
+        'market opportunity': 'marketOpportunity',
+        'market size': 'marketOpportunity',
+        differentiation: 'differentiation',
+        'competitive advantage': 'differentiation',
+        'execution feasibility': 'executionFeasibility',
+        execution: 'executionFeasibility',
+        defensibility: 'defensibility',
+        timing: 'timing',
+      }
+      const bd: Record<string, number> = {}
+      for (const dim of scorecard.dimensions) {
+        const key = nameToKey[(dim.name ?? '').toLowerCase()]
+        if (key && typeof dim.score === 'number') bd[key] = dim.score
+      }
+      if (Object.keys(bd).length > 0) scorecard.breakdown = bd
+    }
+
+    score = scorecard.total ?? 0
+  } catch (err) {
+    logger.warn({ err }, `m01.${procedureName} scorecard failed, continuing`)
+  }
+
+  if (Object.keys(scorecard).length > 0) {
+    try {
+      await db.$transaction(async (tx: any) => {
+        await tx.ideaValidation.update({
+          where: { founderId } as any,
+          data: { scorecard: scorecard as any, updatedAt: new Date() },
+        })
+        await tx.moduleProgress.updateMany({
+          where: { founderId, moduleId: 'M01' },
+          data: {
+            score,
+            lastActivity: new Date(),
+            status: score >= 60 ? 'complete' : 'in_progress',
+            completedAt: score >= 60 ? new Date() : null,
+          },
+        })
+        if (score >= 60) {
+          await tx.moduleProgress.updateMany({
+            where: { founderId, moduleId: 'M02' },
+            data: { status: 'active', lastActivity: new Date() },
+          })
+        }
+        await writeAuditLog({
+          db: tx,
+          founderId,
+          actorType: 'founder',
+          action: 'm01.auto_validation_complete',
+          metadata: { score, passed: score >= 60 },
+        })
+      })
+    } catch (err) {
+      logger.warn({ err }, `m01.${procedureName} transaction failed`)
+    }
+  }
+
+  // ── Step 3: Market Sizing + ICP Personas (parallel, non-critical) ────────
+  // Derive human-readable values from the onboarding array inputs
+  const GEO_MAP: Record<string, string> = {
+    global_english: 'Global',
+    global_multilingual: 'Global',
+    regional: 'MENA',
+    local: 'Local',
+  }
+  const geography = GEO_MAP[input.geographicFocus[0] ?? ''] ?? 'Global'
+
+  const SEGMENT_MAP: Record<string, string> = {
+    consumers: 'Consumers (B2C)',
+    smb: 'SMEs',
+    enterprise: 'Enterprise / Corporate',
+    developers: 'Startups',
+    creators: 'Freelancers / Solopreneurs',
+    gov_or_nonprofit: 'Government / Public Sector',
+  }
+  const targetSegment = SEGMENT_MAP[input.targetCustomer[0] ?? ''] ?? input.targetCustomer[0] ?? ''
+
+  await Promise.allSettled([
+    safeAsync('autoValidate.marketSizing', () =>
+      generateMarketSizing(db, founderId, input.ideaDescription, input.industry, geography, targetSegment),
+    ),
+    safeAsync('autoValidate.icpProfiles', () =>
+      generateIcpProfiles(db, founderId, input.ideaDescription, input.industry),
+    ),
+  ])
+
+  await safeAsync('getOrCreateStartupNode', () =>
+    getOrCreateStartupNode({
+      founderId,
+      title: 'Startup',
+      data: { businessDescription: input.ideaDescription },
+    }),
+  )
+
+  await safeAsync('invalidateFounderContext', () =>
+    invalidateFounderContext(founderId),
+  )
+
+  logger.info({ score }, `m01.${procedureName} completed`)
+  return { success: true, score }
+}
+
 export const m01Router = router({
   // Submit business description → get stress-test objections
   submitBusinessDescription: protectedProcedure
@@ -546,189 +740,17 @@ export const m01Router = router({
 
   // Auto-validate: runs stress test + scorecard in one shot (called after onboarding)
   autoValidate: protectedProcedure
-    .input(
-      z.object({
-        ideaDescription:  z.string().min(20).max(5000),
-        industry:         z.string(),
-        targetCustomer:   z.array(z.string()).optional().default([]),
-        geographicFocus:  z.array(z.string()).optional().default([]),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { founderId, db } = ctx
-      logger.info({ founderId }, 'm01.autoValidate started')
+    .input(autoValidateInputSchema)
+    .mutation(({ ctx, input }) =>
+      runAutoValidateMutation({ ctx, input, procedureName: 'autoValidate' }),
+    ),
 
-      // ── Step 1: Stress test ───────────────────────────────────────────────
-      let objections: unknown[] = []
-      let suggestedImprovements: unknown[] = []
-      try {
-        const raw = await llmCall(
-          'm01.stressTest',
-          [{ role: 'user', content: stressTestUser(input.ideaDescription) }],
-          stressTestSystem(),
-        )
-        const parsed = parseLLMResponse(raw, 'm01.stressTest', 'stress test', StressTestOutputSchema)
-        objections = parsed.objections ?? []
-        suggestedImprovements = parsed.suggestedImprovements ?? []
-      } catch (err) {
-        logger.warn({ err }, 'm01.autoValidate stress test failed, continuing to scorecard')
-      }
-
-      // Save business description + objections + suggestedImprovements
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await db.ideaValidation.upsert({
-        where: { founderId } as any,
-        update: {
-          businessDescription: input.ideaDescription,
-          ...(objections.length > 0 && { objections: objections as any }),
-          ...(suggestedImprovements.length > 0 && { suggestedImprovements: suggestedImprovements as any }),
-          updatedAt: new Date(),
-        },
-        create: {
-          founderId,
-          businessDescription: input.ideaDescription,
-          objections: objections as any,
-          suggestedImprovements: suggestedImprovements as any,
-        },
-      })
-
-      await safeAsync('moduleProgress in_progress', () =>
-        db.moduleProgress.updateMany({
-          where: { founderId, moduleId: 'M01' },
-          data: { status: 'in_progress', lastActivity: new Date() },
-        }),
-      )
-
-      // ── Step 2: Scorecard ─────────────────────────────────────────────────
-      let scorecard: {
-        total?: number
-        breakdown?: Record<string, number>
-        dimensions?: Array<{ name?: string; score?: number; risks?: string[] }>
-      } = {}
-      let score = 0
-
-      try {
-        const raw = await llmCall(
-          'm01.scorecard',
-          [
-            {
-              role: 'user',
-              content: scorecardUser({
-                businessDescription: input.ideaDescription,
-                industry: input.industry,
-                objectionResponses: objections.length > 0 ? JSON.stringify(objections) : undefined,
-              }),
-            },
-          ],
-          scorecardSystem(),
-        )
-
-        scorecard = parseLLMResponse(raw, 'm01.scorecard', 'scorecard', ScorecardOutputSchema) as typeof scorecard
-
-        // Build breakdown from dimensions if missing
-        if (!scorecard.breakdown && Array.isArray(scorecard.dimensions) && scorecard.dimensions.length > 0) {
-          const nameToKey: Record<string, string> = {
-            'market opportunity':   'marketOpportunity',
-            'market size':          'marketOpportunity',
-            'differentiation':      'differentiation',
-            'competitive advantage':'differentiation',
-            'execution feasibility':'executionFeasibility',
-            'execution':            'executionFeasibility',
-            'defensibility':        'defensibility',
-            'timing':               'timing',
-          }
-          const bd: Record<string, number> = {}
-          for (const dim of scorecard.dimensions) {
-            const key = nameToKey[(dim.name ?? '').toLowerCase()]
-            if (key && typeof dim.score === 'number') bd[key] = dim.score
-          }
-          if (Object.keys(bd).length > 0) scorecard.breakdown = bd
-        }
-
-        score = scorecard.total ?? 0
-      } catch (err) {
-        logger.warn({ err }, 'm01.autoValidate scorecard failed, continuing')
-      }
-
-      if (Object.keys(scorecard).length > 0) {
-        try {
-          await db.$transaction(async (tx: any) => {
-            await tx.ideaValidation.update({
-              where: { founderId } as any,
-              data: { scorecard: scorecard as any, updatedAt: new Date() },
-            })
-            await tx.moduleProgress.updateMany({
-              where: { founderId, moduleId: 'M01' },
-              data: {
-                score,
-                lastActivity: new Date(),
-                status: score >= 60 ? 'complete' : 'in_progress',
-                completedAt: score >= 60 ? new Date() : null,
-              },
-            })
-            if (score >= 60) {
-              await tx.moduleProgress.updateMany({
-                where: { founderId, moduleId: 'M02' },
-                data: { status: 'active', lastActivity: new Date() },
-              })
-            }
-            await writeAuditLog({
-              db: tx,
-              founderId,
-              actorType: 'founder',
-              action: 'm01.auto_validation_complete',
-              metadata: { score, passed: score >= 60 },
-            })
-          })
-        } catch (err) {
-          logger.warn({ err }, 'm01.autoValidate transaction failed')
-        }
-      }
-
-      // ── Step 3: Market Sizing + ICP Personas (parallel, non-critical) ────────
-      // Derive human-readable values from the onboarding array inputs
-      const GEO_MAP: Record<string, string> = {
-        global_english:      'Global',
-        global_multilingual: 'Global',
-        regional:            'MENA',
-        local:               'Local',
-      }
-      const geography = GEO_MAP[input.geographicFocus[0] ?? ''] ?? 'Global'
-
-      const SEGMENT_MAP: Record<string, string> = {
-        consumers:        'Consumers (B2C)',
-        smb:              'SMEs',
-        enterprise:       'Enterprise / Corporate',
-        developers:       'Startups',
-        creators:         'Freelancers / Solopreneurs',
-        gov_or_nonprofit: 'Government / Public Sector',
-      }
-      const targetSegment = SEGMENT_MAP[input.targetCustomer[0] ?? ''] ?? input.targetCustomer[0] ?? ''
-
-      await Promise.allSettled([
-        safeAsync('autoValidate.marketSizing', () =>
-          generateMarketSizing(db, founderId, input.ideaDescription, input.industry, geography, targetSegment),
-        ),
-        safeAsync('autoValidate.icpProfiles', () =>
-          generateIcpProfiles(db, founderId, input.ideaDescription, input.industry),
-        ),
-      ])
-
-      await safeAsync('getOrCreateStartupNode', () =>
-        getOrCreateStartupNode({
-          founderId,
-          title: 'Startup',
-          data: { businessDescription: input.ideaDescription },
-        }),
-      )
-
-      await safeAsync('invalidateFounderContext', () =>
-        invalidateFounderContext(founderId),
-      )
-
-      logger.info({ score }, 'm01.autoValidate completed')
-      return { success: true, score }
-    }),
+  // Backwards compatibility for older frontend bundles calling `m01.autovalidate`
+  autovalidate: protectedProcedure
+    .input(autoValidateInputSchema)
+    .mutation(({ ctx, input }) =>
+      runAutoValidateMutation({ ctx, input, procedureName: 'autovalidate' }),
+    ),
 
   // Get current M01 state
   getState: protectedProcedure.query(async ({ ctx }) => {

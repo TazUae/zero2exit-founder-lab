@@ -83,6 +83,17 @@ async function start() {
   // Webhooks — raw routes outside tRPC
   server.post('/webhooks/stripe', stripeWebhook)
 
+  // Version info — helps verify deploy parity between frontend/backend
+  server.get('/version', async (_req, reply) => {
+    return reply.status(200).send({
+      service: 'zero2exit-backend',
+      nodeEnv: env.NODE_ENV,
+      gitSha: process.env.GIT_SHA ?? null,
+      buildId: process.env.BUILD_ID ?? null,
+      timestamp: new Date().toISOString(),
+    })
+  })
+
   // Health check — GET /health (parallel checks so total latency = max(timeout) not sum)
   const HEALTH_CHECK_TIMEOUT_MS = 2500
   server.get('/health', async (req, reply) => {
