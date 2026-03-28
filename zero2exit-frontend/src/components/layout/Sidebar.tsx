@@ -43,10 +43,6 @@ const navItemsTop = [
   { key: "gtm", href: "/dashboard/gtm", icon: Target },
   { key: "businessPlan", href: "/dashboard/bp", icon: FileText },
   { key: "brand", href: "/dashboard/brand", icon: Palette },
-] as const
-
-/** Axis product previews (also listed under Roadmap when the sidebar is expanded). */
-const axisProductLinks = [
   { key: "core", href: "/dashboard/core", icon: LayoutGrid },
   { key: "pulse", href: "/dashboard/pulse", icon: Activity },
 ] as const
@@ -173,7 +169,7 @@ export function Sidebar() {
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-subtle">
         {navItemsTop.map((item) => renderNavLink(item))}
 
-        {/* Roadmap: Axis product pages + locked future stages */}
+        {/* Roadmap: locked future stages (Core / Pulse live in main nav above) */}
         {sidebarOpen ? (
           <>
             <div className="pt-3 mt-2 border-t border-slate-800">
@@ -181,7 +177,6 @@ export function Sidebar() {
                 {t("roadmap")}
               </p>
             </div>
-            {axisProductLinks.map((item) => renderNavLink(item))}
             {lockedRoadmapItems.map((item) => {
               const Icon = item.icon
               return (
@@ -216,9 +211,7 @@ export function Sidebar() {
               )
             })}
           </>
-        ) : (
-          axisProductLinks.map((item) => renderNavLink(item))
-        )}
+        ) : null}
 
         {navItemsBottom.map((item) => renderNavLink(item))}
       </nav>

@@ -5,6 +5,7 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
+import { getHTTPStatusCodeFromError, type HTTPErrorHandler } from '@trpc/server/http'
 import { appRouter } from './routers/index.js'
 import { createContext } from './trpc.js'
 import { stripeWebhook } from './webhooks/stripe.js'
@@ -45,6 +46,23 @@ server.addContentTypeParser(
   },
 )
 
+const logTrpcError: HTTPErrorHandler<typeof appRouter, FastifyRequest> = ({
+  path,
+  error,
+  type,
+}) => {
+  if (error.code === 'BAD_REQUEST' || error.code === 'PARSE_ERROR') return
+  const httpStatus = getHTTPStatusCodeFromError(error)
+  const payload = {
+    path: path ?? '(unknown)',
+    code: error.code,
+    httpStatus,
+    type,
+  }
+  if (httpStatus >= 500) logger.error(payload, 'tRPC procedure error')
+  else logger.warn(payload, 'tRPC procedure error')
+}
+
 async function start() {
   await server.register(rateLimit, {
     max: 100,
@@ -77,6 +95,7 @@ async function start() {
     trpcOptions: {
       router: appRouter,
       createContext,
+      onError: logTrpcError,
     },
   })
 

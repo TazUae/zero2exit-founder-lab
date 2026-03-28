@@ -16,6 +16,7 @@ const PROTECTED_PATHS = [
   '/m01',
   '/m02',
   '/gtm',
+  '/bp',
   '/documents',
   '/settings',
   '/roadmap',
