@@ -43,6 +43,10 @@ export async function middleware(request: NextRequest) {
 
   const isProtected = PROTECTED_PATHS.some((p) => pathname.includes(p))
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b4d56'},body:JSON.stringify({sessionId:'1b4d56',runId:'pre-fix',hypothesisId:'A',location:'middleware.ts:post-session',message:'middleware path + auth + protected',data:{pathname,hasUser:!!user,isProtected},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   if (isProtected && !user) {
     const signInUrl = new URL('/en/sign-in', request.nextUrl.origin)
     signInUrl.searchParams.set('callbackUrl', pathname)
@@ -50,6 +54,9 @@ export async function middleware(request: NextRequest) {
     supabaseResponse.cookies.getAll().forEach((c) =>
       redirectResponse.cookies.set(c.name, c.value, c),
     )
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b4d56'},body:JSON.stringify({sessionId:'1b4d56',runId:'pre-fix',hypothesisId:'B',location:'middleware.ts:redirect-signin',message:'unauthenticated protected path',data:{pathname,callback:signInUrl.toString()},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     return redirectResponse
   }
 
@@ -58,6 +65,9 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.cookies.getAll().forEach((c) =>
     intlResponse.cookies.set(c.name, c.value, c),
   )
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b4d56'},body:JSON.stringify({sessionId:'1b4d56',runId:'pre-fix',hypothesisId:'C',location:'middleware.ts:intl-return',message:'passing to intl middleware',data:{pathname,hasUser:!!user,intlStatus:intlResponse.status},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   return intlResponse
 }
 
