@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ComponentType } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
@@ -36,19 +36,26 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip"
 
-const navItems = [
+const navItemsTop = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "ideaValidation", href: "/dashboard/m01", icon: Lightbulb },
   { key: "legalStructure", href: "/dashboard/m02", icon: Scale },
   { key: "gtm", href: "/dashboard/gtm", icon: Target },
   { key: "businessPlan", href: "/dashboard/bp", icon: FileText },
   { key: "brand", href: "/dashboard/brand", icon: Palette },
+] as const
+
+/** Axis product previews (also listed under Roadmap when the sidebar is expanded). */
+const axisProductLinks = [
   { key: "core", href: "/dashboard/core", icon: LayoutGrid },
   { key: "pulse", href: "/dashboard/pulse", icon: Activity },
+] as const
+
+const navItemsBottom = [
   { key: "coach", href: "/dashboard/coach", icon: MessageSquare },
   { key: "documents", href: "/dashboard/documents", icon: FileText },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
-]
+] as const
 
 const lockedRoadmapItems = [
   { key: "scalingStrategy", icon: TrendingUp },
@@ -80,6 +87,70 @@ export function Sidebar() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])
 
+  const renderNavLink = (item: {
+    key: string
+    href: string
+    icon: ComponentType<{ className?: string }>
+  }) => {
+    const Icon = item.icon
+    const href = `${prefix}${item.href}`
+    const isActive =
+      pathname.includes(item.href) && item.href !== "/dashboard"
+        ? true
+        : pathname.endsWith("/dashboard") && item.href === "/dashboard"
+
+    if (item.key === "businessPlan" && !gtmDone) {
+      return (
+        <Tooltip key={item.key}>
+          <TooltipTrigger asChild>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => e.preventDefault()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") e.preventDefault()
+              }}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                "opacity-50 cursor-not-allowed select-none text-slate-500",
+                "focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-inset"
+              )}
+              aria-disabled="true"
+            >
+              <Lock className="w-5 h-5 flex-shrink-0" />
+              {sidebarOpen && (
+                <span className="text-sm font-medium">{t(item.key)}</span>
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent
+            side="right"
+            sideOffset={8}
+            className="bg-slate-800 text-slate-200 border border-slate-700"
+          >
+            Complete your Go-To-Market strategy first
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
+
+    return (
+      <Link
+        key={item.key}
+        href={href}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+          isActive
+            ? "bg-emerald-500/10 text-emerald-400"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
+        )}
+      >
+        <Icon className="w-5 h-5 flex-shrink-0" />
+        {sidebarOpen && <span className="text-sm font-medium">{t(item.key)}</span>}
+      </Link>
+    )
+  }
+
   return (
     <aside
       className={cn(
@@ -100,77 +171,17 @@ export function Sidebar() {
       {/* Navigation */}
       <TooltipProvider delayDuration={300}>
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-subtle">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const href = `${prefix}${item.href}`
-          const isActive =
-            pathname.includes(item.href) && item.href !== "/dashboard"
-              ? true
-              : pathname.endsWith("/dashboard") && item.href === "/dashboard"
+        {navItemsTop.map((item) => renderNavLink(item))}
 
-          // Business Plan is conditionally locked until GTM (M03) is complete
-          if (item.key === "businessPlan" && !gtmDone) {
-            return (
-              <Tooltip key={item.key}>
-                <TooltipTrigger asChild>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => e.preventDefault()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") e.preventDefault()
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                      "opacity-50 cursor-not-allowed select-none text-slate-500",
-                      "focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-inset"
-                    )}
-                    aria-disabled="true"
-                  >
-                    <Lock className="w-5 h-5 flex-shrink-0" />
-                    {sidebarOpen && (
-                      <span className="text-sm font-medium">{t(item.key)}</span>
-                    )}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="right"
-                  sideOffset={8}
-                  className="bg-slate-800 text-slate-200 border border-slate-700"
-                >
-                  Complete your Go-To-Market strategy first
-                </TooltipContent>
-              </Tooltip>
-            )
-          }
-
-          return (
-            <Link
-              key={item.key}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                isActive
-                  ? "bg-emerald-500/10 text-emerald-400"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
-              )}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {sidebarOpen && (
-                <span className="text-sm font-medium">{t(item.key)}</span>
-              )}
-            </Link>
-          )
-        })}
-
-        {/* Roadmap section: locked future stages */}
-        {sidebarOpen && (
+        {/* Roadmap: Axis product pages + locked future stages */}
+        {sidebarOpen ? (
           <>
             <div className="pt-3 mt-2 border-t border-slate-800">
               <p className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">
                 {t("roadmap")}
               </p>
             </div>
+            {axisProductLinks.map((item) => renderNavLink(item))}
             {lockedRoadmapItems.map((item) => {
               const Icon = item.icon
               return (
@@ -205,7 +216,11 @@ export function Sidebar() {
               )
             })}
           </>
+        ) : (
+          axisProductLinks.map((item) => renderNavLink(item))
         )}
+
+        {navItemsBottom.map((item) => renderNavLink(item))}
       </nav>
       </TooltipProvider>
 
