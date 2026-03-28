@@ -26,6 +26,8 @@ import {
   TrendingUp,
   Wallet,
   Flag,
+  LayoutGrid,
+  Activity,
 } from "lucide-react"
 import {
   Tooltip,
@@ -41,14 +43,14 @@ const navItems = [
   { key: "gtm", href: "/dashboard/gtm", icon: Target },
   { key: "businessPlan", href: "/dashboard/bp", icon: FileText },
   { key: "brand", href: "/dashboard/brand", icon: Palette },
+  { key: "core", href: "/dashboard/core", icon: LayoutGrid },
+  { key: "pulse", href: "/dashboard/pulse", icon: Activity },
   { key: "coach", href: "/dashboard/coach", icon: MessageSquare },
   { key: "documents", href: "/dashboard/documents", icon: FileText },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
 ]
 
 const lockedRoadmapItems = [
-  { key: "core", icon: Target },
-  { key: "pulse", icon: Zap },
   { key: "scalingStrategy", icon: TrendingUp },
   { key: "fundraisingReadiness", icon: Wallet },
   { key: "exitPlanning", icon: Flag },

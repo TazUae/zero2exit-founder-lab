@@ -48,6 +48,14 @@
     "back": "Back",
     "submit": "Submit",
     "generating": "Generating with AI..."
+  },
+  "productPages": {
+    "requestEarlyAccess": "Request Early Access",
+    "exploreFeatures": "Explore Features",
+    "seeHowItWorks": "See How It Works",
+    "earlyAccessTitleCore": "Be first when CORE launches.",
+    "earlyAccessTitlePulse": "Be first when PULSE launches.",
+    "earlyAccessDescription": "Register your interest and we will reach out to arrange a private walkthrough before the public release.",
+    "earlyAccessDisclaimer": "Early access registration will connect to your account in a future update."
   }
 }
-

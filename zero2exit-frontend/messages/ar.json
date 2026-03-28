@@ -48,6 +48,14 @@
     "back": "رجوع",
     "submit": "إرسال",
     "generating": "جاري الإنشاء بالذكاء الاصطناعي..."
+  },
+  "productPages": {
+    "requestEarlyAccess": "طلب الوصول المبكر",
+    "exploreFeatures": "استكشف الميزات",
+    "seeHowItWorks": "شاهد كيف يعمل",
+    "earlyAccessTitleCore": "كن أول من يحصل على CORE عند الإطلاق.",
+    "earlyAccessTitlePulse": "كن أول من يحصل على PULSE عند الإطلاق.",
+    "earlyAccessDescription": "سجّل اهتمامك وسنتواصل معك لترتيب جولة خاصة قبل الإصدار العام.",
+    "earlyAccessDisclaimer": "سيُربط تسجيل الوصول المبكر بحسابك في تحديث لاحق."
   }
 }
-
