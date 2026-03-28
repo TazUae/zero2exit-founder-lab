@@ -1,4 +1,4 @@
-import OpenAI from 'openai'
+import OpenAI, { APIError } from 'openai'
 import { Langfuse } from 'langfuse'
 import { logger } from '../logger.js'
 
@@ -16,7 +16,8 @@ type Provider = 'gemini' | 'groq' | 'nvidia' | 'openrouter'
 
 // Gemini — best reasoning quality, high free-tier throughput (~60 RPM burst, ~2K req/day)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim() || ''
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
+// OpenAI-compat endpoint requires an active model id; wrong ids return HTTP 404 (no body).
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.0-flash'
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/'
 
 let geminiClient: OpenAI | null = null
@@ -316,6 +317,8 @@ export async function llmCall(
       } catch (err) {
         lastError = err as Error
         const msg = lastError.message
+        const httpStatus =
+          err instanceof APIError ? err.status : (err as { status?: number }).status
         logger.warn({ provider, task, error: msg.slice(0, 200) }, 'llm provider failed')
 
         // Detect Groq daily token limit exhaustion and emit a distinct warning
@@ -332,7 +335,9 @@ export async function llmCall(
           msg.includes('timed out') ||
           msg.includes('429') ||
           msg.includes('413') ||
-          msg.includes('404')
+          msg.includes('404') ||
+          httpStatus === 404 ||
+          httpStatus === 413
         if (nonRetryable) break
       }
     }

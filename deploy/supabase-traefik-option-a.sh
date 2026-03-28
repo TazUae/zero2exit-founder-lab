@@ -12,6 +12,7 @@ echo "=== 2. ADD TRAEFIK LABELS TO SUPABASE ==="
 docker container update \
   --label-add traefik.enable=true \
   --label-add traefik.docker.network=dokploy-network \
+  --label-add traefik.http.routers.supabase.priority=200 \
   --label-add 'traefik.http.routers.supabase.rule=Host(`z2e.zaidan-group.com`) && PathPrefix(`/supabase`)' \
   --label-add traefik.http.routers.supabase.entrypoints=websecure \
   --label-add traefik.http.routers.supabase.tls.certresolver=letsencrypt \

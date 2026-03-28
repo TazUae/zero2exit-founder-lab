@@ -4,6 +4,8 @@ import createNextIntlPlugin from "next-intl/plugin"
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+/** When set (e.g. http://supabase-kong:8000 in Docker), /supabase/* is proxied to Kong so locale middleware cannot 307 /supabase. */
+const supabaseKongInternal = process.env.SUPABASE_KONG_INTERNAL_URL?.replace(/\/$/, "") ?? ""
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -30,17 +32,24 @@ const nextConfig: NextConfig = {
     serverActions: { allowedOrigins: [process.env.NEXT_PUBLIC_DOMAIN || "localhost:3001"] },
   },
   async rewrites() {
-    return [
+    const rules: { source: string; destination: string }[] = []
+    if (supabaseKongInternal) {
+      rules.push({
+        source: "/supabase/:path*",
+        destination: `${supabaseKongInternal}/:path*`,
+      })
+    }
+    rules.push(
       {
         source: "/api/trpc/:path*",
         destination: `${apiUrl}/api/trpc/:path*`,
       },
-      // Proxy health so the browser hits same origin; no CORS or backend-tunnel-from-browser needed
       {
         source: "/api/health",
         destination: `${apiUrl}/health`,
       },
-    ]
+    )
+    return rules
   },
   /**
    * Avoid stale HTML after deploys (old document referencing new hashed chunks → 404).
