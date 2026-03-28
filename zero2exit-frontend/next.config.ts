@@ -42,6 +42,50 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  /**
+   * Avoid stale HTML after deploys (old document referencing new hashed chunks → 404).
+   * Keep long cache only on versioned `/_next/static` assets.
+   */
+  async headers() {
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/:locale(en|ar)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/:locale(en|ar)/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+    ]
+  },
 }
 
 export default withNextIntl(nextConfig)

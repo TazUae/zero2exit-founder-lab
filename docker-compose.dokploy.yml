@@ -40,6 +40,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network" # ← tell Traefik which network to use
+      # Prefer /api to this service (same host also matches frontend catch-all)
+      - "traefik.http.routers.backend.priority=100"
       # Router: match /api on the same domain as the frontend
       - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
@@ -108,6 +110,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.zero2exit-frontend.priority=10"
       - "traefik.http.routers.zero2exit-frontend.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.zero2exit-frontend.entrypoints=websecure"
       - "traefik.http.routers.zero2exit-frontend.tls.certresolver=letsencrypt"

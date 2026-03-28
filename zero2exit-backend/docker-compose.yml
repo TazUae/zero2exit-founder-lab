@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   postgres:
     image: postgres:16-alpine
@@ -10,6 +9,8 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Runs once on empty data dir (Supabase-style auth stub for migrations)
+      - ./docker-init-auth.sql:/docker-entrypoint-initdb.d/00-auth-stub.sql:ro
 
   redis:
     image: redis:7-alpine

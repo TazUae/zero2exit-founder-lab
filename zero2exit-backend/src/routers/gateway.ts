@@ -163,10 +163,15 @@ export const gatewayRouter = router({
       })
 
       if (!onboarding) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'No onboarding response found. Please complete the questionnaire first.',
-        })
+        // Return 200 with empty state so the client never sees HTTP 404 for "not onboarded yet"
+        // (tRPC maps NOT_FOUND → 404, which pollutes logs, DevTools, and batch multi-status 207s).
+        return {
+          stage: null,
+          modulePlan: null,
+          moduleProgress: [] as unknown[],
+          nextEvalAt: null,
+          onboardingResponses: null,
+        }
       }
 
       const moduleProgress = await db.moduleProgress.findMany({
