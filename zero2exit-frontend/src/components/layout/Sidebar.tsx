@@ -1,79 +1,20 @@
 'use client'
 
-import { useState, useEffect, type ComponentType } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useTranslations, useLocale } from "next-intl"
+import { useState, useEffect } from "react"
+import { useLocale } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
-import { trpc } from "@/lib/trpc"
-import {
-  LayoutDashboard,
-  Lightbulb,
-  Scale,
-  MessageSquare,
-  FileText,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Zap,
-  Target,
-  Palette,
-  Lock,
-  TrendingUp,
-  Wallet,
-  Flag,
-  LayoutGrid,
-  Activity,
-} from "lucide-react"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from "@/components/ui/tooltip"
-
-const navItemsTop = [
-  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { key: "ideaValidation", href: "/dashboard/m01", icon: Lightbulb },
-  { key: "legalStructure", href: "/dashboard/m02", icon: Scale },
-  { key: "gtm", href: "/dashboard/gtm", icon: Target },
-  { key: "businessPlan", href: "/dashboard/bp", icon: FileText },
-  { key: "brand", href: "/dashboard/brand", icon: Palette },
-  { key: "core", href: "/dashboard/core", icon: LayoutGrid },
-  { key: "pulse", href: "/dashboard/pulse", icon: Activity },
-] as const
-
-const navItemsBottom = [
-  { key: "coach", href: "/dashboard/coach", icon: MessageSquare },
-  { key: "documents", href: "/dashboard/documents", icon: FileText },
-  { key: "settings", href: "/dashboard/settings", icon: Settings },
-] as const
-
-const lockedRoadmapItems = [
-  { key: "scalingStrategy", icon: TrendingUp },
-  { key: "fundraisingReadiness", icon: Wallet },
-  { key: "exitPlanning", icon: Flag },
-]
+import { Zap, ChevronLeft, ChevronRight } from "lucide-react"
+import { DashboardNavLinks } from "@/components/layout/DashboardNavLinks"
 
 export function Sidebar() {
-  const t = useTranslations("nav")
-  const pathname = usePathname()
   const locale = useLocale()
   const { sidebarOpen, setSidebarOpen } = useAppStore()
   const { user } = useAuth()
   const router = useRouter()
-  const prefix = `/${locale}`
-
-  const { data: modulePlan } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gtmDone = (modulePlan as any)?.moduleProgress?.some(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (m: any) => m.moduleId === "M03" && (m.status === "complete" || m.status === "completed")
-  ) ?? false
 
   async function handleSignOut() {
     const supabase = getSupabaseBrowserClient()
@@ -83,70 +24,6 @@ export function Sidebar() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setTimeout(() => setMounted(true), 0) }, [])
 
-  const renderNavLink = (item: {
-    key: string
-    href: string
-    icon: ComponentType<{ className?: string }>
-  }) => {
-    const Icon = item.icon
-    const href = `${prefix}${item.href}`
-    const isActive =
-      pathname.includes(item.href) && item.href !== "/dashboard"
-        ? true
-        : pathname.endsWith("/dashboard") && item.href === "/dashboard"
-
-    if (item.key === "businessPlan" && !gtmDone) {
-      return (
-        <Tooltip key={item.key}>
-          <TooltipTrigger asChild>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => e.preventDefault()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") e.preventDefault()
-              }}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                "opacity-50 cursor-not-allowed select-none text-slate-500",
-                "focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-inset"
-              )}
-              aria-disabled="true"
-            >
-              <Lock className="w-5 h-5 flex-shrink-0" />
-              {sidebarOpen && (
-                <span className="text-sm font-medium">{t(item.key)}</span>
-              )}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent
-            side="right"
-            sideOffset={8}
-            className="bg-slate-800 text-slate-200 border border-slate-700"
-          >
-            Complete your Go-To-Market strategy first
-          </TooltipContent>
-        </Tooltip>
-      )
-    }
-
-    return (
-      <Link
-        key={item.key}
-        href={href}
-        className={cn(
-          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-          isActive
-            ? "bg-emerald-500/10 text-emerald-400"
-            : "text-slate-400 hover:text-white hover:bg-slate-800"
-        )}
-      >
-        <Icon className="w-5 h-5 flex-shrink-0" />
-        {sidebarOpen && <span className="text-sm font-medium">{t(item.key)}</span>}
-      </Link>
-    )
-  }
-
   return (
     <aside
       className={cn(
@@ -154,7 +31,6 @@ export function Sidebar() {
         sidebarOpen ? "w-64" : "w-16"
       )}
     >
-      {/* Logo */}
       <div className="flex items-center gap-3 p-4 border-b border-slate-800">
         <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
           <Zap className="w-4 h-4 text-white" />
@@ -164,60 +40,12 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Navigation */}
-      <TooltipProvider delayDuration={300}>
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-subtle">
-        {navItemsTop.map((item) => renderNavLink(item))}
+      <DashboardNavLinks
+        showLabels={sidebarOpen}
+        showRoadmap={sidebarOpen}
+        className="flex-1"
+      />
 
-        {/* Roadmap: locked future stages (Core / Pulse live in main nav above) */}
-        {sidebarOpen ? (
-          <>
-            <div className="pt-3 mt-2 border-t border-slate-800">
-              <p className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">
-                {t("roadmap")}
-              </p>
-            </div>
-            {lockedRoadmapItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Tooltip key={item.key}>
-                  <TooltipTrigger asChild>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => e.preventDefault()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") e.preventDefault()
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                        "opacity-50 cursor-not-allowed select-none text-slate-500",
-                        "focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-inset"
-                      )}
-                      aria-disabled="true"
-                    >
-                      <Lock className="w-4 h-4 flex-shrink-0 text-slate-500" />
-                      <span className="text-sm font-medium">{t(item.key)}</span>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="right"
-                    sideOffset={8}
-                    className="bg-slate-800 text-slate-200 border border-slate-700"
-                  >
-                    {t("lockedStageTooltip")}
-                  </TooltipContent>
-                </Tooltip>
-              )
-            })}
-          </>
-        ) : null}
-
-        {navItemsBottom.map((item) => renderNavLink(item))}
-      </nav>
-      </TooltipProvider>
-
-      {/* Bottom: User + Toggle */}
       <div className="p-3 border-t border-slate-800 space-y-3">
         <div
           className={cn(
@@ -267,4 +95,3 @@ export function Sidebar() {
     </aside>
   )
 }
-

@@ -53,16 +53,17 @@ export function FloatingCoachButton() {
               aria-label="Open AI Coach"
               aria-expanded={open}
               className={cn(
-                "fixed bottom-6 right-6 z-[45]",
-                "flex items-center justify-center",
-                "w-14 h-14 rounded-full shadow-lg",
+                "fixed z-[45] flex items-center justify-center",
+                "bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]",
+                "right-[max(1.25rem,env(safe-area-inset-right,0px))]",
+                "h-14 w-14 rounded-full shadow-lg touch-manipulation",
                 "bg-emerald-500 hover:bg-emerald-600",
                 "border border-emerald-400/30",
                 "text-white",
                 "transition-all duration-200",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
                 "active:scale-95",
-                "md:bottom-8 md:right-8 md:w-[3.25rem] md:h-[3.25rem]"
+                "md:bottom-8 md:right-8 md:h-[3.25rem] md:w-[3.25rem]"
               )}
             >
               <Zap className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2.5} />
@@ -86,9 +87,8 @@ export function FloatingCoachButton() {
           onEscapeKeyDown={() => handleOpenChange(false)}
           onPointerDownOutside={() => handleOpenChange(false)}
           className={cn(
-            "flex flex-col p-0 gap-0 w-full sm:max-w-md md:max-w-lg",
-            "inset-y-0 right-0 h-full",
-            "border-l border-slate-800 bg-slate-950",
+            "flex h-full max-h-[100dvh] w-full flex-col gap-0 border-l border-slate-800 bg-slate-950 p-0 sm:max-w-md md:max-w-lg",
+            "pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)]",
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
           )}
         >

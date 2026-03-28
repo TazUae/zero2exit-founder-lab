@@ -16,7 +16,8 @@
     "coach": "المدرب الذكي",
     "documents": "المستندات",
     "settings": "الإعدادات",
-    "lockedStageTooltip": "متاح في مرحلة قادمة"
+    "lockedStageTooltip": "متاح في مرحلة قادمة",
+    "businessPlanLockedTooltip": "أكمل استراتيجية الوصول للسوق أولاً"
   },
   "dashboard": {
     "welcome": "مرحباً بعودتك",

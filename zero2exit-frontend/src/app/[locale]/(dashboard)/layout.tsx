@@ -1,5 +1,6 @@
 import React from "react"
 import { Sidebar } from "@/components/layout/Sidebar"
+import { MobileDashboardNav } from "@/components/layout/MobileDashboardNav"
 import { ModuleStepper } from "@/components/layout/ModuleStepper"
 import { FloatingCoachButton } from "@/components/layout/FloatingCoachButton"
 import { OpenCoachProvider } from "@/lib/open-coach-context"
@@ -12,17 +13,20 @@ export default function DashboardLayout({
 }) {
   return (
     <OpenCoachProvider>
-      <div className="flex min-h-screen w-full">
-        <div className="hidden md:flex w-64 flex-shrink-0">
+      <div className="flex min-h-[100dvh] w-full">
+        <div className="hidden w-64 shrink-0 md:flex">
           <Sidebar />
         </div>
-        <main className="flex-1 min-w-0 overflow-auto">
-          <div className="dark h-screen overflow-y-auto bg-slate-950 scrollbar-subtle">
-            <div className="sticky top-0 z-10 w-full shrink-0">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="dark flex min-h-0 flex-1 flex-col bg-slate-950">
+            <header className="sticky top-0 z-10 w-full shrink-0 bg-slate-950">
+              <MobileDashboardNav />
               <ModuleStepper />
-            </div>
-            <div className="max-w-6xl mx-auto w-full flex-1 p-8">
-              {children}
+            </header>
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain scrollbar-subtle">
+              <div className="mx-auto w-full max-w-6xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] pt-4 sm:px-6 sm:py-6 md:px-8 md:py-8 md:pb-10">
+                {children}
+              </div>
             </div>
           </div>
         </main>

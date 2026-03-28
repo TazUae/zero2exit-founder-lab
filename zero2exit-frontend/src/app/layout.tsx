@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import React from "react"
 import "./globals.css"
@@ -9,6 +9,13 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Zero2Exit — Founder Operating System",
   description: "AI-powered startup platform for MENA founders",
+}
+
+/** Enables env(safe-area-inset-*) on notched phones when paired with CSS insets. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 }
 
 // Runs synchronously in <head> before any JS chunk loading begins.

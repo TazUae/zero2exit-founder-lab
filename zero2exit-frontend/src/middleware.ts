@@ -23,6 +23,14 @@ const PROTECTED_PATHS = [
   '/knowledge',
 ]
 
+/** Short aliases /en/core and /en/pulse (must not use pathname.includes('/core') — that would match …/dashboard/core). */
+const SHORT_PROTECTED = /^\/(en|ar)\/(core|pulse)(\/|$)/
+
+function isProtectedPath(pathname: string): boolean {
+  if (PROTECTED_PATHS.some((p) => pathname.includes(p))) return true
+  return SHORT_PROTECTED.test(pathname)
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -41,7 +49,7 @@ export async function middleware(request: NextRequest) {
   // forwarded onto whichever response we ultimately return.
   const { response: supabaseResponse, user } = await updateSession(request)
 
-  const isProtected = PROTECTED_PATHS.some((p) => pathname.includes(p))
+  const isProtected = isProtectedPath(pathname)
 
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1b4d56'},body:JSON.stringify({sessionId:'1b4d56',runId:'pre-fix',hypothesisId:'A',location:'middleware.ts:post-session',message:'middleware path + auth + protected',data:{pathname,hasUser:!!user,isProtected},timestamp:Date.now()})}).catch(()=>{});

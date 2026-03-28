@@ -16,7 +16,8 @@
     "coach": "AI Coach",
     "documents": "Documents",
     "settings": "Settings",
-    "lockedStageTooltip": "Available in a future stage"
+    "lockedStageTooltip": "Available in a future stage",
+    "businessPlanLockedTooltip": "Complete your Go-To-Market strategy first"
   },
   "dashboard": {
     "welcome": "Welcome back",

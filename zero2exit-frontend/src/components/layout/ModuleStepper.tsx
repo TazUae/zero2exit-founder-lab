@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useLocale } from "next-intl"
 import { Check, Circle, Lock } from "lucide-react"
 import { trpc } from "@/lib/trpc"
+import { cn } from "@/lib/utils"
 import {
   STAGES,
   getFounderStage,
@@ -20,6 +21,10 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip"
 
+function moduleDone(m: { status?: string } | undefined): boolean {
+  return m?.status === "complete" || m?.status === "completed"
+}
+
 function buildProgress(
   m01Data: unknown,
   modulePlanData: { moduleProgress?: Array<{ moduleId: string; status?: string }> } | null | undefined
@@ -29,19 +34,17 @@ function buildProgress(
 
   const m02 = moduleProgress.find((m) => m.moduleId === "M02")
   const m03 = moduleProgress.find((m) => m.moduleId === "M03")
+  const m04 = moduleProgress.find((m) => m.moduleId === "M04")
   const m06 = moduleProgress.find((m) => m.moduleId === "M06")
-  const m02Done = m02?.status === "complete" || m02?.status === "completed"
-  const m03Done = m03?.status === "complete" || m03?.status === "completed"
-  const m06Done = m06?.status === "complete" || m06?.status === "completed"
 
   return {
     ideaValidationComplete: !!iv?.scorecard,
     marketSizingComplete: !!iv?.marketSizing,
     icpProfilesComplete: !!iv?.icpProfiles,
-    legalStructureComplete: m02Done,
-    gtmComplete: m03Done,
-    bpComplete: m06Done,
-    brandingComplete: false,
+    legalStructureComplete: moduleDone(m02),
+    gtmComplete: moduleDone(m03),
+    bpComplete: moduleDone(m06),
+    brandingComplete: moduleDone(m04),
   }
 }
 
@@ -51,18 +54,12 @@ export function ModuleStepper() {
   const prefix = `/${locale}`
   const activeStageRef = useRef<HTMLDivElement | null>(null)
 
-  // Temporary placeholders so the app can build without backend routers.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m01Data: any = null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const modulePlanData: any = null
+  const { data: m01Data } = trpc.m01.getState.useQuery(undefined, { retry: false })
+  const { data: modulePlanData } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
 
-  // tRPC inferred return type is excessively deep — narrow to unknown before useMemo
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m01DataNarrow = m01Data as any
   const progress: Partial<FounderProgress> = useMemo(
-    () => buildProgress(m01DataNarrow, modulePlanData),
-    [m01DataNarrow, modulePlanData]
+    () => buildProgress(m01Data, modulePlanData),
+    [m01Data, modulePlanData]
   ) as Partial<FounderProgress>
 
   const progressStageId = getFounderStage(progress)
@@ -115,11 +112,12 @@ export function ModuleStepper() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] leading-tight whitespace-nowrap opacity-50 cursor-default select-none text-slate-500"
+                      className="flex min-h-[44px] touch-manipulation items-center gap-0.5 rounded px-2 py-1 text-[10px] leading-tight whitespace-nowrap text-slate-500 opacity-50 select-none md:min-h-0 md:px-1.5 md:py-0.5 md:text-[9px]"
                       aria-disabled="true"
                       role="status"
+                      title={lockedTooltip}
                     >
-                      <Lock className="h-2 w-2 shrink-0" />
+                      <Lock className="h-3 w-3 shrink-0 md:h-2 md:w-2" />
                       {stage.label}
                     </span>
                   </TooltipTrigger>
@@ -140,21 +138,22 @@ export function ModuleStepper() {
           const pillContent = (
             <>
               {completed ? (
-                <Check className="h-2 w-2 shrink-0" aria-hidden />
+                <Check className="h-3 w-3 shrink-0 md:h-2 md:w-2" aria-hidden />
               ) : (
-                <Circle className="h-2 w-2 shrink-0" aria-hidden />
+                <Circle className="h-3 w-3 shrink-0 md:h-2 md:w-2" aria-hidden />
               )}
               {stage.label}
             </>
           )
 
-          const pillClass = `flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] leading-tight whitespace-nowrap transition-colors ${
+          const pillClass = cn(
+            "flex min-h-[44px] touch-manipulation items-center gap-0.5 rounded px-2 py-1 text-[10px] leading-tight whitespace-nowrap transition-colors md:min-h-0 md:px-1.5 md:py-0.5 md:text-[9px]",
             completed
-              ? "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+              ? "cursor-pointer text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
               : isActive
-                ? "bg-white/10 font-semibold text-white hover:bg-white/20 cursor-pointer"
-                : "text-slate-500 cursor-default"
-          }`
+                ? "cursor-pointer bg-white/10 font-semibold text-white hover:bg-white/20"
+                : "cursor-default text-slate-500"
+          )
 
           return (
             <div
