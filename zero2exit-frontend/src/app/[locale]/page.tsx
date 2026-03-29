@@ -48,7 +48,7 @@ export default async function HomePage({
 
   return (
     <div
-      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} landing-noise bg-gradient-to-b from-[#0B1437] via-[#0B1437] to-[#070f2e] text-z-text font-body relative overflow-hidden`}
+      className={`${playfair.variable} ${dmSans.variable} ${dmMono.variable} landing-noise bg-gradient-to-b from-[#0B1437] via-[#0B1437] to-[#070f2e] text-z-text font-body relative overflow-x-hidden`}
       style={{ scrollBehavior: "smooth" }}
     >
       {/* Global background lighting behind hero and sections */}

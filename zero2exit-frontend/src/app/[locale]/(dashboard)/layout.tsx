@@ -23,7 +23,10 @@ export default function DashboardLayout({
               <MobileDashboardNav />
               <ModuleStepper />
             </header>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain scrollbar-subtle">
+            <div
+              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain scrollbar-subtle"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
               <div className="mx-auto w-full max-w-6xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] pt-4 sm:px-6 sm:py-6 md:px-8 md:py-8 md:pb-10">
                 {children}
               </div>

@@ -150,7 +150,10 @@ export function DashboardNavLinks({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <nav className={cn("p-2 space-y-1 overflow-y-auto scrollbar-subtle", className)}>
+      <nav
+        className={cn("p-2 space-y-1 overflow-y-auto scrollbar-subtle", className)}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {navItemsTop.map((item) => renderNavLink(item))}
 
         {showRoadmap && showLabels ? (
