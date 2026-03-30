@@ -270,6 +270,22 @@ export function IdeaValidationWorkspace() {
   const { data: state, isLoading: isStateLoading, isFetching: isStateFetching, error: stateError } = trpc.m01.getState.useQuery()
   const { data: planData } = trpc.gateway.getModulePlan.useQuery(undefined, { retry: false })
 
+  // Prevent mobile scroll bleed-through when the insight panel is open.
+  useEffect(() => {
+    if (selectedInsight) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [selectedInsight])
+
   useEffect(() => {
     const ideaValidation = state?.ideaValidation as
       | { businessDescription?: string }
@@ -1211,7 +1227,7 @@ export function IdeaValidationWorkspace() {
 
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-200 ${
+        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm touch-none transition-opacity duration-200 ${
           selectedInsight
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
