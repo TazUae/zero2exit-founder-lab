@@ -1,9 +1,10 @@
 import Link from "next/link"
 import { RevealOnScroll } from "./RevealOnScroll"
+import { FadeUpSection } from "../motion/primitives"
 
 export function CTA() {
   return (
-    <section className="text-center py-24 relative overflow-hidden">
+    <FadeUpSection className="text-center py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(201,168,76,0.08)_0%,transparent_70%)]" />
       <RevealOnScroll className="relative max-w-7xl mx-auto px-6">
         <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-z-white max-w-[800px] mx-auto mb-6 leading-tight">
@@ -24,6 +25,6 @@ export function CTA() {
           Trusted by founders across MENA · Available in Arabic &amp; English
         </div>
       </RevealOnScroll>
-    </section>
+    </FadeUpSection>
   )
 }

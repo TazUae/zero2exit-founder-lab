@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { FadeUpSection } from "../motion/primitives"
 import {
   Bar,
   BarChart,
@@ -165,7 +166,7 @@ export function CorePage() {
 
   return (
     <div className="space-y-12 pb-16">
-      <section className="space-y-6">
+      <FadeUpSection className="space-y-6">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-400/90">
           Introducing CORE
         </p>
@@ -205,9 +206,9 @@ export function CorePage() {
             {t("exploreFeatures")}
           </Button>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <FadeUpSection className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
           { value: "7", label: "Core Modules" },
           { value: "1", label: "Platform" },
@@ -220,9 +221,9 @@ export function CorePage() {
             <p className="text-3xl font-bold text-white tabular-nums">{s.value}</p>
           </div>
         ))}
-      </section>
+      </FadeUpSection>
 
-      <section className="space-y-3">
+      <FadeUpSection className="space-y-3">
         <p className="text-xs text-slate-500 uppercase tracking-wider">Jump to module</p>
         <div className="flex flex-wrap gap-2">
           {MODULES.map((m) => (
@@ -251,9 +252,9 @@ export function CorePage() {
             <span className="hidden sm:inline">Budget &amp; Gap Analysis</span>
           </button>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section id="platform-modules" className="scroll-mt-8 space-y-4">
+      <FadeUpSection id="platform-modules" className="scroll-mt-8 space-y-4">
         <h2 className="text-xl font-semibold text-white">Platform Modules</h2>
         <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
           Everything your business needs. Nothing it doesn&apos;t.
@@ -262,7 +263,7 @@ export function CorePage() {
           Seven fully integrated modules replacing the fragmented stack of tools founders spend $50K+
           on before generating their first dollar.
         </p>
-      </section>
+      </FadeUpSection>
 
       <div className="space-y-6">
         {MODULES.map((m) => (
@@ -289,7 +290,7 @@ export function CorePage() {
         ))}
       </div>
 
-      <section id="module-07" className={cn("scroll-mt-8 space-y-6 p-5 sm:p-6", card)}>
+      <FadeUpSection id="module-07" className={cn("scroll-mt-8 space-y-6 p-5 sm:p-6", card)}>
         <div className="space-y-2">
           <h3 className="text-lg font-semibold text-white">
             <span className="font-mono text-emerald-400/90 mr-2">07</span>
@@ -468,9 +469,9 @@ export function CorePage() {
             </div>
           </div>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className="space-y-6">
+      <FadeUpSection className="space-y-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-white">Part of Axis</h2>
           <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
@@ -502,9 +503,9 @@ export function CorePage() {
             </div>
           ))}
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section
+      <FadeUpSection
         id="early-access"
         className={cn("scroll-mt-8 space-y-4 p-6 sm:p-8 text-center", card)}
       >
@@ -525,7 +526,7 @@ export function CorePage() {
         <p className="text-xs text-slate-600 max-w-md mx-auto">
           {t("earlyAccessDisclaimer")}
         </p>
-      </section>
+      </FadeUpSection>
     </div>
   )
 }

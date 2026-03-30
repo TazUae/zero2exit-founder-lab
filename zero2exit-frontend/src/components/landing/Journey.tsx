@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { RevealOnScroll } from "./RevealOnScroll"
+import { FadeUpSection } from "../motion/primitives"
 
 const steps = [
   { icon: "🧭", label: "Onboarding\nGateway", tag: "MANDATORY", tagStyle: "bg-[rgba(62,207,142,0.12)] text-z-green" },
@@ -17,7 +18,7 @@ export function Journey() {
   const [activeStep, setActiveStep] = useState(1)
 
   return (
-    <section id="journey" className="py-24">
+    <FadeUpSection id="journey" className="py-24">
       <RevealOnScroll className="max-w-7xl mx-auto px-6">
         <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
           The Founder Journey
@@ -58,6 +59,6 @@ export function Journey() {
           ))}
         </div>
       </RevealOnScroll>
-    </section>
+    </FadeUpSection>
   )
 }

@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { FadeUpSection } from "../motion/primitives"
 
 const card = "rounded-xl border border-slate-800 bg-slate-900"
 const pill =
@@ -195,7 +196,7 @@ export function PulsePage() {
 
   return (
     <div className="space-y-12 pb-16">
-      <section className="space-y-6">
+      <FadeUpSection className="space-y-6">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-violet-400/90">
           Introducing PULSE
         </p>
@@ -235,9 +236,9 @@ export function PulsePage() {
             {t("seeHowItWorks")}
           </Button>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className={cn("p-5 sm:p-6 space-y-4 border-violet-500/20", card)}>
+      <FadeUpSection className={cn("p-5 sm:p-6 space-y-4 border-violet-500/20", card)}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-violet-400" />
@@ -271,9 +272,9 @@ export function PulsePage() {
           </p>
         </div>
         <p className="text-xs text-slate-500">Updated 4 min ago</p>
-      </section>
+      </FadeUpSection>
 
-      <section id="pulse-loop" className="scroll-mt-8 space-y-6">
+      <FadeUpSection id="pulse-loop" className="scroll-mt-8 space-y-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-white">The PULSE Loop</h2>
           <p className="text-sm font-medium text-slate-300">Five steps. Always running.</p>
@@ -301,9 +302,9 @@ export function PulsePage() {
             </article>
           ))}
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className="space-y-6">
+      <FadeUpSection className="space-y-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-white">Proactive Coaching</h2>
           <p className="text-sm font-medium text-slate-300">
@@ -355,9 +356,9 @@ export function PulsePage() {
             </p>
           </div>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section id="pulse-feed" className="scroll-mt-8 space-y-4">
+      <FadeUpSection id="pulse-feed" className="scroll-mt-8 space-y-4">
         <h2 className="text-xl font-semibold text-white">Live PULSE Feed — Today</h2>
         <div className="space-y-4">
           {FEED_ITEMS.map((item) => (
@@ -385,9 +386,9 @@ export function PulsePage() {
             </article>
           ))}
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section id="what-pulse-tracks" className="scroll-mt-8 space-y-6">
+      <FadeUpSection id="what-pulse-tracks" className="scroll-mt-8 space-y-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-white">What PULSE Tracks</h2>
           <p className="text-sm font-medium text-slate-300">
@@ -418,9 +419,9 @@ export function PulsePage() {
             </div>
           ))}
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className={cn("p-5 sm:p-6 space-y-6", card)}>
+      <FadeUpSection className={cn("p-5 sm:p-6 space-y-6", card)}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-violet-300 mb-1">
@@ -453,9 +454,9 @@ export function PulsePage() {
             </p>
           </div>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className="space-y-6">
+      <FadeUpSection className="space-y-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-white">The Destination</h2>
           <p className="text-sm font-medium text-slate-300">
@@ -501,9 +502,9 @@ export function PulsePage() {
             </p>
           </div>
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section className={cn("p-5 sm:p-6 space-y-6", card)}>
+      <FadeUpSection className={cn("p-5 sm:p-6 space-y-6", card)}>
         <div className="space-y-2 text-center max-w-xl mx-auto">
           <h2 className="text-xl font-semibold text-white">Always On</h2>
           <p className="text-sm font-medium text-slate-300">PULSE never stops running.</p>
@@ -530,9 +531,9 @@ export function PulsePage() {
             </div>
           ))}
         </div>
-      </section>
+      </FadeUpSection>
 
-      <section
+      <FadeUpSection
         id="early-access"
         className={cn("scroll-mt-8 space-y-4 p-6 sm:p-8 text-center", card)}
       >
@@ -551,7 +552,7 @@ export function PulsePage() {
         <p className="text-xs text-slate-600 max-w-md mx-auto">
           {t("earlyAccessDisclaimer")}
         </p>
-      </section>
+      </FadeUpSection>
     </div>
   )
 }

@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Loader2, RefreshCw, Sparkles, Save, FileDown, FileText } from "lucide-react"
+import { FadeUpSection } from "@/components/motion/primitives"
 
 type GtmSectionKey =
   | "product_overview"
@@ -1045,7 +1046,7 @@ function GtmPreview({
               : undefined
 
             return (
-              <section key={s.id} className="space-y-2">
+              <FadeUpSection key={s.id} className="space-y-2">
                 <h3 className="text-sm font-semibold text-white tracking-tight">
                   <span className="text-slate-500 mr-2">
                     {String(idx + 1).padStart(2, "0")}.
@@ -1066,7 +1067,7 @@ function GtmPreview({
                     </ul>
                   )}
                 </div>
-              </section>
+              </FadeUpSection>
             )
           })
         )}

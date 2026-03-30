@@ -1,4 +1,5 @@
 import { RevealOnScroll } from "./RevealOnScroll"
+import { FadeUpSection } from "../motion/primitives"
 
 const cards = [
   { icon: "🤖", title: "AI-First UX", desc: "Every major output includes an AI explanation. Raw data is never shown without narrative context. The AI Coach is always one click away." },
@@ -11,7 +12,7 @@ const cards = [
 
 export function DesignSystem() {
   return (
-    <section className="py-24">
+    <FadeUpSection className="py-24">
       <RevealOnScroll className="max-w-7xl mx-auto px-6">
         <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
           Platform Experience
@@ -36,6 +37,6 @@ export function DesignSystem() {
           ))}
         </div>
       </RevealOnScroll>
-    </section>
+    </FadeUpSection>
   )
 }

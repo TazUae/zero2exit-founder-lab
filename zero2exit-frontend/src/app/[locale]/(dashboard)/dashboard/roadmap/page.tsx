@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/lib/trpc"
+import { FadeUpSection } from "@/components/motion/primitives"
 
 export default function DashboardRoadmapPage() {
   const [ideaDescription, setIdeaDescription] = useState("")
@@ -308,14 +309,14 @@ export default function DashboardRoadmapPage() {
               </div>
             </div>
 
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Idea Summary</h2>
               <p className="text-slate-300">
                 {result?.roadmap?.ideaSummary ?? ""}
               </p>
-            </section>
+            </FadeUpSection>
 
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Validation</h2>
               <p className="text-slate-300">
                 Validation score:{" "}
@@ -337,9 +338,9 @@ export default function DashboardRoadmapPage() {
                     </ul>
                   </div>
                 )}
-            </section>
+            </FadeUpSection>
 
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">
                 Market Opportunity
               </h2>
@@ -359,9 +360,9 @@ export default function DashboardRoadmapPage() {
                     </ul>
                   </div>
                 )}
-            </section>
+            </FadeUpSection>
 
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Market Size</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
@@ -383,9 +384,9 @@ export default function DashboardRoadmapPage() {
                   </pre>
                 </div>
               </div>
-            </section>
+            </FadeUpSection>
 
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">ICP Profiles</h2>
                 {Array.isArray(result?.roadmap?.icpProfiles) &&
               (result?.roadmap?.icpProfiles?.length ?? 0) > 0 ? (
@@ -445,10 +446,10 @@ export default function DashboardRoadmapPage() {
                   No ICP profiles generated yet.
                 </p>
               )}
-            </section>
+            </FadeUpSection>
 
             {result?.roadmap?.legalSetup && (
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Legal Setup</h2>
               {result?.roadmap?.legalSetup?.recommendedStructure && (
               <p className="text-sm text-slate-300">
@@ -483,11 +484,11 @@ export default function DashboardRoadmapPage() {
                 </p>
                 )}
               </div>
-            </section>
+            </FadeUpSection>
             )}
 
             {result?.roadmap?.gtmPlan && (
-            <section className="space-y-2">
+            <FadeUpSection className="space-y-2">
               <h2 className="text-lg font-semibold text-white">GTM Plan</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="space-y-1">
@@ -538,7 +539,7 @@ export default function DashboardRoadmapPage() {
                     </ul>
                   </div>
                 )}
-            </section>
+            </FadeUpSection>
             )}
           </CardContent>
         </Card>

@@ -64,3 +64,18 @@ export function StaggerItem({ children, className, ...props }: MotionWrapperProp
   )
 }
 
+export function FadeUpSection({ children, className, ...props }: MotionWrapperProps) {
+  return (
+    <motion.section
+      className={className}
+      variants={fadeUpVariants}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.2 }}
+      {...props}
+    >
+      {children}
+    </motion.section>
+  )
+}
+

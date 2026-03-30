@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { RevealOnScroll } from "./RevealOnScroll"
-import { FadeUp, StaggerContainer, StaggerItem } from "../motion/primitives"
+import { FadeUp, StaggerContainer, StaggerItem, FadeUpSection } from "../motion/primitives"
 
 interface Feature {
   icon: string
@@ -354,7 +354,7 @@ export function Modules() {
   const [activeTab, setActiveTab] = useState(0)
 
   return (
-    <section id="modules" className="py-28">
+    <FadeUpSection id="modules" className="py-28">
       <RevealOnScroll className="max-w-7xl mx-auto px-6">
         <FadeUp>
           <div className="font-code text-[11px] font-bold tracking-[2.5px] uppercase text-z-gold mb-4">
@@ -451,6 +451,6 @@ export function Modules() {
           </div>
         ))}
       </RevealOnScroll>
-    </section>
+    </FadeUpSection>
   )
 }
