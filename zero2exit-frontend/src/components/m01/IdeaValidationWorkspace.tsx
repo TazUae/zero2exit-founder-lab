@@ -275,16 +275,52 @@ export function IdeaValidationWorkspace() {
     if (selectedInsight) {
       document.body.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dca182'},body:JSON.stringify({sessionId:'dca182',runId:'pre-fix',hypothesisId:'H1_touchLock',location:'IdeaValidationWorkspace.tsx:276',message:'applied touch/scroll lock (selectedInsight truthy)',data:{overflowAfter:document.body.style.overflow,touchActionAfter:document.body.style.touchAction},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     } else {
       document.body.style.overflow = ''
       document.body.style.touchAction = ''
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dca182'},body:JSON.stringify({sessionId:'dca182',runId:'pre-fix',hypothesisId:'H1_touchLock',location:'IdeaValidationWorkspace.tsx:280',message:'restored touch/scroll (selectedInsight falsy)',data:{overflowAfter:document.body.style.overflow,touchActionAfter:document.body.style.touchAction},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dca182'},body:JSON.stringify({sessionId:'dca182',runId:'pre-fix',hypothesisId:'H2_selectedInsightPersistence',location:'IdeaValidationWorkspace.tsx:282',message:'selectedInsight effect ran',data:{hasSelectedInsight:!!selectedInsight,overflowNow:document.body.style.overflow,touchActionNow:document.body.style.touchAction},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    const scrollingEl = document.scrollingElement
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dca182'},body:JSON.stringify({sessionId:'dca182',runId:'pre-fix',hypothesisId:'H4_scrollableElementLocked',location:'IdeaValidationWorkspace.tsx:284',message:'scrollable element metrics',data:{scrollingElTag:scrollingEl?.tagName??null,scrollingElOverflowY:scrollingEl?getComputedStyle(scrollingEl).overflowY:null,scrollingElClientHeight:scrollingEl?.clientHeight??null,scrollingElScrollHeight:scrollingEl?.scrollHeight??null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     return () => {
+      const overflowBefore = document.body.style.overflow
+      const touchActionBefore = document.body.style.touchAction
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dca182'},body:JSON.stringify({sessionId:'dca182',runId:'pre-fix',hypothesisId:'H1_touchLock',location:'IdeaValidationWorkspace.tsx:286',message:'cleanup restoring styles',data:{overflowBefore,touchActionBefore},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       document.body.style.overflow = ''
       document.body.style.touchAction = ''
     }
   }, [selectedInsight])
+
+  useEffect(() => {
+    // #region agent log
+    let touchmoveLogCount = 0
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchmoveLogCount >= 3) return
+      touchmoveLogCount += 1
+      fetch('http://127.0.0.1:7242/ingest/3f255ac6-bdb8-4cd9-9998-c369c51034d1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dca182'},body:JSON.stringify({sessionId:'dca182',runId:'pre-fix',hypothesisId:'H3_touchmovePrevented',location:'IdeaValidationWorkspace.tsx:302',message:'touchmove fired (defaultPrevented?)',data:{defaultPrevented:e.defaultPrevented,touchCount:e.touches?.length??0,clientY:e.touches?.[0]?.clientY??null},timestamp:Date.now()})}).catch(()=>{});
+    }
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove as EventListener)
+    }
+    // #endregion
+  }, [])
 
   useEffect(() => {
     const ideaValidation = state?.ideaValidation as
